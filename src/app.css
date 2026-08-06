@@ -22,6 +22,16 @@ body {
   background: --alpha(var(--color-emerald-600) / 22%);
 }
 
+/* Svelte transitions compile to CSS animations, so this covers them too. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 /* Editor blocks are set via innerHTML, so their styles cannot be component-scoped. */
 @layer components {
   .md-block {

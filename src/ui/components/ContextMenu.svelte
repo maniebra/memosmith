@@ -16,6 +16,8 @@
 </script>
 
 <script lang="ts">
+  import { cubicOut } from "svelte/easing";
+  import { scale } from "svelte/transition";
   import { cn } from "../../lib/utils/cn";
 
   export let x = 0;
@@ -59,9 +61,10 @@
 
 <div
   class="fixed z-[80] w-48 rounded-xl border border-stone-200/80 bg-stone-50/95 p-1.5 shadow-lg shadow-stone-900/8 backdrop-blur dark:border-stone-700/80 dark:bg-stone-900/95 dark:shadow-black/20"
-  style="left: {left}px; top: {top}px;"
+  style="left: {left}px; top: {top}px; transform-origin: top left;"
   role="menu"
   tabindex="-1"
+  in:scale={{ start: 0.96, duration: 110, easing: cubicOut }}
 >
   {#each items as item}
     {#if item.separator}

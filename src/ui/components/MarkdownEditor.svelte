@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { cubicOut } from "svelte/easing";
+  import { scale } from "svelte/transition";
   import { cn } from "../../lib/utils/cn";
   import ContextMenu, { type ContextMenuItem } from "./ContextMenu.svelte";
   import {
@@ -642,7 +644,8 @@
 {#if slashStart !== null && matches.length}
   <ul
     class="fixed z-50 max-h-72 w-64 overflow-y-auto rounded-xl border border-stone-200 bg-white/95 p-1 shadow-xl shadow-stone-900/10 backdrop-blur dark:border-stone-700 dark:bg-stone-900/95 dark:shadow-black/40"
-    style="top: {menuPosition.top}px; left: {menuPosition.left}px;"
+    style="top: {menuPosition.top}px; left: {menuPosition.left}px; transform-origin: top left;"
+    in:scale={{ start: 0.96, duration: 110, easing: cubicOut }}
     role="listbox"
     aria-label="Block commands"
   >

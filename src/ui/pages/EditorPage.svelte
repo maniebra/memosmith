@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onDestroy, onMount } from "svelte";
+  import { cubicOut } from "svelte/easing";
+  import { slide } from "svelte/transition";
   import { defaultSettings, loadSettings, saveSettings } from "../../lib/storage/settings";
   import { loadSpaceRoot, saveSpaceRoot } from "../../lib/storage/space";
   import {
@@ -29,6 +31,11 @@
   const appTitle = "MemoSmith";
   const paneMinWidth = 180;
   const paneMaxWidth = 480;
+  const paneSlide = {
+    axis: "x" as const,
+    easing: cubicOut,
+    duration: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 200,
+  };
 
   let path: string | null = null;
   let spaceRoot = loadSpaceRoot();
@@ -146,6 +153,10 @@
 
   function updateSettings(nextSettings: typeof settings) {
     settings = nextSettings;
+  }
+
+  function toggleSpacePane() {
+    settings = { ...settings, spacePaneOpen: !settings.spacePaneOpen };
   }
 
   function clampPaneWidth(width: number) {
@@ -352,6 +363,11 @@
       event.preventDefault();
       settingsOpen = !settingsOpen;
     }
+
+    if (event.key.toLowerCase() === "b") {
+      event.preventDefault();
+      toggleSpacePane();
+    }
   }
 
   runWithStatus(refreshSpace);
@@ -394,31 +410,37 @@
     title={appTitle}
     {fileLabel}
     {isDirty}
+    spacePaneOpen={settings.spacePaneOpen}
+    onToggleSpacePane={toggleSpacePane}
     onToggleSettings={() => (settingsOpen = !settingsOpen)}
   />
 
   <div class="flex min-h-0 min-w-0">
-    <SpaceSidebar
-      width={settings.spacePaneWidth}
-      root={spaceRoot}
-      notes={spaceNotes}
-      activePath={activeRelativePath}
-      onChooseSpace={() => runWithStatus(chooseSpace)}
-      onRefresh={() => runWithStatus(refreshSpace)}
-      onSelect={(relativePath) => runWithStatus(() => selectSpaceNote(relativePath))}
-      onCreate={(parentPath, name, folder) => runWithStatus(() => createSpaceNote(parentPath, name, folder))}
-      onRename={(relativePath, name) => runWithStatus(() => renameSpaceEntry(relativePath, name))}
-      onDelete={(relativePath) => runWithStatus(() => deleteSpaceEntry(relativePath))}
-    />
+    {#if settings.spacePaneOpen}
+      <div class="flex min-h-0 shrink-0" transition:slide={paneSlide}>
+        <SpaceSidebar
+          width={settings.spacePaneWidth}
+          root={spaceRoot}
+          notes={spaceNotes}
+          activePath={activeRelativePath}
+          onChooseSpace={() => runWithStatus(chooseSpace)}
+          onRefresh={() => runWithStatus(refreshSpace)}
+          onSelect={(relativePath) => runWithStatus(() => selectSpaceNote(relativePath))}
+          onCreate={(parentPath, name, folder) => runWithStatus(() => createSpaceNote(parentPath, name, folder))}
+          onRename={(relativePath, name) => runWithStatus(() => renameSpaceEntry(relativePath, name))}
+          onDelete={(relativePath) => runWithStatus(() => deleteSpaceEntry(relativePath))}
+        />
 
-    <button
-      type="button"
-      class="z-10 w-1.5 shrink-0 cursor-col-resize bg-transparent transition-colors hover:bg-emerald-600/20 focus-visible:bg-emerald-600/20 focus-visible:outline-none"
-      aria-label="Resize space pane"
-      title="Resize space pane"
-      onpointerdown={(event) => startResize(event, "space")}
-      onkeydown={(event) => resizeWithKeyboard(event, "space")}
-    ></button>
+        <button
+          type="button"
+          class="z-10 w-1.5 shrink-0 cursor-col-resize bg-transparent transition-colors hover:bg-emerald-600/20 focus-visible:bg-emerald-600/20 focus-visible:outline-none"
+          aria-label="Resize space pane"
+          title="Resize space pane"
+          onpointerdown={(event) => startResize(event, "space")}
+          onkeydown={(event) => resizeWithKeyboard(event, "space")}
+        ></button>
+      </div>
+    {/if}
 
     <div class="min-w-0 flex-1">
       <NoteEditorForm
@@ -437,21 +459,23 @@
     </div>
 
     {#if settingsOpen}
-      <button
-        type="button"
-        class="z-10 w-1.5 shrink-0 cursor-col-resize bg-transparent transition-colors hover:bg-emerald-600/20 focus-visible:bg-emerald-600/20 focus-visible:outline-none"
-        aria-label="Resize settings panel"
-        title="Resize settings panel"
-        onpointerdown={(event) => startResize(event, "settings")}
-        onkeydown={(event) => resizeWithKeyboard(event, "settings")}
-      ></button>
-      <SettingsPanel
-        width={settings.settingsPaneWidth}
-        {settings}
-        onClose={() => (settingsOpen = false)}
-        onReset={resetSettings}
-        onChange={updateSettings}
-      />
+      <div class="flex min-h-0 shrink-0" transition:slide={paneSlide}>
+        <button
+          type="button"
+          class="z-10 w-1.5 shrink-0 cursor-col-resize bg-transparent transition-colors hover:bg-emerald-600/20 focus-visible:bg-emerald-600/20 focus-visible:outline-none"
+          aria-label="Resize settings panel"
+          title="Resize settings panel"
+          onpointerdown={(event) => startResize(event, "settings")}
+          onkeydown={(event) => resizeWithKeyboard(event, "settings")}
+        ></button>
+        <SettingsPanel
+          width={settings.settingsPaneWidth}
+          {settings}
+          onClose={() => (settingsOpen = false)}
+          onReset={resetSettings}
+          onChange={updateSettings}
+        />
+      </div>
     {/if}
   </div>
 

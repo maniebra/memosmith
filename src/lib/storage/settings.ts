@@ -12,6 +12,7 @@ export type AppSettings = {
   showPageTitle: boolean;
   spacePaneWidth: number;
   settingsPaneWidth: number;
+  spacePaneOpen: boolean;
 };
 
 export const defaultSettings: AppSettings = {
@@ -23,6 +24,7 @@ export const defaultSettings: AppSettings = {
   showPageTitle: true,
   spacePaneWidth: 240,
   settingsPaneWidth: 320,
+  spacePaneOpen: true,
 };
 
 function isThemePreference(value: unknown): value is ThemePreference {
@@ -74,6 +76,8 @@ export function loadSettings(): AppSettings {
         typeof parsed.showPageTitle === "boolean" ? parsed.showPageTitle : defaultSettings.showPageTitle,
       spacePaneWidth: clampPaneWidth(parsed.spacePaneWidth, defaultSettings.spacePaneWidth),
       settingsPaneWidth: clampPaneWidth(parsed.settingsPaneWidth, defaultSettings.settingsPaneWidth),
+      spacePaneOpen:
+        typeof parsed.spacePaneOpen === "boolean" ? parsed.spacePaneOpen : defaultSettings.spacePaneOpen,
     };
   } catch {
     return { ...defaultSettings };
