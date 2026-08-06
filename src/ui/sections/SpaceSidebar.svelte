@@ -46,6 +46,10 @@
     creatingFolder = folder;
   }
 
+  function startRootFolder() {
+    startCreate("", true);
+  }
+
   function commitRename(relativePath: string, name: string) {
     cancelEdit();
     onRename(relativePath, name);
@@ -80,11 +84,13 @@
       },
       {
         label: "Add folder",
-        onSelect: () => startCreate("", true),
+        shortcut: "Ctrl Shift N",
+        onSelect: startRootFolder,
       },
       { separator: true },
       {
         label: "Refresh",
+        shortcut: "Ctrl R",
         onSelect: onRefresh,
       },
       {
@@ -93,7 +99,29 @@
       },
     ];
   }
+
+  function handleShortcut(event: KeyboardEvent) {
+    const isPrimaryShortcut = event.ctrlKey || event.metaKey;
+
+    if (!root || !isPrimaryShortcut) {
+      return;
+    }
+
+    if (event.key.toLowerCase() === "r") {
+      event.preventDefault();
+      contextMenu = null;
+      onRefresh();
+    }
+
+    if (event.shiftKey && event.key.toLowerCase() === "n") {
+      event.preventDefault();
+      contextMenu = null;
+      startRootFolder();
+    }
+  }
 </script>
+
+<svelte:window onkeydown={handleShortcut} />
 
 <aside
   class="flex min-h-0 shrink-0 flex-col border-r border-stone-200/70 bg-stone-100/50 dark:border-stone-800 dark:bg-stone-900/40"
@@ -101,15 +129,17 @@
   aria-label="Space"
 >
   <div class="flex h-12 shrink-0 items-center gap-1 border-b border-stone-200/70 px-2 dark:border-stone-800">
-    <span class="min-w-0 flex-1 truncate px-1 text-xs font-semibold tracking-wide text-stone-500 uppercase">
+    <button
+      type="button"
+      class="min-w-0 flex-1 truncate rounded-md px-1 py-1 text-left text-xs font-semibold tracking-wide text-stone-500 uppercase hover:bg-stone-500/10 hover:text-stone-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 dark:hover:text-stone-300"
+      title={root ? "Change space" : "Choose space"}
+      onclick={onChooseSpace}
+    >
       {root ? basename(root) : "No space"}
-    </span>
+    </button>
     {#if root}
       <Button label="+" onClick={() => startCreate("")} variant="ghost" size="sm" className="px-2" />
-      <Button label="+▸" onClick={() => startCreate("", true)} variant="ghost" size="sm" className="px-2" />
-      <Button label="↻" onClick={onRefresh} variant="ghost" size="sm" className="px-2" />
     {/if}
-    <Button label="Space…" onClick={onChooseSpace} variant="ghost" size="sm" />
   </div>
 
   <div class="min-h-0 flex-1 overflow-y-auto p-1.5" role="presentation" oncontextmenu={openContextMenu}>

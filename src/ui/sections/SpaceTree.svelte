@@ -145,15 +145,6 @@
                   onStartCreate(node.path);
                 }}>+</button
               >
-              <button
-                type="button"
-                class="rounded px-1 text-xs text-stone-400 hover:text-stone-800 dark:hover:text-stone-100"
-                title="Add folder here"
-                onclick={() => {
-                  collapsed = { ...collapsed, [node.path]: false };
-                  onStartCreate(node.path, true);
-                }}>+▸</button
-              >
             {/if}
             <button
               type="button"
