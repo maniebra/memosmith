@@ -24,6 +24,7 @@ body {
 
 /* Svelte transitions compile to CSS animations, so this covers them too. */
 @media (prefers-reduced-motion: reduce) {
+
   *,
   ::before,
   ::after {
@@ -36,6 +37,15 @@ body {
 @layer components {
   .md-block {
     @apply relative;
+  }
+
+  .md-block:has(> br:only-child) {
+    min-height: 1.75em;
+  }
+
+  .md-block>br:only-child {
+    display: block;
+    height: 1.75em;
   }
 
   .md-mark {
@@ -114,7 +124,7 @@ body {
   }
 
   /* With the fences hidden the slab loses its cap, so the edge code lines take it over. */
-  .md-fence-open:not([data-active]) + .md-codeblock {
+  .md-fence-open:not([data-active])+.md-codeblock {
     @apply mt-2 rounded-t-md pt-2;
   }
 
@@ -222,9 +232,23 @@ body {
 
   /* Same collapse trick as a closed equation: the source stays, it just takes no room. */
   .md-media-line:not([data-active]) {
-    font-size: 0;
-    line-height: 0;
+    font-size: inherit;
+    line-height: inherit;
     letter-spacing: 0;
+    color: transparent;
+    text-decoration: none;
+    text-shadow: none;
+    caret-color: var(--color-emerald-700);
+  }
+
+  .md-media-line:not([data-active]) * {
+    color: inherit !important;
+    text-decoration: inherit !important;
+    text-shadow: inherit !important;
+  }
+
+  .dark .md-media-line:not([data-active]) {
+    caret-color: var(--color-emerald-400);
   }
 
   .md-media-preview {
