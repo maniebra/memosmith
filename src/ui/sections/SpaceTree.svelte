@@ -75,7 +75,7 @@
               <button
                 type="button"
                 class="rounded px-1 text-xs text-stone-400 hover:text-stone-800 dark:hover:text-stone-100"
-                title="New note here"
+                title="Add note here"
                 onclick={() => {
                   collapsed = { ...collapsed, [node.path]: false };
                   onStartCreate(node.path);

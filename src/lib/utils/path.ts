@@ -1,5 +1,5 @@
 export function basename(filePath: string): string {
-  return filePath.split(/[\\/]/).pop() || "Untitled note";
+  return filePath.split(/[\\/]/).pop() || "Note";
 }
 
 const NOTE_EXTENSIONS = /\.(md|markdown|txt)$/i;

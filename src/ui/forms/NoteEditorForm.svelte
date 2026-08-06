@@ -10,6 +10,8 @@
   export let textSize: number;
   export let spellcheck: boolean;
   export let slashCommands: boolean;
+  export let editable: boolean;
+  export let placeholder = "Select or create a note";
 
   const widthClasses: Record<EditorWidth, string> = {
     focused: "max-w-[38rem]",
@@ -25,10 +27,11 @@
     <MarkdownEditor
       bind:value={contents}
       bind:element={editor}
-      placeholder="Type / for commands"
+      {placeholder}
       {textSize}
       {spellcheck}
       {slashCommands}
+      {editable}
       {onInput}
     />
   </div>

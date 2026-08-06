@@ -8,7 +8,7 @@
   export let root: string | null;
   export let notes: string[];
   export let activePath: string | null;
-  export let onOpenSpace: () => void | Promise<void>;
+  export let onChooseSpace: () => void | Promise<void>;
   export let onRefresh: () => void | Promise<void>;
   export let onSelect: (relativePath: string) => void;
   export let onRename: (relativePath: string, name: string) => void;
@@ -58,13 +58,13 @@
       <Button label="+" onClick={() => startCreate("")} variant="ghost" size="sm" className="px-2" />
       <Button label="↻" onClick={onRefresh} variant="ghost" size="sm" className="px-2" />
     {/if}
-    <Button label="Open…" onClick={onOpenSpace} variant="ghost" size="sm" />
+    <Button label="Space…" onClick={onChooseSpace} variant="ghost" size="sm" />
   </div>
 
   <div class="min-h-0 flex-1 overflow-y-auto p-1.5">
     {#if !root}
       <p class="px-2 py-6 text-center text-xs leading-relaxed text-stone-400">
-        Open a folder to use it as your space.
+        Choose a folder to use as your space.
       </p>
     {:else}
       {#if creating === ""}

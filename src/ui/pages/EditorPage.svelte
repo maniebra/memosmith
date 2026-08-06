@@ -1,10 +1,8 @@
 <script lang="ts">
   import { onDestroy, onMount } from "svelte";
   import { defaultSettings, loadSettings, saveSettings } from "../../lib/storage/settings";
-  import { loadDraft, loadSpaceRoot, saveDraft, saveSpaceRoot } from "../../lib/storage/draft";
+  import { loadSpaceRoot, saveSpaceRoot } from "../../lib/storage/space";
   import {
-    chooseNotePath,
-    chooseSavePath,
     chooseSpaceRoot,
     confirmDelete,
     createNote,
@@ -22,27 +20,26 @@
   import SpaceSidebar from "../sections/SpaceSidebar.svelte";
 
   const appTitle = "MemoSmith";
-  const draft = loadDraft();
 
-  let path = draft.path;
+  let path: string | null = null;
   let spaceRoot = loadSpaceRoot();
   let spaceNotes: string[] = [];
   let isDirty = false;
-  let contents = draft.contents;
-  let statusMessage = "Draft autosaved locally";
+  let contents = "";
+  let statusMessage = spaceRoot ? "Select or create a note" : "Choose a space to start";
   let editor: HTMLElement | undefined;
   let words = countWords(contents);
   let characters = contents.length;
   let settings = loadSettings();
   let settingsOpen = false;
   let prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  let draftSaveTimer: ReturnType<typeof setTimeout> | undefined;
+  let noteSaveTimer: ReturnType<typeof setTimeout> | undefined;
   let statsTimer: ReturnType<typeof setTimeout> | undefined;
 
   $: spacePrefix = spaceRoot ? `${spaceRoot}/` : null;
   $: activeRelativePath =
     path && spacePrefix && path.startsWith(spacePrefix) ? path.slice(spacePrefix.length) : null;
-  $: fileLabel = activeRelativePath ?? (path ? basename(path) : "Untitled note");
+  $: fileLabel = activeRelativePath ?? (spaceRoot ? "No note selected" : "No space");
   $: dirtyMarker = isDirty ? " *" : "";
   $: displayName = `${fileLabel}${dirtyMarker}`;
   $: document.title = `${displayName} - ${appTitle}`;
@@ -73,28 +70,46 @@
     }, 120);
   }
 
-  function writeDraft() {
-    saveDraft({ contents, path });
-  }
-
-  function scheduleDraftSave() {
-    if (draftSaveTimer) {
-      clearTimeout(draftSaveTimer);
+  async function saveActiveNote(notePath = path, noteContents = contents) {
+    if (!notePath) {
+      return;
     }
 
-    draftSaveTimer = setTimeout(() => {
-      writeDraft();
-      draftSaveTimer = undefined;
-    }, 350);
+    await writeNote(notePath, noteContents);
+
+    if (path === notePath) {
+      isDirty = false;
+      statusMessage = `Synced ${activeRelativePath ?? basename(notePath)}`;
+    }
   }
 
-  function flushDraftSave() {
-    if (draftSaveTimer) {
-      clearTimeout(draftSaveTimer);
-      draftSaveTimer = undefined;
+  function scheduleNoteSave() {
+    if (!path) {
+      return;
     }
 
-    writeDraft();
+    if (noteSaveTimer) {
+      clearTimeout(noteSaveTimer);
+    }
+
+    const notePath = path;
+    const noteContents = contents;
+
+    noteSaveTimer = setTimeout(() => {
+      noteSaveTimer = undefined;
+      runWithStatus(() => saveActiveNote(notePath, noteContents));
+    }, 450);
+  }
+
+  async function flushNoteSave() {
+    if (noteSaveTimer) {
+      clearTimeout(noteSaveTimer);
+      noteSaveTimer = undefined;
+    }
+
+    if (isDirty) {
+      await saveActiveNote();
+    }
   }
 
   function focusEditor() {
@@ -121,44 +136,13 @@
     path = nextPath;
     isDirty = false;
     syncStats();
-    flushDraftSave();
-  }
-
-  async function saveNote(saveAs = false) {
-    const selectedPath = saveAs || !path ? await chooseSavePath(path) : path;
-
-    if (!selectedPath) {
-      statusMessage = "Save canceled";
-      return;
-    }
-
-    await writeNote(selectedPath, contents);
-
-    path = selectedPath;
-    isDirty = false;
-    flushDraftSave();
-    statusMessage = `Saved ${basename(selectedPath)}`;
-    await refreshSpace();
-  }
-
-  async function openNote() {
-    const selectedPath = await chooseNotePath();
-
-    if (!selectedPath) {
-      statusMessage = "Open canceled";
-      return;
-    }
-
-    setEditorText(await readNote(selectedPath), selectedPath);
-    statusMessage = `Opened ${basename(selectedPath)}`;
-    focusEditor();
   }
 
   async function refreshSpace() {
     spaceNotes = spaceRoot ? await listSpace(spaceRoot) : [];
   }
 
-  async function openSpace() {
+  async function chooseSpace() {
     const selectedRoot = await chooseSpaceRoot();
 
     if (!selectedRoot) {
@@ -167,15 +151,18 @@
 
     spaceRoot = selectedRoot;
     saveSpaceRoot(spaceRoot);
+    setEditorText("", null);
     await refreshSpace();
     statusMessage = `Space ${basename(spaceRoot)}`;
   }
 
-  async function openSpaceNote(relativePath: string) {
+  async function selectSpaceNote(relativePath: string) {
+    await flushNoteSave();
+
     const notePath = spacePath(relativePath);
 
     setEditorText(await readNote(notePath), notePath);
-    statusMessage = `Opened ${relativePath}`;
+    statusMessage = `Selected ${relativePath}`;
     focusEditor();
   }
 
@@ -193,6 +180,8 @@
   }
 
   async function createSpaceNote(parentPath: string, name: string) {
+    await flushNoteSave();
+
     const relativePath = `${parentPath ? `${parentPath}/` : ""}${withNoteExtension(safeName(name))}`;
 
     await createNote(spacePath(relativePath));
@@ -203,6 +192,8 @@
   }
 
   async function renameSpaceEntry(relativePath: string, name: string) {
+    await flushNoteSave();
+
     const parent = relativePath.includes("/") ? `${relativePath.slice(0, relativePath.lastIndexOf("/"))}/` : "";
     const isFolder = !spaceNotes.includes(relativePath);
     const nextRelativePath = `${parent}${isFolder ? safeName(name) : withNoteExtension(safeName(name))}`;
@@ -211,7 +202,6 @@
 
     if (path === spacePath(relativePath)) {
       path = spacePath(nextRelativePath);
-      flushDraftSave();
     }
 
     await refreshSpace();
@@ -219,6 +209,8 @@
   }
 
   async function deleteSpaceEntry(relativePath: string) {
+    await flushNoteSave();
+
     if (!(await confirmDelete(relativePath))) {
       return;
     }
@@ -233,12 +225,6 @@
     statusMessage = `Deleted ${relativePath}`;
   }
 
-  function newNote() {
-    setEditorText("", null);
-    statusMessage = "New note";
-    focusEditor();
-  }
-
   async function runWithStatus(action: () => Promise<void>) {
     try {
       await action();
@@ -247,16 +233,20 @@
     }
   }
 
-  function updateDraft() {
+  function updateNote() {
+    if (!path) {
+      return;
+    }
+
     if (!isDirty) {
       isDirty = true;
     }
 
     scheduleStats();
-    scheduleDraftSave();
+    scheduleNoteSave();
 
-    if (statusMessage !== "Draft autosaved locally") {
-      statusMessage = "Draft autosaved locally";
+    if (statusMessage !== "Saving...") {
+      statusMessage = "Saving...";
     }
   }
 
@@ -270,21 +260,6 @@
 
     if (!isPrimaryShortcut) {
       return;
-    }
-
-    if (event.key.toLowerCase() === "s") {
-      event.preventDefault();
-      runWithStatus(() => saveNote(event.shiftKey));
-    }
-
-    if (event.key.toLowerCase() === "o") {
-      event.preventDefault();
-      runWithStatus(openNote);
-    }
-
-    if (event.key.toLowerCase() === "n") {
-      event.preventDefault();
-      newNote();
     }
 
     if (event.key === ",") {
@@ -307,8 +282,9 @@
   });
 
   onDestroy(() => {
-    if (draftSaveTimer) {
-      clearTimeout(draftSaveTimer);
+    if (noteSaveTimer) {
+      clearTimeout(noteSaveTimer);
+      void saveActiveNote();
     }
 
     if (statsTimer) {
@@ -317,7 +293,7 @@
   });
 </script>
 
-<svelte:window onbeforeunload={flushDraftSave} onkeydown={handleShortcut} />
+<svelte:window onbeforeunload={() => void flushNoteSave()} onkeydown={handleShortcut} />
 
 <main
   class="grid h-screen overflow-hidden bg-[#fffdfa] text-stone-900 dark:bg-[#1a1917] dark:text-stone-100"
@@ -327,10 +303,6 @@
     title={appTitle}
     {fileLabel}
     {isDirty}
-    onNew={newNote}
-    onOpen={() => runWithStatus(openNote)}
-    onSave={() => runWithStatus(() => saveNote())}
-    onSaveAs={() => runWithStatus(() => saveNote(true))}
     onToggleSettings={() => (settingsOpen = !settingsOpen)}
   />
 
@@ -339,9 +311,9 @@
       root={spaceRoot}
       notes={spaceNotes}
       activePath={activeRelativePath}
-      onOpenSpace={() => runWithStatus(openSpace)}
+      onChooseSpace={() => runWithStatus(chooseSpace)}
       onRefresh={() => runWithStatus(refreshSpace)}
-      onSelect={(relativePath) => runWithStatus(() => openSpaceNote(relativePath))}
+      onSelect={(relativePath) => runWithStatus(() => selectSpaceNote(relativePath))}
       onCreate={(parentPath, name) => runWithStatus(() => createSpaceNote(parentPath, name))}
       onRename={(relativePath, name) => runWithStatus(() => renameSpaceEntry(relativePath, name))}
       onDelete={(relativePath) => runWithStatus(() => deleteSpaceEntry(relativePath))}
@@ -355,7 +327,9 @@
         textSize={settings.textSize}
         spellcheck={settings.spellcheck}
         slashCommands={settings.slashCommands}
-        onInput={updateDraft}
+        editable={Boolean(path)}
+        placeholder={spaceRoot ? "Select or create a note" : "Choose a space from the sidebar"}
+        onInput={updateNote}
       />
     </div>
 

@@ -1,32 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { ask, open, save } from "@tauri-apps/plugin-dialog";
-
-const textFileFilters = [
-  {
-    name: "Markdown",
-    extensions: ["md", "markdown", "txt"],
-  },
-  {
-    name: "All files",
-    extensions: ["*"],
-  },
-];
-
-export async function chooseNotePath() {
-  const selectedPath = await open({
-    multiple: false,
-    filters: textFileFilters,
-  });
-
-  return typeof selectedPath === "string" ? selectedPath : null;
-}
-
-export function chooseSavePath(defaultPath: string | null) {
-  return save({
-    defaultPath: defaultPath || "untitled.md",
-    filters: textFileFilters,
-  });
-}
+import { ask, open } from "@tauri-apps/plugin-dialog";
 
 export function readNote(path: string) {
   return invoke<string>("read_note", { path });

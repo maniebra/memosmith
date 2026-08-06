@@ -9,6 +9,7 @@
   export let textSize = 17;
   export let spellcheck = true;
   export let slashCommands = true;
+  export let editable = true;
   export let className = "";
   export let onInput: () => void = () => {};
 
@@ -274,7 +275,7 @@
 
 <div
   bind:this={element}
-  contenteditable="true"
+  contenteditable={editable}
   {spellcheck}
   role="textbox"
   tabindex="0"
@@ -282,9 +283,12 @@
   aria-label="Markdown editor"
   style="--md-placeholder: '{placeholder}'; font-size: {textSize}px;"
   class={cn(
-    "min-h-[60vh] w-full leading-[1.75] whitespace-pre-wrap text-stone-900 caret-emerald-700",
+    "min-h-[60vh] w-full leading-[1.75] whitespace-pre-wrap caret-emerald-700",
     "focus-visible:outline-none",
-    "dark:text-stone-100 dark:caret-emerald-400",
+    editable
+      ? "text-stone-900 dark:text-stone-100"
+      : "cursor-default text-stone-400 dark:text-stone-500",
+    "dark:caret-emerald-400",
     className,
   )}
   oninput={handleInput}
