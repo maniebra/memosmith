@@ -12,7 +12,7 @@
     renamePath,
     writeNote,
   } from "../../lib/tauri/files";
-  import { basename, withNoteExtension } from "../../lib/utils/path";
+  import { basename, dirNoteName, dirNotePath, withNoteExtension } from "../../lib/utils/path";
   import NoteEditorForm from "../forms/NoteEditorForm.svelte";
   import EditorStatusBar from "../sections/EditorStatusBar.svelte";
   import EditorToolbar from "../sections/EditorToolbar.svelte";
@@ -179,10 +179,13 @@
     return name;
   }
 
-  async function createSpaceNote(parentPath: string, name: string) {
+  async function createSpaceNote(parentPath: string, name: string, folder = false) {
     await flushNoteSave();
 
-    const relativePath = `${parentPath ? `${parentPath}/` : ""}${withNoteExtension(safeName(name))}`;
+    const parent = parentPath ? `${parentPath}/` : "";
+    const relativePath = folder
+      ? dirNotePath(`${parent}${safeName(name)}`)
+      : `${parent}${withNoteExtension(safeName(name))}`;
 
     await createNote(spacePath(relativePath));
     await refreshSpace();
@@ -200,8 +203,21 @@
 
     await renamePath(spacePath(relativePath), spacePath(nextRelativePath));
 
+    // A folder's own markdown is named after it, so it follows the folder.
+    const dirNote = `${relativePath}/${dirNoteName(basename(relativePath))}`;
+    const nextDirNote = dirNotePath(nextRelativePath);
+
+    if (isFolder && spaceNotes.includes(dirNote)) {
+      await renamePath(
+        spacePath(`${nextRelativePath}/${dirNoteName(basename(relativePath))}`),
+        spacePath(nextDirNote),
+      );
+    }
+
     if (path === spacePath(relativePath)) {
       path = spacePath(nextRelativePath);
+    } else if (isFolder && path?.startsWith(`${spacePath(relativePath)}/`)) {
+      path = path === spacePath(dirNote) ? spacePath(nextDirNote) : path.replace(spacePath(relativePath), spacePath(nextRelativePath));
     }
 
     await refreshSpace();
@@ -314,7 +330,7 @@
       onChooseSpace={() => runWithStatus(chooseSpace)}
       onRefresh={() => runWithStatus(refreshSpace)}
       onSelect={(relativePath) => runWithStatus(() => selectSpaceNote(relativePath))}
-      onCreate={(parentPath, name) => runWithStatus(() => createSpaceNote(parentPath, name))}
+      onCreate={(parentPath, name, folder) => runWithStatus(() => createSpaceNote(parentPath, name, folder))}
       onRename={(relativePath, name) => runWithStatus(() => renameSpaceEntry(relativePath, name))}
       onDelete={(relativePath) => runWithStatus(() => deleteSpaceEntry(relativePath))}
     />

@@ -12,17 +12,19 @@
   export let onRefresh: () => void | Promise<void>;
   export let onSelect: (relativePath: string) => void;
   export let onRename: (relativePath: string, name: string) => void;
-  export let onCreate: (parentPath: string, name: string) => void;
+  export let onCreate: (parentPath: string, name: string, folder: boolean) => void;
   export let onDelete: (relativePath: string) => void;
 
   let renaming: string | null = null;
   let creating: string | null = null;
+  let creatingFolder = false;
 
   $: tree = buildTree(notes);
 
   function cancelEdit() {
     renaming = null;
     creating = null;
+    creatingFolder = false;
   }
 
   function startRename(relativePath: string) {
@@ -30,9 +32,10 @@
     renaming = relativePath;
   }
 
-  function startCreate(parentPath: string) {
+  function startCreate(parentPath: string, folder = false) {
     renaming = null;
     creating = parentPath;
+    creatingFolder = folder;
   }
 
   function commitRename(relativePath: string, name: string) {
@@ -41,8 +44,10 @@
   }
 
   function commitCreate(parentPath: string, name: string) {
+    const folder = creatingFolder;
+
     cancelEdit();
-    onCreate(parentPath, name);
+    onCreate(parentPath, name, folder);
   }
 </script>
 
@@ -56,6 +61,7 @@
     </span>
     {#if root}
       <Button label="+" onClick={() => startCreate("")} variant="ghost" size="sm" className="px-2" />
+      <Button label="+▸" onClick={() => startCreate("", true)} variant="ghost" size="sm" className="px-2" />
       <Button label="↻" onClick={onRefresh} variant="ghost" size="sm" className="px-2" />
     {/if}
     <Button label="Space…" onClick={onChooseSpace} variant="ghost" size="sm" />

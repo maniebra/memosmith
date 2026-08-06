@@ -12,7 +12,7 @@
   /** Relative path of the folder gaining a new note ("" = space root). */
   export let creating: string | null;
   export let onStartRename: (relativePath: string) => void;
-  export let onStartCreate: (parentPath: string) => void;
+  export let onStartCreate: (parentPath: string, folder?: boolean) => void;
   export let onRename: (relativePath: string, name: string) => void;
   export let onCreate: (parentPath: string, name: string) => void;
   export let onDelete: (relativePath: string) => void;
@@ -23,6 +23,10 @@
 
   function label(node: TreeNode) {
     return node.children ? node.name : node.name.replace(/\.(md|markdown|txt)$/i, "");
+  }
+
+  function toggle(node: TreeNode) {
+    collapsed = { ...collapsed, [node.path]: !collapsed[node.path] };
   }
 </script>
 
@@ -40,33 +44,30 @@
         <div
           class={cn(
             "group flex items-center rounded-md pr-1 transition-colors",
-            node.path === activePath
+            node.note && node.note === activePath
               ? "bg-emerald-600/12 text-emerald-800 dark:text-emerald-300"
               : "text-stone-600 hover:bg-stone-500/10 dark:text-stone-400",
           )}
         >
+          {#if node.children}
+            <button
+              type="button"
+              class={cn(
+                "shrink-0 py-1 pr-1 text-[0.65rem] text-stone-400 transition-transform",
+                collapsed[node.path] ? "" : "rotate-90",
+              )}
+              style="padding-left: {depth * 0.75 + 0.375}rem"
+              title={collapsed[node.path] ? "Expand" : "Collapse"}
+              onclick={() => toggle(node)}>▶</button
+            >
+          {/if}
+
           <button
             type="button"
-            class="flex min-w-0 flex-1 items-center gap-1.5 py-1 text-left text-[0.8125rem]"
-            style="padding-left: {depth * 0.75 + 0.375}rem"
-            onclick={() => {
-              if (node.children) {
-                collapsed = { ...collapsed, [node.path]: !collapsed[node.path] };
-              } else {
-                onSelect(node.path);
-              }
-            }}
+            class="flex min-w-0 flex-1 items-center py-1 text-left text-[0.8125rem]"
+            style={node.children ? "padding-left: 0.375rem" : `padding-left: ${depth * 0.75 + 1.375}rem`}
+            onclick={() => (node.note ? onSelect(node.note) : toggle(node))}
           >
-            {#if node.children}
-              <span
-                class={cn(
-                  "w-2.5 shrink-0 text-[0.65rem] text-stone-400 transition-transform",
-                  collapsed[node.path] ? "" : "rotate-90",
-                )}>▶</span
-              >
-            {:else}
-              <span class="w-2.5 shrink-0"></span>
-            {/if}
             <span class="truncate">{label(node)}</span>
           </button>
 
@@ -80,6 +81,15 @@
                   collapsed = { ...collapsed, [node.path]: false };
                   onStartCreate(node.path);
                 }}>+</button
+              >
+              <button
+                type="button"
+                class="rounded px-1 text-xs text-stone-400 hover:text-stone-800 dark:hover:text-stone-100"
+                title="Add folder here"
+                onclick={() => {
+                  collapsed = { ...collapsed, [node.path]: false };
+                  onStartCreate(node.path, true);
+                }}>+▸</button
               >
             {/if}
             <button
