@@ -183,12 +183,13 @@
 <svelte:window onbeforeunload={flushDraftSave} onkeydown={handleShortcut} />
 
 <main
-  class="grid h-screen overflow-hidden border-stone-300 bg-stone-200 text-stone-950 dark:border-stone-800 dark:bg-stone-950 dark:text-stone-50"
+  class="grid h-screen overflow-hidden bg-[#fffdfa] text-stone-900 dark:bg-[#1a1917] dark:text-stone-100"
   style="grid-template-rows: auto minmax(0, 1fr) auto;"
 >
   <EditorToolbar
     title={appTitle}
-    {displayName}
+    {fileLabel}
+    {isDirty}
     onNew={newNote}
     onOpen={() => runWithStatus(openNote)}
     onSave={() => runWithStatus(() => saveNote())}

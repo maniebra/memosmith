@@ -257,9 +257,9 @@
   aria-label="Markdown editor"
   data-placeholder={placeholder}
   class={cn(
-    "h-full min-h-[17.5rem] w-full overflow-y-auto rounded-lg border border-stone-300 bg-stone-50 px-5 py-4 text-base leading-relaxed whitespace-pre-wrap text-stone-950 shadow-inner caret-emerald-700",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700/30",
-    "dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100",
+    "min-h-[60vh] w-full text-[1.0625rem] leading-[1.75] whitespace-pre-wrap text-stone-900 caret-emerald-700",
+    "focus-visible:outline-none",
+    "dark:text-stone-100 dark:caret-emerald-400",
     className,
   )}
   oninput={handleInput}
@@ -275,7 +275,7 @@
 
 {#if slashStart !== null && matches.length}
   <ul
-    class="fixed z-50 max-h-72 w-56 overflow-y-auto rounded-lg border border-stone-300 bg-stone-50 py-1 shadow-lg dark:border-stone-700 dark:bg-stone-900"
+    class="fixed z-50 max-h-72 w-64 overflow-y-auto rounded-xl border border-stone-200 bg-white/95 p-1 shadow-xl shadow-stone-900/10 backdrop-blur dark:border-stone-700 dark:bg-stone-900/95 dark:shadow-black/40"
     style="top: {menuPosition.top}px; left: {menuPosition.left}px;"
     role="listbox"
     aria-label="Block commands"
@@ -287,8 +287,10 @@
           role="option"
           aria-selected={index === slashIndex}
           class={cn(
-            "flex w-full items-center justify-between px-3 py-1.5 text-left text-sm",
-            index === slashIndex ? "bg-emerald-700/10 text-emerald-800 dark:text-emerald-300" : "",
+            "flex w-full items-center justify-between gap-3 rounded-lg px-2.5 py-2 text-left text-sm transition-colors",
+            index === slashIndex
+              ? "bg-emerald-600/10 text-emerald-800 dark:text-emerald-300"
+              : "text-stone-700 dark:text-stone-200",
           )}
           onmousedown={(event) => {
             event.preventDefault();
@@ -297,7 +299,10 @@
           onmouseenter={() => (slashIndex = index)}
         >
           <span>{command.label}</span>
-          <span class="font-mono text-xs text-stone-500">{command.hint}</span>
+          <span
+            class="rounded border border-stone-200 px-1.5 py-px font-mono text-[0.7rem] text-stone-400 dark:border-stone-700 dark:text-stone-500"
+            >{command.hint}</span
+          >
         </button>
       </li>
     {/each}
@@ -309,6 +314,15 @@
   [contenteditable]:empty::before {
     content: attr(data-placeholder);
     color: rgb(168 162 158);
+    pointer-events: none;
+  }
+
+  /* Notion-style hint on whichever empty line holds the caret. */
+  [contenteditable]:not(:empty) :global(.md-block[data-active]:has(> br:only-child))::before {
+    content: "Type '/' for commands";
+    position: absolute;
+    inset-inline-start: 0;
+    color: rgb(168 162 158 / 0.7);
     pointer-events: none;
   }
 </style>

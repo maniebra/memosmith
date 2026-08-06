@@ -8,6 +8,7 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  accent-color: var(--color-emerald-700);
 }
 
 body {
@@ -15,63 +16,75 @@ body {
   min-width: 360px;
 }
 
+::selection {
+  background: --alpha(var(--color-emerald-600) / 22%);
+}
+
 /* Editor blocks are set via innerHTML, so their styles cannot be component-scoped. */
 @layer components {
+  .md-block {
+    @apply relative;
+  }
+
   .md-mark {
     font-size: 0;
     letter-spacing: 0;
-    color: --alpha(currentColor / 40%);
+    color: --alpha(currentColor / 35%);
+    @apply transition-[font-size] duration-100;
   }
 
+  /* Collapsing animates; expanding is instant so the caret never rides a reflow. */
   .md-block[data-active] .md-mark {
     font-size: inherit;
     letter-spacing: normal;
+    transition: none;
   }
 
   .md-h1 {
-    @apply mt-6 mb-1 text-3xl leading-tight font-bold;
+    @apply mt-8 mb-1 text-[2rem] leading-tight font-bold tracking-[-0.02em];
   }
 
   .md-h2 {
-    @apply mt-5 mb-1 text-2xl leading-tight font-bold;
+    @apply mt-6 mb-1 text-2xl leading-tight font-semibold tracking-[-0.015em];
   }
 
   .md-h3 {
-    @apply mt-4 mb-1 text-xl leading-snug font-semibold;
+    @apply mt-5 mb-1 text-xl leading-snug font-semibold tracking-[-0.01em];
   }
 
   .md-h4 {
-    @apply mt-3 mb-1 text-base font-semibold;
+    @apply mt-4 mb-1 text-base font-semibold;
   }
 
   .md-quote {
-    @apply border-l-2 border-stone-400 pl-3 text-stone-600 italic dark:border-stone-600 dark:text-stone-300;
+    @apply my-1 border-l-[3px] border-stone-300 pl-4 text-stone-600 dark:border-stone-600 dark:text-stone-300;
   }
 
   .md-bullet::before {
-    content: "• ";
-    @apply text-stone-500;
+    content: "•  ";
+    @apply text-stone-400 dark:text-stone-500;
   }
 
   .md-task::before {
-    content: "☐ ";
-    @apply text-stone-500;
+    content: "☐  ";
+    @apply text-stone-400 dark:text-stone-500;
   }
 
   .md-task-done {
-    @apply text-stone-500 line-through dark:text-stone-400;
+    @apply text-stone-400 line-through dark:text-stone-500;
   }
 
   .md-task-done::before {
-    content: "☑ ";
+    content: "☑  ";
+    @apply text-emerald-600 no-underline dark:text-emerald-400;
   }
 
   .md-rule {
-    @apply my-2 border-b border-stone-300 dark:border-stone-700;
+    @apply my-4 border-b border-stone-200 dark:border-stone-800;
   }
 
   .md-bold {
-    @apply font-bold;
+    @apply font-semibold;
   }
 
   .md-italic {
@@ -79,10 +92,10 @@ body {
   }
 
   .md-code {
-    @apply rounded bg-stone-200 px-1 font-mono text-[0.9em] dark:bg-stone-800;
+    @apply rounded-md bg-stone-500/12 px-1.5 py-0.5 font-mono text-[0.85em] text-rose-700 dark:text-rose-300;
   }
 
   .md-link {
-    @apply text-emerald-700 underline dark:text-emerald-400;
+    @apply text-emerald-700 underline decoration-emerald-700/30 underline-offset-2 dark:text-emerald-400 dark:decoration-emerald-400/30;
   }
 }

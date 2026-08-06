@@ -2,7 +2,8 @@
   import Button from "../components/Button.svelte";
 
   export let title: string;
-  export let displayName: string;
+  export let fileLabel: string;
+  export let isDirty: boolean;
   export let onNew: () => void;
   export let onOpen: () => void | Promise<void>;
   export let onSave: () => void | Promise<void>;
@@ -10,18 +11,29 @@
 </script>
 
 <header
-  class="flex flex-col gap-4 border-b border-stone-300 bg-stone-50 px-4 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-stone-800 dark:bg-stone-900"
+  class="flex h-12 items-center gap-3 border-b border-stone-200/70 bg-stone-50/80 px-3 backdrop-blur dark:border-stone-800 dark:bg-stone-900/70"
   aria-label="Editor toolbar"
 >
-  <div class="min-w-0">
-    <h1 class="m-0 text-xl font-bold tracking-normal text-stone-950 dark:text-stone-50">{title}</h1>
-    <p class="mt-0.5 truncate text-sm text-stone-500 dark:text-stone-300">{displayName}</p>
+  <span class="shrink-0 text-sm font-semibold tracking-tight text-stone-400 dark:text-stone-500">
+    {title}
+  </span>
+  <span class="shrink-0 text-stone-300 dark:text-stone-700">/</span>
+
+  <div class="flex min-w-0 items-center gap-2">
+    <span class="truncate text-sm font-medium text-stone-800 dark:text-stone-100">{fileLabel}</span>
+    {#if isDirty}
+      <span
+        class="size-1.5 shrink-0 rounded-full bg-amber-500"
+        title="Unsaved changes"
+        aria-label="Unsaved changes"
+      ></span>
+    {/if}
   </div>
 
-  <div class="flex flex-wrap gap-2 sm:justify-end">
-    <Button label="New" onClick={onNew} className="flex-1 sm:flex-none" />
-    <Button label="Open" onClick={onOpen} className="flex-1 sm:flex-none" />
-    <Button label="Save" onClick={onSave} variant="primary" className="flex-1 sm:flex-none" />
-    <Button label="Save As" onClick={onSaveAs} className="flex-1 sm:flex-none" />
+  <div class="ml-auto flex shrink-0 items-center gap-0.5">
+    <Button label="New" onClick={onNew} variant="ghost" size="sm" />
+    <Button label="Open" onClick={onOpen} variant="ghost" size="sm" />
+    <Button label="Save As" onClick={onSaveAs} variant="ghost" size="sm" />
+    <Button label="Save" onClick={onSave} variant="primary" size="sm" className="ml-1.5" />
   </div>
 </header>
