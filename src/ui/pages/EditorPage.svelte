@@ -27,6 +27,8 @@
   import SpaceSidebar from "../sections/SpaceSidebar.svelte";
 
   const appTitle = "MemoSmith";
+  const paneMinWidth = 180;
+  const paneMaxWidth = 480;
 
   let path: string | null = null;
   let spaceRoot = loadSpaceRoot();
@@ -42,6 +44,13 @@
   let prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
   let noteSaveTimer: ReturnType<typeof setTimeout> | undefined;
   let statsTimer: ReturnType<typeof setTimeout> | undefined;
+  let resizing:
+    | {
+        pane: "space" | "settings";
+        startX: number;
+        startWidth: number;
+      }
+    | null = null;
 
   $: spacePrefix = spaceRoot ? `${spaceRoot}/` : null;
   $: activeRelativePath =
@@ -137,6 +146,59 @@
 
   function updateSettings(nextSettings: typeof settings) {
     settings = nextSettings;
+  }
+
+  function clampPaneWidth(width: number) {
+    return Math.min(paneMaxWidth, Math.max(paneMinWidth, width));
+  }
+
+  function updatePaneWidth(pane: "space" | "settings", width: number) {
+    const clampedWidth = clampPaneWidth(width);
+
+    settings =
+      pane === "space"
+        ? { ...settings, spacePaneWidth: clampedWidth }
+        : { ...settings, settingsPaneWidth: clampedWidth };
+  }
+
+  function startResize(event: PointerEvent, pane: "space" | "settings") {
+    event.preventDefault();
+    resizing = {
+      pane,
+      startX: event.clientX,
+      startWidth: pane === "space" ? settings.spacePaneWidth : settings.settingsPaneWidth,
+    };
+  }
+
+  function handleResize(event: PointerEvent) {
+    if (!resizing) {
+      return;
+    }
+
+    const delta = event.clientX - resizing.startX;
+    const nextWidth =
+      resizing.pane === "space" ? resizing.startWidth + delta : resizing.startWidth - delta;
+
+    updatePaneWidth(resizing.pane, nextWidth);
+  }
+
+  function stopResize() {
+    resizing = null;
+  }
+
+  function resizeWithKeyboard(event: KeyboardEvent, pane: "space" | "settings") {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
+      return;
+    }
+
+    event.preventDefault();
+
+    const direction = event.key === "ArrowRight" ? 1 : -1;
+    const step = event.shiftKey ? 40 : 12;
+    const currentWidth = pane === "space" ? settings.spacePaneWidth : settings.settingsPaneWidth;
+    const nextWidth = currentWidth + (pane === "space" ? direction : -direction) * step;
+
+    updatePaneWidth(pane, nextWidth);
   }
 
   function setEditorText(text: string, nextPath: string | null) {
@@ -317,7 +379,12 @@
   });
 </script>
 
-<svelte:window onbeforeunload={() => void flushNoteSave()} onkeydown={handleShortcut} />
+<svelte:window
+  onbeforeunload={() => void flushNoteSave()}
+  onkeydown={handleShortcut}
+  onpointermove={handleResize}
+  onpointerup={stopResize}
+/>
 
 <main
   class="grid h-screen overflow-hidden bg-[#fffdfa] text-stone-900 dark:bg-[#1a1917] dark:text-stone-100"
@@ -332,6 +399,7 @@
 
   <div class="flex min-h-0">
     <SpaceSidebar
+      width={settings.spacePaneWidth}
       root={spaceRoot}
       notes={spaceNotes}
       activePath={activeRelativePath}
@@ -342,6 +410,15 @@
       onRename={(relativePath, name) => runWithStatus(() => renameSpaceEntry(relativePath, name))}
       onDelete={(relativePath) => runWithStatus(() => deleteSpaceEntry(relativePath))}
     />
+
+    <button
+      type="button"
+      class="z-10 w-1.5 shrink-0 cursor-col-resize bg-transparent transition-colors hover:bg-emerald-600/20 focus-visible:bg-emerald-600/20 focus-visible:outline-none"
+      aria-label="Resize space pane"
+      title="Resize space pane"
+      onpointerdown={(event) => startResize(event, "space")}
+      onkeydown={(event) => resizeWithKeyboard(event, "space")}
+    ></button>
 
     <div class="min-w-0 flex-1">
       <NoteEditorForm
@@ -360,7 +437,16 @@
     </div>
 
     {#if settingsOpen}
+      <button
+        type="button"
+        class="z-10 w-1.5 shrink-0 cursor-col-resize bg-transparent transition-colors hover:bg-emerald-600/20 focus-visible:bg-emerald-600/20 focus-visible:outline-none"
+        aria-label="Resize settings panel"
+        title="Resize settings panel"
+        onpointerdown={(event) => startResize(event, "settings")}
+        onkeydown={(event) => resizeWithKeyboard(event, "settings")}
+      ></button>
       <SettingsPanel
+        width={settings.settingsPaneWidth}
         {settings}
         onClose={() => (settingsOpen = false)}
         onReset={resetSettings}

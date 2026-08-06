@@ -15,6 +15,7 @@
   export let onRename: (relativePath: string, name: string) => void;
   export let onCreate: (parentPath: string, name: string, folder: boolean) => void;
   export let onDelete: (relativePath: string) => void;
+  export let width = 240;
 
   let renaming: string | null = null;
   let creating: string | null = null;
@@ -95,7 +96,8 @@
 </script>
 
 <aside
-  class="flex min-h-0 w-60 flex-col border-r border-stone-200/70 bg-stone-100/50 dark:border-stone-800 dark:bg-stone-900/40"
+  class="flex min-h-0 shrink-0 flex-col border-r border-stone-200/70 bg-stone-100/50 dark:border-stone-800 dark:bg-stone-900/40"
+  style="width: {width}px;"
   aria-label="Space"
 >
   <div class="flex h-12 shrink-0 items-center gap-1 border-b border-stone-200/70 px-2 dark:border-stone-800">

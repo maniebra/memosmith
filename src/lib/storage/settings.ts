@@ -10,6 +10,8 @@ export type AppSettings = {
   spellcheck: boolean;
   slashCommands: boolean;
   showPageTitle: boolean;
+  spacePaneWidth: number;
+  settingsPaneWidth: number;
 };
 
 export const defaultSettings: AppSettings = {
@@ -19,6 +21,8 @@ export const defaultSettings: AppSettings = {
   spellcheck: true,
   slashCommands: true,
   showPageTitle: true,
+  spacePaneWidth: 240,
+  settingsPaneWidth: 320,
 };
 
 function isThemePreference(value: unknown): value is ThemePreference {
@@ -37,6 +41,16 @@ function clampTextSize(value: unknown) {
   }
 
   return Math.min(21, Math.max(15, size));
+}
+
+function clampPaneWidth(value: unknown, fallback: number) {
+  const width = Number(value);
+
+  if (!Number.isFinite(width)) {
+    return fallback;
+  }
+
+  return Math.min(480, Math.max(180, width));
 }
 
 export function loadSettings(): AppSettings {
@@ -58,6 +72,8 @@ export function loadSettings(): AppSettings {
         typeof parsed.slashCommands === "boolean" ? parsed.slashCommands : defaultSettings.slashCommands,
       showPageTitle:
         typeof parsed.showPageTitle === "boolean" ? parsed.showPageTitle : defaultSettings.showPageTitle,
+      spacePaneWidth: clampPaneWidth(parsed.spacePaneWidth, defaultSettings.spacePaneWidth),
+      settingsPaneWidth: clampPaneWidth(parsed.settingsPaneWidth, defaultSettings.settingsPaneWidth),
     };
   } catch {
     return { ...defaultSettings };

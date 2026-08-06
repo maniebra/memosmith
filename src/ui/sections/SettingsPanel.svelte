@@ -9,6 +9,7 @@
   export let onClose: () => void;
   export let onReset: () => void;
   export let onChange: (settings: AppSettings) => void;
+  export let width = 320;
 
   const themeOptions: SelectOption[] = [
     { label: "System", value: "system" },
@@ -28,7 +29,8 @@
 </script>
 
 <aside
-  class="flex w-80 shrink-0 flex-col border-l border-stone-200/50 bg-stone-50/90 dark:border-stone-800/80 dark:bg-stone-900/90"
+  class="flex shrink-0 flex-col border-l border-stone-200/50 bg-stone-50/90 dark:border-stone-800/80 dark:bg-stone-900/90"
+  style="width: {width}px;"
   aria-label="Settings"
 >
   <div class="flex h-12 shrink-0 items-center gap-2 border-b border-stone-200/50 px-3 dark:border-stone-800/80">
