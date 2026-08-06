@@ -1,5 +1,5 @@
 const assert = (ok: unknown, msg: string) => { if (!ok) throw new Error(msg); };
-import { applyPrefix, continueList, lineClass, renderDocument, renderLine } from "./markdown";
+import { applyPrefix, continueList, insideFence, lineClass, renderDocument, renderLine } from "./markdown";
 
 assert(lineClass("# Title") === "md-h1", "h1 class");
 assert(lineClass("#NoSpace") === "", "hash without space is not a heading");
@@ -36,3 +36,7 @@ assert(renderDocument("```js\na\n```\n```js\nb\n```").split("md-fence-open").len
 assert(!renderDocument("a\nb").includes("md-codeblock"), "no fence, no code block");
 
 console.log("markdown ok");
+
+assert(insideFence("```js\na"), "unclosed fence is inside");
+assert(!insideFence("```js\na\n```\n"), "closed fence is outside");
+assert(renderDocument("```js\na\n```\n```\nb\n```").includes('data-code="1"'), "code blocks are grouped");

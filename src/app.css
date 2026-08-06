@@ -103,6 +103,15 @@ body {
     @apply mb-2 rounded-b-md pb-2;
   }
 
+  /* With the fences hidden the slab loses its cap, so the edge code lines take it over. */
+  .md-fence-open:not([data-active]) + .md-codeblock {
+    @apply mt-2 rounded-t-md pt-2;
+  }
+
+  .md-codeblock:has(+ .md-fence-close:not([data-active])) {
+    @apply mb-2 rounded-b-md pb-2;
+  }
+
   .hljs-comment,
   .hljs-quote {
     @apply text-stone-400 italic dark:text-stone-500;

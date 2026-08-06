@@ -101,8 +101,14 @@ function renderCode(line: string, language: string) {
   return hljs.highlight(line, { language, ignoreIllegals: true }).value;
 }
 
+/** True when the text ends inside an unclosed fence. */
+export function insideFence(text: string) {
+  return (text.match(/^[ \t]*```/gm) ?? []).length % 2 === 1;
+}
+
 export function renderDocument(text: string) {
   let language: string | null = null;
+  let group = 0;
 
   return text
     .split("\n")
@@ -114,12 +120,13 @@ export function renderDocument(text: string) {
         const className = isOpening ? "md-fence md-fence-open" : "md-fence md-fence-close";
 
         language = isOpening ? fence[1].toLowerCase() : null;
+        const index = isOpening ? group : group++;
 
-        return `<div class="md-block ${className}">${escapeHtml(line)}</div>`;
+        return `<div class="md-block ${className}" data-code="${index}">${escapeHtml(line)}</div>`;
       }
 
       if (language !== null) {
-        return `<div class="md-block md-codeblock">${renderCode(line, language)}</div>`;
+        return `<div class="md-block md-codeblock" data-code="${group}">${renderCode(line, language)}</div>`;
       }
 
       const indent = / */.exec(line)![0].length;

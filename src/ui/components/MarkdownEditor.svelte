@@ -1,7 +1,13 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { cn } from "../../lib/utils/cn";
-  import { applyPrefix, continueList, renderDocument, SLASH_COMMANDS } from "../../lib/utils/markdown";
+  import {
+    applyPrefix,
+    continueList,
+    insideFence,
+    renderDocument,
+    SLASH_COMMANDS,
+  } from "../../lib/utils/markdown";
 
   export let value: string;
   export let element: HTMLElement | undefined = undefined;
@@ -97,14 +103,19 @@
     }
   }
 
-  /** Markdown markers stay hidden except on the block holding the caret. */
+  /** Markdown markers stay hidden except on the block holding the caret; a code block counts as one. */
   function markActiveBlock() {
     const selection = getSelection();
+    const active = blocks().find((block) =>
+      Boolean(selection?.focusNode && block.contains(selection.focusNode)),
+    );
+    const group = active?.dataset.code;
 
     for (const block of blocks()) {
-      const isActive = Boolean(selection?.focusNode && block.contains(selection.focusNode));
-
-      block.toggleAttribute("data-active", isActive);
+      block.toggleAttribute(
+        "data-active",
+        block === active || (group !== undefined && block.dataset.code === group),
+      );
     }
   }
 
@@ -231,6 +242,14 @@
 
     const start = lineStartAt(offset);
 
+    // Third backtick opens a fenced block and closes it, caret on the line between.
+    if (event.key === "`" && /^[ \t]*``$/.test(value.slice(start, offset)) && !insideFence(value.slice(0, start))) {
+      event.preventDefault();
+      closeMenu();
+      replace(offset, offset, "`\n\n```", offset + 2);
+      return;
+    }
+
     if (event.key === "Enter") {
       event.preventDefault();
       closeMenu();
@@ -339,6 +358,11 @@
 {/if}
 
 <style>
+  /* The fence lines are scaffolding: only show them while the caret is in that code block. */
+  [contenteditable] :global(.md-fence:not([data-active])) {
+    display: none;
+  }
+
   /* Hint on the caret's empty line, and on an empty document. */
   [contenteditable]
     :global(
