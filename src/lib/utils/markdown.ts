@@ -1,29 +1,75 @@
-const BLOCK_RULES: Array<{ match: RegExp; className: string }> = [
-  { match: /^# /, className: "text-3xl font-bold leading-tight mt-6 mb-1" },
-  { match: /^## /, className: "text-2xl font-bold leading-tight mt-5 mb-1" },
-  { match: /^### /, className: "text-xl font-semibold leading-snug mt-4 mb-1" },
-  { match: /^#{4,6} /, className: "text-base font-semibold mt-3 mb-1" },
-  {
-    match: /^> /,
-    className: "border-l-2 border-stone-400 pl-3 italic text-stone-600 dark:text-stone-300",
-  },
-  { match: /^(\s*)([-*+]|\d+\.) /, className: "pl-2" },
-  { match: /^(-{3,}|\*{3,}|_{3,})$/, className: "border-b border-stone-300 dark:border-stone-700" },
+type BlockRule = {
+  match: RegExp;
+  className: string;
+  /** Hide the markdown marker when the caret is elsewhere. */
+  hideMark?: boolean;
+};
+
+const BLOCK_RULES: BlockRule[] = [
+  { match: /^# /, className: "md-h1", hideMark: true },
+  { match: /^## /, className: "md-h2", hideMark: true },
+  { match: /^### /, className: "md-h3", hideMark: true },
+  { match: /^#{4,6} /, className: "md-h4", hideMark: true },
+  { match: /^\s*[-*+] \[x\] /i, className: "md-task md-task-done", hideMark: true },
+  { match: /^\s*[-*+] \[ \] /, className: "md-task", hideMark: true },
+  { match: /^\s*[-*+] /, className: "md-bullet", hideMark: true },
+  { match: /^\s*\d+\. /, className: "md-ordered" },
+  { match: /^> /, className: "md-quote", hideMark: true },
+  { match: /^(-{3,}|\*{3,}|_{3,})$/, className: "md-rule", hideMark: true },
 ];
 
-const INLINE_RULES: Array<[RegExp, string]> = [
-  [/`([^`\n]+)`/g, '<span class="rounded bg-stone-200 px-1 font-mono text-[0.9em] dark:bg-stone-800">`$1`</span>'],
-  [/\*\*([^*\n]+)\*\*/g, '<span class="font-bold">**$1**</span>'],
-  [/(?<![*\w])\*(\S|\S[^*\n]*\S)\*(?!\*)/g, '<span class="italic">*$1*</span>'],
-  [/\[([^\]\n]*)\]\(([^)\n]*)\)/g, '<span class="text-emerald-700 underline dark:text-emerald-400">[$1]($2)</span>'],
+/** One pass so replacements are never rescanned as markdown. */
+const INLINE = /`([^`\n]+)`|\*\*([^*\n]+)\*\*|(?<![*\w])\*(\S|\S[^*\n]*\S)\*(?!\*)|\[([^\]\n]*)\]\(([^)\n]*)\)/g;
+
+function mark(text: string) {
+  return `<span class="md-mark">${text}</span>`;
+}
+
+function renderInline(escaped: string) {
+  return escaped.replace(INLINE, (all, code, bold, italic, linkText, href) => {
+    if (code) {
+      return `<span class="md-code">${mark("`")}${code}${mark("`")}</span>`;
+    }
+
+    if (bold) {
+      return `<span class="md-bold">${mark("**")}${bold}${mark("**")}</span>`;
+    }
+
+    if (italic) {
+      return `<span class="md-italic">${mark("*")}${italic}${mark("*")}</span>`;
+    }
+
+    if (linkText !== undefined) {
+      return `<span class="md-link">${mark("[")}${linkText}${mark(`](${href})`)}</span>`;
+    }
+
+    return all;
+  });
+}
+
+export const SLASH_COMMANDS = [
+  { label: "Heading 1", hint: "#", prefix: "# " },
+  { label: "Heading 2", hint: "##", prefix: "## " },
+  { label: "Heading 3", hint: "###", prefix: "### " },
+  { label: "Bulleted list", hint: "-", prefix: "- " },
+  { label: "Numbered list", hint: "1.", prefix: "1. " },
+  { label: "To-do", hint: "[ ]", prefix: "- [ ] " },
+  { label: "Quote", hint: ">", prefix: "> " },
+  { label: "Code", hint: "```", prefix: "```" },
+  { label: "Divider", hint: "---", prefix: "---" },
+  { label: "Text", hint: "plain", prefix: "" },
 ];
 
 export function escapeHtml(text: string) {
   return text.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!);
 }
 
+function blockRule(line: string) {
+  return BLOCK_RULES.find((rule) => rule.match.test(line));
+}
+
 export function lineClass(line: string) {
-  return BLOCK_RULES.find((rule) => rule.match.test(line))?.className ?? "";
+  return blockRule(line)?.className ?? "";
 }
 
 export function renderLine(line: string) {
@@ -31,16 +77,22 @@ export function renderLine(line: string) {
     return "<br>";
   }
 
-  return INLINE_RULES.reduce(
-    (html, [pattern, replacement]) => html.replace(pattern, replacement),
-    escapeHtml(line),
-  );
+  const rule = blockRule(line);
+  const prefix = rule?.hideMark ? rule.match.exec(line)![0] : "";
+  const body = renderInline(escapeHtml(line.slice(prefix.length)));
+
+  return `${prefix ? mark(escapeHtml(prefix)) : ""}${body || "<br>"}`;
 }
 
 export function renderDocument(text: string) {
   return text
     .split("\n")
-    .map((line) => `<div class="${lineClass(line)}">${renderLine(line)}</div>`)
+    .map((line) => {
+      const indent = / */.exec(line)![0].length;
+      const style = indent ? ` style="padding-left:${indent * 0.75}rem"` : "";
+
+      return `<div class="md-block ${lineClass(line)}"${style}>${renderLine(line)}</div>`;
+    })
     .join("");
 }
 
@@ -61,4 +113,12 @@ export function continueList(line: string): string {
   const nextBullet = ordinal ? `${Number(ordinal) + 1}.` : bullet;
 
   return `${indent}${nextBullet}${task ? " [ ]" : ""} `;
+}
+
+export function stripPrefix(line: string) {
+  return line.replace(/^\s*(#{1,6} |> |([-*+]|\d+\.)( \[[ x]\])? |```)/, "");
+}
+
+export function applyPrefix(line: string, prefix: string) {
+  return prefix + stripPrefix(line);
 }

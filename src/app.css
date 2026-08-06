@@ -14,3 +14,75 @@ body {
   margin: 0;
   min-width: 360px;
 }
+
+/* Editor blocks are set via innerHTML, so their styles cannot be component-scoped. */
+@layer components {
+  .md-mark {
+    font-size: 0;
+    letter-spacing: 0;
+    color: --alpha(currentColor / 40%);
+  }
+
+  .md-block[data-active] .md-mark {
+    font-size: inherit;
+    letter-spacing: normal;
+  }
+
+  .md-h1 {
+    @apply mt-6 mb-1 text-3xl leading-tight font-bold;
+  }
+
+  .md-h2 {
+    @apply mt-5 mb-1 text-2xl leading-tight font-bold;
+  }
+
+  .md-h3 {
+    @apply mt-4 mb-1 text-xl leading-snug font-semibold;
+  }
+
+  .md-h4 {
+    @apply mt-3 mb-1 text-base font-semibold;
+  }
+
+  .md-quote {
+    @apply border-l-2 border-stone-400 pl-3 text-stone-600 italic dark:border-stone-600 dark:text-stone-300;
+  }
+
+  .md-bullet::before {
+    content: "• ";
+    @apply text-stone-500;
+  }
+
+  .md-task::before {
+    content: "☐ ";
+    @apply text-stone-500;
+  }
+
+  .md-task-done {
+    @apply text-stone-500 line-through dark:text-stone-400;
+  }
+
+  .md-task-done::before {
+    content: "☑ ";
+  }
+
+  .md-rule {
+    @apply my-2 border-b border-stone-300 dark:border-stone-700;
+  }
+
+  .md-bold {
+    @apply font-bold;
+  }
+
+  .md-italic {
+    @apply italic;
+  }
+
+  .md-code {
+    @apply rounded bg-stone-200 px-1 font-mono text-[0.9em] dark:bg-stone-800;
+  }
+
+  .md-link {
+    @apply text-emerald-700 underline dark:text-emerald-400;
+  }
+}
