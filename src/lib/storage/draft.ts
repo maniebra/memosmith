@@ -1,5 +1,5 @@
-const DRAFT_KEY = "tauri-svelte-ui-template:draft";
-const DRAFT_PATH_KEY = "tauri-svelte-ui-template:path";
+const DRAFT_KEY = "memosmith:draft";
+const DRAFT_PATH_KEY = "memosmith:path";
 
 export type Draft = {
   contents: string;

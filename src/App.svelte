@@ -1,5 +1,5 @@
 <script lang="ts">
-  import NotepadPage from "./ui/pages/NotepadPage.svelte";
+  import EditorPage from "./ui/pages/EditorPage.svelte";
 </script>
 
-<NotepadPage />
+<EditorPage />

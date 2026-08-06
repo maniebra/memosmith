@@ -6,11 +6,11 @@
     chooseSavePath,
     readNote,
     writeNote,
-  } from "../../lib/tauri/notes";
+  } from "../../lib/tauri/files";
   import { basename } from "../../lib/utils/path";
   import NoteEditorForm from "../forms/NoteEditorForm.svelte";
-  import NotepadStatusBar from "../sections/NotepadStatusBar.svelte";
-  import NotepadToolbar from "../sections/NotepadToolbar.svelte";
+  import EditorStatusBar from "../sections/EditorStatusBar.svelte";
+  import EditorToolbar from "../sections/EditorToolbar.svelte";
 
   const appTitle = "MemoSmith";
   const draft = loadDraft();
@@ -186,7 +186,7 @@
   class="grid h-screen overflow-hidden border-stone-300 bg-stone-200 text-stone-950 dark:border-stone-800 dark:bg-stone-950 dark:text-stone-50"
   style="grid-template-rows: auto minmax(0, 1fr) auto;"
 >
-  <NotepadToolbar
+  <EditorToolbar
     title={appTitle}
     {displayName}
     onNew={newNote}
@@ -197,5 +197,5 @@
 
   <NoteEditorForm bind:contents bind:editor onInput={updateDraft} />
 
-  <NotepadStatusBar {statusMessage} {words} {characters} />
+  <EditorStatusBar {statusMessage} {words} {characters} />
 </main>

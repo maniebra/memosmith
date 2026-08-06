@@ -19,16 +19,6 @@ pnpm build
 pnpm tauri build
 ```
 
-## Rename
-
-Change these before using it as a real app:
-
-- `package.json`: `name`
-- `src-tauri/Cargo.toml`: `package.name`, `description`, `authors`, and `lib.name`
-- `src-tauri/src/main.rs`: library crate name
-- `src-tauri/tauri.conf.json`: `productName`, `identifier`, and window `title`
-- `index.html`: `<title>`
-
 ## Source Layout
 
 - `src/App.svelte`: top-level app composition

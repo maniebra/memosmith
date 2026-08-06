@@ -10,5 +10,5 @@ fn prefer_kde_window_decorations() {}
 
 fn main() {
     prefer_kde_window_decorations();
-    tauri_svelte_ui_template_lib::run()
+    memosmith_lib::run()
 }

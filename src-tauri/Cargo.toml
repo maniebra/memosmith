@@ -1,12 +1,12 @@
 [package]
-name = "tauri-svelte-ui-template"
+name = "memosmith"
 version = "0.1.0"
-description = "A Tauri Svelte UI template"
-authors = ["template-user"]
+description = "Notion-like markdown editor"
+authors = ["mani.ebra"]
 edition = "2021"
 
 [lib]
-name = "tauri_svelte_ui_template_lib"
+name = "memosmith_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

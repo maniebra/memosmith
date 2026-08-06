@@ -1695,6 +1695,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "memosmith"
+version = "0.1.0"
+dependencies = [
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-dialog",
+]
+
+[[package]]
 name = "mime"
 version = "0.3.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3183,15 +3192,6 @@ dependencies = [
  "webview2-com",
  "windows",
  "wry",
-]
-
-[[package]]
-name = "tauri-svelte-ui-template"
-version = "0.1.0"
-dependencies = [
- "tauri",
- "tauri-build",
- "tauri-plugin-dialog",
 ]
 
 [[package]]

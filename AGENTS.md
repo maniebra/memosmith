@@ -2,7 +2,7 @@
 
 ## Project
 
-This is a minimal Tauri 2 desktop app template using Svelte, Vite, Tailwind CSS, and TypeScript.
+MemoSmith is a Tauri 2 desktop app built with Svelte, Vite, Tailwind CSS, and TypeScript.
 The app is a Notion-like markdown editor: a contenteditable surface that styles
 markdown live, plus open/save/autosave.
 
@@ -45,7 +45,7 @@ cargo check
 
 ## Rules
 
-- Keep this template small.
+- Keep the app small.
 - Do not add comments that restate obvious code.
 - Keep UI code under `src/ui`.
 - Prefer reusable components from `src/ui/components` before styling raw elements.

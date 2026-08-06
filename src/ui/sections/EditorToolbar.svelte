@@ -11,7 +11,7 @@
 
 <header
   class="flex flex-col gap-4 border-b border-stone-300 bg-stone-50 px-4 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-stone-800 dark:bg-stone-900"
-  aria-label="Notepad toolbar"
+  aria-label="Editor toolbar"
 >
   <div class="min-w-0">
     <h1 class="m-0 text-xl font-bold tracking-normal text-stone-950 dark:text-stone-50">{title}</h1>
