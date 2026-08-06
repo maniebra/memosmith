@@ -1,4 +1,5 @@
 import hljs from "highlight.js/lib/common";
+import katex from "katex";
 
 type BlockRule = {
   match: RegExp;
@@ -21,16 +22,52 @@ const BLOCK_RULES: BlockRule[] = [
 ];
 
 /** One pass so replacements are never rescanned as markdown. */
-const INLINE = /`([^`\n]+)`|\*\*([^*\n]+)\*\*|(?<![*\w])\*(\S|\S[^*\n]*\S)\*(?!\*)|\[([^\]\n]*)\]\(([^)\n]*)\)/g;
+const INLINE = /`([^`\n]+)`|\$([^$\n]+)\$|\*\*([^*\n]+)\*\*|(?<![*\w])\*(\S|\S[^*\n]*\S)\*(?!\*)|\[([^\]\n]*)\]\(([^)\n]*)\)/g;
+const EQUATION_BLOCK = /^\s*\$\$\s*(\S.*?)\s*\$\$\s*$/;
 
 function mark(text: string) {
   return `<span class="md-mark">${text}</span>`;
 }
 
+function renderKatex(source: string, displayMode: boolean) {
+  try {
+    return katex.renderToString(source, {
+      displayMode,
+      output: "html",
+      throwOnError: false,
+      strict: "ignore",
+    });
+  } catch {
+    return escapeHtml(source);
+  }
+}
+
+function unescapeHtml(text: string) {
+  return text.replace(/&(amp|lt|gt);/g, (entity) => ({ "&amp;": "&", "&lt;": "<", "&gt;": ">" })[entity]!);
+}
+
+function renderInlineMath(source: string) {
+  return `<span class="md-math-inline"><span class="md-math-source">${mark("$")}${source}${mark("$")}</span><span class="md-math-rendered" contenteditable="false">${renderKatex(unescapeHtml(source), false)}</span></span>`;
+}
+
+/** Source stays an ordinary editable line; the preview is a sibling the caret never enters. */
+function mathLine(line: string, group: number, closed: boolean) {
+  // Only a closed block may hide its source, since only then is there a preview to hide behind.
+  return `<div class="md-block md-math-line" data-math="${group}"${closed ? " data-closed" : ""}>${escapeHtml(line) || "<br>"}</div>`;
+}
+
+function mathPreview(source: string, group: number) {
+  return `<div class="md-preview md-math-preview" data-math="${group}" contenteditable="false">${renderKatex(source, true)}</div>`;
+}
+
 function renderInline(escaped: string) {
-  return escaped.replace(INLINE, (all, code, bold, italic, linkText, href) => {
+  return escaped.replace(INLINE, (all, code, math, bold, italic, linkText, href) => {
     if (code) {
       return `<span class="md-code">${mark("`")}${code}${mark("`")}</span>`;
+    }
+
+    if (math) {
+      return renderInlineMath(math);
     }
 
     if (bold) {
@@ -58,6 +95,7 @@ export const SLASH_COMMANDS = [
   { label: "To-do", hint: "[ ]", prefix: "- [ ] " },
   { label: "Quote", hint: ">", prefix: "> " },
   { label: "Code", hint: "```", prefix: "```" },
+  { label: "Equation", hint: "$$", prefix: "$$" },
   { label: "Divider", hint: "---", prefix: "---" },
   { label: "Text", hint: "plain", prefix: "" },
 ];
@@ -101,6 +139,11 @@ function renderCode(line: string, language: string) {
   return hljs.highlight(line, { language, ignoreIllegals: true }).value;
 }
 
+/** True when the document has a `$$` line with no partner, so typing one should close it. */
+export function mathUnclosed(text: string) {
+  return (text.match(/^[ \t]*\$\$[ \t]*$/gm) ?? []).length % 2 === 1;
+}
+
 /** True when the text ends inside an unclosed fence. */
 export function insideFence(text: string) {
   return (text.match(/^[ \t]*```/gm) ?? []).length % 2 === 1;
@@ -108,33 +151,79 @@ export function insideFence(text: string) {
 
 export function renderDocument(text: string) {
   let language: string | null = null;
-  let group = 0;
+  let codeGroup = 0;
+  let mathGroup = 0;
+  let mathLines: string[] | null = null;
+  const output: string[] = [];
 
-  return text
-    .split("\n")
-    .map((line) => {
-      const fence = FENCE.exec(line);
+  function pushMathLines(lines: string[], closed: boolean) {
+    const group = mathGroup++;
 
-      if (fence) {
-        const isOpening = language === null;
-        const className = isOpening ? "md-fence md-fence-open" : "md-fence md-fence-close";
+    for (const line of lines) {
+      output.push(mathLine(line, group, closed));
+    }
 
-        language = isOpening ? fence[1].toLowerCase() : null;
-        const index = isOpening ? group : group++;
+    // An unclosed block has no equation yet, so there is nothing to preview.
+    if (closed) {
+      output.push(mathPreview(lines.slice(1, -1).join("\n"), group));
+    }
+  }
 
-        return `<div class="md-block ${className}" data-code="${index}">${escapeHtml(line)}</div>`;
+  for (const line of text.split("\n")) {
+    const fence = FENCE.exec(line);
+
+    if (mathLines) {
+      mathLines.push(line);
+
+      if (line.trim() === "$$") {
+        pushMathLines(mathLines, true);
+        mathLines = null;
       }
 
-      if (language !== null) {
-        return `<div class="md-block md-codeblock" data-code="${group}">${renderCode(line, language)}</div>`;
-      }
+      continue;
+    }
 
-      const indent = / */.exec(line)![0].length;
-      const style = indent ? ` style="padding-left:${indent * 0.75}rem"` : "";
+    if (fence) {
+      const isOpening: boolean = language === null;
+      const className = isOpening ? "md-fence md-fence-open" : "md-fence md-fence-close";
 
-      return `<div class="md-block ${lineClass(line)}"${style}>${renderLine(line)}</div>`;
-    })
-    .join("");
+      language = isOpening ? fence[1].toLowerCase() : null;
+      const index = isOpening ? codeGroup : codeGroup++;
+
+      output.push(`<div class="md-block ${className}" data-code="${index}">${escapeHtml(line)}</div>`);
+      continue;
+    }
+
+    if (language !== null) {
+      output.push(`<div class="md-block md-codeblock" data-code="${codeGroup}">${renderCode(line, language)}</div>`);
+      continue;
+    }
+
+    const equation = EQUATION_BLOCK.exec(line);
+
+    if (equation) {
+      const group = mathGroup++;
+
+      output.push(mathLine(line, group, true), mathPreview(equation[1], group));
+      continue;
+    }
+
+    if (line.trim() === "$$") {
+      mathLines = [line];
+      continue;
+    }
+
+    const indent = / */.exec(line)![0].length;
+    const style = indent ? ` style="padding-left:${indent * 0.75}rem"` : "";
+
+    output.push(`<div class="md-block ${lineClass(line)}"${style}>${renderLine(line)}</div>`);
+  }
+
+  if (mathLines) {
+    pushMathLines(mathLines, false);
+  }
+
+  return output.join("");
 }
 
 /** Prefix to start the next line with when Enter is pressed inside a list. */
@@ -157,7 +246,7 @@ export function continueList(line: string): string {
 }
 
 export function stripPrefix(line: string) {
-  return line.replace(/^\s*(#{1,6} |> |([-*+]|\d+\.)( \[[ x]\])? |```)/, "");
+  return line.replace(/^\s*(#{1,6} |> |([-*+]|\d+\.)( \[[ x]\])? |```|\$\$ ?)/, "");
 }
 
 export function applyPrefix(line: string, prefix: string) {

@@ -1,5 +1,5 @@
 const assert = (ok: unknown, msg: string) => { if (!ok) throw new Error(msg); };
-import { applyPrefix, continueList, insideFence, lineClass, renderDocument, renderLine } from "./markdown";
+import { applyPrefix, continueList, insideFence, lineClass, mathUnclosed, renderDocument, renderLine } from "./markdown";
 
 assert(lineClass("# Title") === "md-h1", "h1 class");
 assert(lineClass("#NoSpace") === "", "hash without space is not a heading");
@@ -14,6 +14,21 @@ assert(renderLine("a **b** c").includes("md-bold"), "bold");
 assert(renderLine("**b**").includes("md-italic") === false, "bold is not re-matched as italic");
 assert(renderLine("2 * 3 * 4").includes("md-italic") === false, "no stray italics");
 assert(renderLine("[t](u)").includes("md-link"), "link");
+assert(renderLine("area $a^2$").includes("katex"), "inline math renders with katex");
+assert(renderLine("area $a^2$").includes("md-math-source"), "inline math keeps editable source");
+assert(renderDocument("$$E=mc^2$$").includes("md-math-preview"), "equation block gets a preview");
+assert(renderDocument("$$\nE=mc^2\n$$").includes('data-math="0"'), "multiline equation block is grouped");
+assert(!renderDocument("$$").includes("md-preview"), "bare equation opener has nothing to preview");
+assert(!renderDocument("$$\nx").includes("data-closed"), "unclosed math keeps its source visible");
+assert(!renderDocument("$$E=mc^2$$").includes("<img"), "math does not render as images");
+
+// The caret maps by counting source blocks, so previews must never be counted as lines.
+const sourceBlocks = (text: string) =>
+  (renderDocument(text).match(/<div class="md-block/g) ?? []).length;
+assert(sourceBlocks("$$\nE=mc^2\n$$") === 3, "closed math is exactly its three source lines");
+assert(sourceBlocks("a\n$$\nx\n\ny\n$$\nb") === 7, "preview does not add a line");
+assert(mathUnclosed("$$\nx"), "lone opener is unclosed");
+assert(!mathUnclosed("$$\nx\n$$"), "paired openers are closed");
 assert(renderDocument("a\nb").split("<div").length === 3, "one block per line");
 assert(renderDocument("  - x").includes("padding-left:1.5rem"), "indent becomes padding");
 assert(continueList("- item") === "- ", "bullet continues");

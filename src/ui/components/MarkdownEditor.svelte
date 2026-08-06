@@ -6,6 +6,7 @@
     applyPrefix,
     continueList,
     insideFence,
+    mathUnclosed,
     renderDocument,
     SLASH_COMMANDS,
   } from "../../lib/utils/markdown";
@@ -47,57 +48,185 @@
     render(caretOffset());
   }
 
+  /** Previews are rendered output, not source: they must not shift caret offsets or line counts. */
   function blocks() {
-    return Array.from(element?.children ?? []) as HTMLElement[];
+    return (Array.from(element?.children ?? []) as HTMLElement[]).filter(
+      (block) => !block.classList.contains("md-preview"),
+    );
+  }
+
+  function isRenderedMath(node: Node) {
+    return node instanceof HTMLElement && node.classList.contains("md-math-rendered");
+  }
+
+  function sourceText(node: Node): string {
+    if (isRenderedMath(node)) {
+      return "";
+    }
+
+    if (node.nodeType === Node.TEXT_NODE) {
+      return node.textContent ?? "";
+    }
+
+    return Array.from(node.childNodes).map(sourceText).join("");
+  }
+
+  function sourceLength(node: Node) {
+    return sourceText(node).length;
+  }
+
+  function sourceLengthBefore(node: Node, offset: number) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return (node.textContent ?? "").slice(0, offset).length;
+    }
+
+    return Array.from(node.childNodes)
+      .slice(0, offset)
+      .reduce((length, child) => length + sourceLength(child), 0);
+  }
+
+  function sourceOffsetWithin(root: Node, target: Node, targetOffset: number) {
+    let offset = 0;
+    let found = false;
+
+    function visit(node: Node) {
+      if (isRenderedMath(node)) {
+        return;
+      }
+
+      if (node === target) {
+        offset += sourceLengthBefore(node, targetOffset);
+        found = true;
+        return;
+      }
+
+      if (node.nodeType === Node.TEXT_NODE) {
+        offset += node.textContent?.length ?? 0;
+        return;
+      }
+
+      for (const child of Array.from(node.childNodes)) {
+        if (found) {
+          return;
+        }
+
+        visit(child);
+      }
+    }
+
+    visit(root);
+
+    return found ? offset : null;
+  }
+
+  function caretPositionIn(node: Node, offset: number): { node: Node; offset: number } | null {
+    if (isRenderedMath(node)) {
+      return null;
+    }
+
+    if (node.nodeType === Node.TEXT_NODE) {
+      return {
+        node,
+        offset: Math.min(offset, node.textContent?.length ?? 0),
+      };
+    }
+
+    let remaining = offset;
+
+    for (const [index, child] of Array.from(node.childNodes).entries()) {
+      const length = sourceLength(child);
+
+      if (remaining > length) {
+        remaining -= length;
+        continue;
+      }
+
+      if (length === 0) {
+        return { node, offset: index };
+      }
+
+      return caretPositionIn(child, remaining);
+    }
+
+    return { node, offset: node.childNodes.length };
+  }
+
+  let activeBlock: HTMLElement | undefined;
+
+  function setActiveBlock(active: HTMLElement | undefined) {
+    // selectionchange fires far more often than the active block actually moves.
+    if (active === activeBlock) {
+      return;
+    }
+
+    activeBlock = active;
+    const group = active?.dataset.code ?? active?.dataset.math;
+    const groupName =
+      active?.dataset.code !== undefined ? "code" : active?.dataset.math !== undefined ? "math" : null;
+
+    for (const block of Array.from(element?.children ?? []) as HTMLElement[]) {
+      block.toggleAttribute(
+        "data-active",
+        block === active || (groupName !== null && block.dataset[groupName] === group),
+      );
+    }
+  }
+
+  function blockAtOffset(offset: number) {
+    let remaining = offset;
+
+    for (const block of blocks()) {
+      const length = sourceLength(block);
+
+      if (remaining > length) {
+        remaining -= length + 1;
+        continue;
+      }
+
+      return block;
+    }
+
+    const currentBlocks = blocks();
+
+    return currentBlocks[currentBlocks.length - 1];
   }
 
   function getText() {
     return blocks()
-      .map((block) => block.textContent ?? "")
+      .map(sourceText)
       .join("\n");
   }
 
   function caretOffset() {
     const selection = getSelection();
 
-    if (!element || !selection?.focusNode || !element.contains(selection.focusNode)) {
-      return null;
-    }
-
-    let offset = 0;
-
-    for (const block of blocks()) {
-      if (block.contains(selection.focusNode) || block === selection.focusNode) {
-        const range = document.createRange();
-        range.selectNodeContents(block);
-        range.setEnd(selection.focusNode, selection.focusOffset);
-
-        return offset + range.toString().length;
-      }
-
-      offset += (block.textContent ?? "").length + 1;
-    }
-
-    return null;
+    return selection?.focusNode ? offsetForPosition(selection.focusNode, selection.focusOffset) : null;
   }
 
-  function offsetForPosition(node: Node, nodeOffset: number) {
+  function offsetForPosition(node: Node, nodeOffset: number): number | null {
     if (!element || !element.contains(node)) {
       return null;
+    }
+
+    // A caret parked in a preview belongs to the source line above it, not to nowhere.
+    const preview = (node instanceof HTMLElement ? node : node.parentElement)?.closest(".md-preview");
+
+    if (preview) {
+      const source = preview.previousElementSibling;
+
+      return source ? offsetForPosition(source, source.childNodes.length) : null;
     }
 
     let offset = 0;
 
     for (const block of blocks()) {
       if (block.contains(node) || block === node) {
-        const range = document.createRange();
-        range.selectNodeContents(block);
-        range.setEnd(node, nodeOffset);
+        const lineOffset = sourceOffsetWithin(block, node, nodeOffset);
 
-        return offset + range.toString().length;
+        return lineOffset === null ? null : offset + lineOffset;
       }
 
-      offset += (block.textContent ?? "").length + 1;
+      offset += sourceLength(block) + 1;
     }
 
     return null;
@@ -127,25 +256,19 @@
     let remaining = offset;
 
     for (const block of blocks()) {
-      const length = (block.textContent ?? "").length;
+      const length = sourceLength(block);
 
       if (remaining > length) {
         remaining -= length + 1;
         continue;
       }
 
-      const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
-      let node = walker.nextNode();
-
-      while (node && remaining > (node.textContent ?? "").length) {
-        remaining -= (node.textContent ?? "").length;
-        node = walker.nextNode();
-      }
+      const position = caretPositionIn(block, remaining);
 
       const selection = getSelection();
       const range = document.createRange();
 
-      range.setStart(node ?? block, node ? remaining : 0);
+      range.setStart(position?.node ?? block, position?.offset ?? 0);
       range.collapse(true);
       selection?.removeAllRanges();
       selection?.addRange(range);
@@ -156,17 +279,12 @@
   /** Markdown markers stay hidden except on the block holding the caret; a code block counts as one. */
   function markActiveBlock() {
     const selection = getSelection();
-    const active = blocks().find((block) =>
+    const containing = blocks().find((block) =>
       Boolean(selection?.focusNode && block.contains(selection.focusNode)),
     );
-    const group = active?.dataset.code;
+    const offset = containing ? null : caretOffset();
 
-    for (const block of blocks()) {
-      block.toggleAttribute(
-        "data-active",
-        block === active || (group !== undefined && block.dataset.code === group),
-      );
-    }
+    setActiveBlock(containing ?? (offset === null ? undefined : blockAtOffset(offset)));
   }
 
   function render(offset: number | null) {
@@ -177,6 +295,7 @@
     element.innerHTML = renderDocument(value);
 
     if (offset !== null) {
+      setActiveBlock(blockAtOffset(offset));
       setCaret(offset);
     }
 
@@ -428,6 +547,14 @@
       event.preventDefault();
       closeMenu();
       replace(offset, offset, "`\n\n```", offset + 2);
+      return;
+    }
+
+    // Only close a `$$` that has no partner; inside an existing block Enter is just a new line.
+    if (event.key === "Enter" && /^[ \t]*\$\$$/.test(value.slice(start, offset)) && mathUnclosed(value)) {
+      event.preventDefault();
+      closeMenu();
+      replace(offset, offset, "\n\n$$", offset + 1);
       return;
     }
 

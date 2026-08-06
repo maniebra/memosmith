@@ -24,7 +24,8 @@
   $: editorClass = cn("leading-[1.75]", widthClasses[editorWidth]);
 </script>
 
-<section class="h-full min-h-0 overflow-y-auto" aria-label="Markdown editor">
+<!-- overflow-x-hidden so a wide equation scrolls inside its own box instead of widening the app. -->
+<section class="h-full min-h-0 overflow-x-hidden overflow-y-auto" aria-label="Markdown editor">
   <div class={cn("mx-auto w-full px-6 pt-14 pb-32 sm:px-10", editorClass)}>
     {#if editable && showPageTitle}
       <h1 class="mb-8 text-[2.5rem] leading-tight font-bold tracking-normal text-stone-900 dark:text-stone-100">

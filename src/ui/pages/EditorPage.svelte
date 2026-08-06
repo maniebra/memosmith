@@ -388,7 +388,7 @@
 
 <main
   class="grid h-screen overflow-hidden bg-[#fffdfa] text-stone-900 dark:bg-[#1a1917] dark:text-stone-100"
-  style="grid-template-rows: auto minmax(0, 1fr) auto;"
+  style="grid-template-rows: auto minmax(0, 1fr) auto; grid-template-columns: minmax(0, 1fr);"
 >
   <EditorToolbar
     title={appTitle}
@@ -397,7 +397,7 @@
     onToggleSettings={() => (settingsOpen = !settingsOpen)}
   />
 
-  <div class="flex min-h-0">
+  <div class="flex min-h-0 min-w-0">
     <SpaceSidebar
       width={settings.spacePaneWidth}
       root={spaceRoot}

@@ -161,4 +161,52 @@ body {
   .md-link {
     @apply text-emerald-700 underline decoration-emerald-700/30 underline-offset-2 dark:text-emerald-400 dark:decoration-emerald-400/30;
   }
+
+  /* Collapsed rather than hidden: the caret still needs somewhere to land. */
+  .md-math-source {
+    font-size: 0;
+    letter-spacing: 0;
+  }
+
+  .md-block[data-active] .md-math-source {
+    font-size: inherit;
+    letter-spacing: normal;
+  }
+
+  .md-math-rendered {
+    @apply inline-block align-[-0.12em];
+    pointer-events: none;
+  }
+
+  .md-block[data-active] .md-math-rendered {
+    @apply hidden;
+  }
+
+  /* Block math: raw LaTeX only while the caret is in the block, preview always. */
+  .md-math-line {
+    @apply font-mono text-[0.85em] text-stone-500 dark:text-stone-400;
+  }
+
+  /* Collapsed, never `display: none`: hiding the line under the caret makes the browser
+     move the selection, which re-fires selectionchange and spins the editor. */
+  .md-math-line[data-closed]:not([data-active]) {
+    font-size: 0;
+    line-height: 0;
+    letter-spacing: 0;
+  }
+
+  /* Keeps pointer events so a wide equation can be scrolled; the caret that a click
+     lands here is mapped back onto the source line above it. */
+  /* `safe center` centers the equation until it is too wide, then lets it scroll from the
+     start instead of bleeding past both edges the way `text-align: center` would. */
+  .md-math-preview {
+    @apply my-3 flex max-w-full overflow-x-auto py-1;
+    justify-content: safe center;
+    user-select: none;
+    overscroll-behavior-x: contain;
+  }
+
+  .md-math-preview .katex-display {
+    @apply my-0;
+  }
 }
