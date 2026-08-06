@@ -11,18 +11,131 @@
   export let value = "";
   export let options: SelectOption[] = [];
   export let className = "";
+  export let onChange: (value: string) => void = () => {};
+
+  let open = false;
+  let root: HTMLDivElement;
+  let activeIndex = 0;
+
+  $: selectedIndex = Math.max(
+    0,
+    options.findIndex((option) => option.value === value),
+  );
+  $: selected = options[selectedIndex] ?? options[0];
+  $: if (!open) {
+    activeIndex = selectedIndex;
+  }
+
+  function close() {
+    open = false;
+  }
+
+  function toggle() {
+    open = !open;
+  }
+
+  function choose(index: number) {
+    const option = options[index];
+
+    if (!option) {
+      return;
+    }
+
+    value = option.value;
+    onChange(value);
+    close();
+  }
+
+  function handleButtonKeydown(event: KeyboardEvent) {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      open = true;
+      activeIndex = Math.min(activeIndex + 1, options.length - 1);
+      return;
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      open = true;
+      activeIndex = Math.max(activeIndex - 1, 0);
+      return;
+    }
+
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+
+      if (open) {
+        choose(activeIndex);
+      } else {
+        open = true;
+      }
+    }
+  }
+
+  function handleWindowClick(event: MouseEvent) {
+    if (root && !root.contains(event.target as Node)) {
+      close();
+    }
+  }
+
+  function handleWindowKeydown(event: KeyboardEvent) {
+    if (!open) {
+      return;
+    }
+
+    if (event.key === "Escape") {
+      close();
+    }
+  }
 </script>
 
-<select
-  bind:value
-  class={cn(
-    "h-10 w-full rounded-md border border-stone-300 bg-white px-3 text-sm text-stone-950 shadow-sm",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700/30",
-    "dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100",
-    className,
-  )}
->
-  {#each options as option}
-    <option value={option.value}>{option.label}</option>
-  {/each}
-</select>
+<svelte:window onclick={handleWindowClick} onkeydown={handleWindowKeydown} />
+
+<div bind:this={root} class="relative">
+  <button
+    type="button"
+    aria-haspopup="listbox"
+    aria-expanded={open}
+    class={cn(
+      "flex h-10 w-full items-center justify-between gap-2 rounded-xl border border-stone-200/80 bg-stone-50/80 px-3 text-left text-sm text-stone-800 shadow-sm shadow-stone-900/5",
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700/30",
+      "dark:border-stone-700/80 dark:bg-stone-900/80 dark:text-stone-100 dark:shadow-black/10",
+      className,
+    )}
+    onclick={(event) => {
+      event.stopPropagation();
+      toggle();
+    }}
+    onkeydown={handleButtonKeydown}
+  >
+    <span class="truncate">{selected?.label}</span>
+    <span class="text-stone-400 dark:text-stone-500" aria-hidden="true">⌄</span>
+  </button>
+
+  {#if open}
+    <div
+      class="absolute top-[calc(100%+0.25rem)] right-0 left-0 z-50 rounded-xl border border-stone-200/80 bg-stone-50/95 p-1.5 shadow-lg shadow-stone-900/8 dark:border-stone-700/80 dark:bg-stone-900/95 dark:shadow-black/20"
+      role="listbox"
+      tabindex="-1"
+    >
+      {#each options as option, index}
+        <button
+          type="button"
+          role="option"
+          aria-selected={option.value === value}
+          class={cn(
+            "flex h-8 w-full items-center rounded-lg px-2.5 text-left text-sm transition-colors",
+            index === activeIndex && "bg-stone-200/45 dark:bg-stone-800/70",
+            option.value === value
+              ? "font-medium text-emerald-700 dark:text-emerald-300"
+              : "text-stone-600 dark:text-stone-300",
+          )}
+          onclick={() => choose(index)}
+          onmouseenter={() => (activeIndex = index)}
+        >
+          <span class="truncate">{option.label}</span>
+        </button>
+      {/each}
+    </div>
+  {/if}
+</div>

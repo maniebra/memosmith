@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { onDestroy } from "svelte";
+  import { onDestroy, onMount } from "svelte";
+  import { defaultSettings, loadSettings, saveSettings } from "../../lib/storage/settings";
   import { loadDraft, loadSpaceRoot, saveDraft, saveSpaceRoot } from "../../lib/storage/draft";
   import {
     chooseNotePath,
@@ -17,6 +18,7 @@
   import NoteEditorForm from "../forms/NoteEditorForm.svelte";
   import EditorStatusBar from "../sections/EditorStatusBar.svelte";
   import EditorToolbar from "../sections/EditorToolbar.svelte";
+  import SettingsPanel from "../sections/SettingsPanel.svelte";
   import SpaceSidebar from "../sections/SpaceSidebar.svelte";
 
   const appTitle = "MemoSmith";
@@ -31,6 +33,9 @@
   let editor: HTMLElement | undefined;
   let words = countWords(contents);
   let characters = contents.length;
+  let settings = loadSettings();
+  let settingsOpen = false;
+  let prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
   let draftSaveTimer: ReturnType<typeof setTimeout> | undefined;
   let statsTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -41,6 +46,8 @@
   $: dirtyMarker = isDirty ? " *" : "";
   $: displayName = `${fileLabel}${dirtyMarker}`;
   $: document.title = `${displayName} - ${appTitle}`;
+  $: applyTheme(settings.theme, prefersDark);
+  $: saveSettings(settings);
 
   function countWords(text: string) {
     const trimmedText = text.trim();
@@ -92,6 +99,21 @@
 
   function focusEditor() {
     editor?.focus();
+  }
+
+  function applyTheme(theme: typeof settings.theme, systemPrefersDark: boolean) {
+    const useDark = theme === "dark" || (theme === "system" && systemPrefersDark);
+
+    document.documentElement.classList.toggle("dark", useDark);
+    document.documentElement.style.colorScheme = useDark ? "dark" : "light";
+  }
+
+  function resetSettings() {
+    settings = { ...defaultSettings };
+  }
+
+  function updateSettings(nextSettings: typeof settings) {
+    settings = nextSettings;
   }
 
   function setEditorText(text: string, nextPath: string | null) {
@@ -241,6 +263,11 @@
   function handleShortcut(event: KeyboardEvent) {
     const isPrimaryShortcut = event.ctrlKey || event.metaKey;
 
+    if (event.key === "Escape" && settingsOpen) {
+      settingsOpen = false;
+      return;
+    }
+
     if (!isPrimaryShortcut) {
       return;
     }
@@ -259,9 +286,25 @@
       event.preventDefault();
       newNote();
     }
+
+    if (event.key === ",") {
+      event.preventDefault();
+      settingsOpen = !settingsOpen;
+    }
   }
 
   runWithStatus(refreshSpace);
+
+  onMount(() => {
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const updateSystemTheme = () => {
+      prefersDark = mediaQuery.matches;
+    };
+
+    mediaQuery.addEventListener("change", updateSystemTheme);
+
+    return () => mediaQuery.removeEventListener("change", updateSystemTheme);
+  });
 
   onDestroy(() => {
     if (draftSaveTimer) {
@@ -288,6 +331,7 @@
     onOpen={() => runWithStatus(openNote)}
     onSave={() => runWithStatus(() => saveNote())}
     onSaveAs={() => runWithStatus(() => saveNote(true))}
+    onToggleSettings={() => (settingsOpen = !settingsOpen)}
   />
 
   <div class="flex min-h-0">
@@ -304,8 +348,25 @@
     />
 
     <div class="min-w-0 flex-1">
-      <NoteEditorForm bind:contents bind:editor onInput={updateDraft} />
+      <NoteEditorForm
+        bind:contents
+        bind:editor
+        editorWidth={settings.editorWidth}
+        textSize={settings.textSize}
+        spellcheck={settings.spellcheck}
+        slashCommands={settings.slashCommands}
+        onInput={updateDraft}
+      />
     </div>
+
+    {#if settingsOpen}
+      <SettingsPanel
+        {settings}
+        onClose={() => (settingsOpen = false)}
+        onReset={resetSettings}
+        onChange={updateSettings}
+      />
+    {/if}
   </div>
 
   <EditorStatusBar {statusMessage} {words} {characters} />

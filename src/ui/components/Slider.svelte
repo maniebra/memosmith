@@ -4,6 +4,11 @@
   export let max = 100;
   export let step = 1;
   export let label = "";
+  export let onChange: (value: number) => void = () => {};
+
+  function handleInput() {
+    onChange(value);
+  }
 </script>
 
 <label class="grid gap-2">
@@ -20,6 +25,7 @@
     {min}
     {max}
     {step}
+    oninput={handleInput}
     class="h-2 w-full cursor-pointer accent-emerald-700"
   />
 </label>

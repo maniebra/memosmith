@@ -8,6 +8,7 @@
   export let onOpen: () => void | Promise<void>;
   export let onSave: () => void | Promise<void>;
   export let onSaveAs: () => void | Promise<void>;
+  export let onToggleSettings: () => void;
 </script>
 
 <header
@@ -34,6 +35,7 @@
     <Button label="New" onClick={onNew} variant="ghost" size="sm" />
     <Button label="Open" onClick={onOpen} variant="ghost" size="sm" />
     <Button label="Save As" onClick={onSaveAs} variant="ghost" size="sm" />
+    <Button label="Settings" onClick={onToggleSettings} variant="ghost" size="sm" />
     <Button label="Save" onClick={onSave} variant="primary" size="sm" className="ml-1.5" />
   </div>
 </header>

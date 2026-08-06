@@ -6,6 +6,9 @@
   export let value: string;
   export let element: HTMLElement | undefined = undefined;
   export let placeholder = "";
+  export let textSize = 17;
+  export let spellcheck = true;
+  export let slashCommands = true;
   export let className = "";
   export let onInput: () => void = () => {};
 
@@ -22,6 +25,9 @@
   $: matches = SLASH_COMMANDS.filter((command) =>
     command.label.toLowerCase().includes(slashQuery.toLowerCase()),
   );
+  $: if (!slashCommands && slashStart !== null) {
+    closeMenu();
+  }
   $: if (element && !composing && getText() !== value) {
     render(caretOffset());
   }
@@ -132,6 +138,11 @@
   }
 
   function syncMenu(offset: number) {
+    if (!slashCommands) {
+      closeMenu();
+      return;
+    }
+
     const typed = /(?:^|\s)\/([\w ]*)$/.exec(value.slice(lineStartAt(offset), offset));
 
     if (!typed) {
@@ -192,7 +203,7 @@
   }
 
   function handleKeydown(event: KeyboardEvent) {
-    if (slashStart !== null && matches.length) {
+    if (slashCommands && slashStart !== null && matches.length) {
       if (event.key === "ArrowDown" || event.key === "ArrowUp") {
         event.preventDefault();
         slashIndex = (slashIndex + (event.key === "ArrowDown" ? 1 : matches.length - 1)) % matches.length;
@@ -264,14 +275,14 @@
 <div
   bind:this={element}
   contenteditable="true"
-  spellcheck="true"
+  {spellcheck}
   role="textbox"
   tabindex="0"
   aria-multiline="true"
   aria-label="Markdown editor"
-  style="--md-placeholder: '{placeholder}'"
+  style="--md-placeholder: '{placeholder}'; font-size: {textSize}px;"
   class={cn(
-    "min-h-[60vh] w-full text-[1.0625rem] leading-[1.75] whitespace-pre-wrap text-stone-900 caret-emerald-700",
+    "min-h-[60vh] w-full leading-[1.75] whitespace-pre-wrap text-stone-900 caret-emerald-700",
     "focus-visible:outline-none",
     "dark:text-stone-100 dark:caret-emerald-400",
     className,

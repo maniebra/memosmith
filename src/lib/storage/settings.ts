@@ -1,0 +1,65 @@
+const SETTINGS_KEY = "memosmith:settings";
+
+export type ThemePreference = "system" | "light" | "dark";
+export type EditorWidth = "focused" | "comfortable" | "wide";
+
+export type AppSettings = {
+  theme: ThemePreference;
+  editorWidth: EditorWidth;
+  textSize: number;
+  spellcheck: boolean;
+  slashCommands: boolean;
+};
+
+export const defaultSettings: AppSettings = {
+  theme: "system",
+  editorWidth: "comfortable",
+  textSize: 17,
+  spellcheck: true,
+  slashCommands: true,
+};
+
+function isThemePreference(value: unknown): value is ThemePreference {
+  return value === "system" || value === "light" || value === "dark";
+}
+
+function isEditorWidth(value: unknown): value is EditorWidth {
+  return value === "focused" || value === "comfortable" || value === "wide";
+}
+
+function clampTextSize(value: unknown) {
+  const size = Number(value);
+
+  if (!Number.isFinite(size)) {
+    return defaultSettings.textSize;
+  }
+
+  return Math.min(21, Math.max(15, size));
+}
+
+export function loadSettings(): AppSettings {
+  const rawSettings = localStorage.getItem(SETTINGS_KEY);
+
+  if (!rawSettings) {
+    return { ...defaultSettings };
+  }
+
+  try {
+    const parsed = JSON.parse(rawSettings) as Partial<AppSettings>;
+
+    return {
+      theme: isThemePreference(parsed.theme) ? parsed.theme : defaultSettings.theme,
+      editorWidth: isEditorWidth(parsed.editorWidth) ? parsed.editorWidth : defaultSettings.editorWidth,
+      textSize: clampTextSize(parsed.textSize),
+      spellcheck: typeof parsed.spellcheck === "boolean" ? parsed.spellcheck : defaultSettings.spellcheck,
+      slashCommands:
+        typeof parsed.slashCommands === "boolean" ? parsed.slashCommands : defaultSettings.slashCommands,
+    };
+  } catch {
+    return { ...defaultSettings };
+  }
+}
+
+export function saveSettings(settings: AppSettings) {
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+}

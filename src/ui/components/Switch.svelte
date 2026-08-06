@@ -4,9 +4,11 @@
   export let checked = false;
   export let label: string;
   export let className = "";
+  export let onChange: (checked: boolean) => void = () => {};
 
   function toggle() {
     checked = !checked;
+    onChange(checked);
   }
 </script>
 
