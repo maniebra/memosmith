@@ -8,4 +8,5 @@ export { default as Progress } from "./Progress.svelte";
 export { default as Select } from "./Select.svelte";
 export { default as Slider } from "./Slider.svelte";
 export { default as Switch } from "./Switch.svelte";
+export { default as MarkdownEditor } from "./MarkdownEditor.svelte";
 export { default as TextArea } from "./TextArea.svelte";

@@ -3,8 +3,8 @@ import { open, save } from "@tauri-apps/plugin-dialog";
 
 const textFileFilters = [
   {
-    name: "Text files",
-    extensions: ["txt", "md", "log"],
+    name: "Markdown",
+    extensions: ["md", "markdown", "txt"],
   },
   {
     name: "All files",
@@ -23,7 +23,7 @@ export async function chooseNotePath() {
 
 export function chooseSavePath(defaultPath: string | null) {
   return save({
-    defaultPath: defaultPath || "untitled.txt",
+    defaultPath: defaultPath || "untitled.md",
     filters: textFileFilters,
   });
 }

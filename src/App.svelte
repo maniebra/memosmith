@@ -1,5 +1,5 @@
 <script lang="ts">
-  import TechDemoPage from "./ui/pages/TechDemoPage.svelte";
+  import NotepadPage from "./ui/pages/NotepadPage.svelte";
 </script>
 
-<TechDemoPage />
+<NotepadPage />

@@ -1,7 +1,8 @@
-# Tauri Svelte UI Template
+# MemoSmith
 
-Small Tauri 2 desktop app template with Svelte, Vite, Tailwind CSS, TypeScript,
-a reusable component library, and a working notepad tech demo.
+Notion-like markdown editor on Tauri 2 + Svelte + Tailwind. Markdown is styled
+live as you type (headings, lists, quotes, bold/italic/code/links), with list
+continuation, open/save, and local autosave.
 
 ## Use
 
@@ -54,6 +55,7 @@ Ready-to-use components live in `src/ui/components`.
 - `Select.svelte`
 - `Slider.svelte`
 - `Switch.svelte`
+- `MarkdownEditor.svelte`
 - `TextArea.svelte`
 
 ## KDE

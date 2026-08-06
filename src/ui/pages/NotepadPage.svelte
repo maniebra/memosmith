@@ -12,14 +12,14 @@
   import NotepadStatusBar from "../sections/NotepadStatusBar.svelte";
   import NotepadToolbar from "../sections/NotepadToolbar.svelte";
 
-  const appTitle = "Tauri Svelte UI Template";
+  const appTitle = "MemoSmith";
   const draft = loadDraft();
 
   let path = draft.path;
   let isDirty = false;
   let contents = draft.contents;
   let statusMessage = "Draft autosaved locally";
-  let editor: HTMLTextAreaElement | undefined;
+  let editor: HTMLElement | undefined;
   let words = countWords(contents);
   let characters = contents.length;
   let draftSaveTimer: ReturnType<typeof setTimeout> | undefined;
@@ -183,7 +183,7 @@
 <svelte:window onbeforeunload={flushDraftSave} onkeydown={handleShortcut} />
 
 <main
-  class="grid h-full min-h-[520px] overflow-hidden rounded-lg border border-stone-300 bg-stone-200 text-stone-950 dark:border-stone-800 dark:bg-stone-950 dark:text-stone-50"
+  class="grid h-screen overflow-hidden border-stone-300 bg-stone-200 text-stone-950 dark:border-stone-800 dark:bg-stone-950 dark:text-stone-50"
   style="grid-template-rows: auto minmax(0, 1fr) auto;"
 >
   <NotepadToolbar

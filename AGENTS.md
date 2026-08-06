@@ -3,7 +3,8 @@
 ## Project
 
 This is a minimal Tauri 2 desktop app template using Svelte, Vite, Tailwind CSS, and TypeScript.
-The app is a component-library tech demo with a working notepad example.
+The app is a Notion-like markdown editor: a contenteditable surface that styles
+markdown live, plus open/save/autosave.
 
 ## Commands
 
@@ -28,6 +29,7 @@ cargo check
 - `src/main.ts`: Svelte mount point
 - `src/app.css`: global browser styles
 - `src/ui/pages/`: route-level page components
+- `src/lib/utils/markdown.ts`: block/inline styling rules and list continuation (`markdown.test.ts` is the check)
 - `src/ui/components/`: reusable Tailwind UI components
 - `src/ui/sections/`: page sections and layout chunks
 - `src/ui/forms/`: form/editor components
