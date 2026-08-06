@@ -163,6 +163,15 @@
     const nextLine = applyPrefix(value.slice(start, slashStart) + tail, prefix);
 
     closeMenu();
+
+    // A code block needs its closing fence, with the caret waiting on the line between.
+    if (prefix.startsWith("```")) {
+      const opening = applyPrefix(value.slice(start, slashStart), prefix);
+
+      replace(start, lineEnd, `${opening}\n${tail}\n\`\`\``, start + opening.length + 1);
+      return;
+    }
+
     replace(start, lineEnd, nextLine, start + nextLine.length - tail.length);
   }
 
@@ -317,7 +326,9 @@
 <style>
   /* Hint on the caret's empty line, and on an empty document. */
   [contenteditable]
-    :global(.md-block:has(> br:only-child):is([data-active], :only-child))::before {
+    :global(
+      .md-block:not(.md-codeblock, .md-fence):has(> br:only-child):is([data-active], :only-child)
+    )::before {
     content: var(--md-placeholder);
     position: absolute;
     inset-inline-start: 0;

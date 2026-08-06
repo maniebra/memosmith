@@ -1,3 +1,5 @@
+import hljs from "highlight.js/lib/common";
+
 type BlockRule = {
   match: RegExp;
   className: string;
@@ -84,10 +86,42 @@ export function renderLine(line: string) {
   return `${prefix ? mark(escapeHtml(prefix)) : ""}${body || "<br>"}`;
 }
 
+const FENCE = /^\s*```(\w*)/;
+
+/** Highlighting is per line so each line stays one block the caret can map onto. */
+function renderCode(line: string, language: string) {
+  if (!line) {
+    return "<br>";
+  }
+
+  if (!language || !hljs.getLanguage(language)) {
+    return escapeHtml(line);
+  }
+
+  return hljs.highlight(line, { language, ignoreIllegals: true }).value;
+}
+
 export function renderDocument(text: string) {
+  let language: string | null = null;
+
   return text
     .split("\n")
     .map((line) => {
+      const fence = FENCE.exec(line);
+
+      if (fence) {
+        const isOpening = language === null;
+        const className = isOpening ? "md-fence md-fence-open" : "md-fence md-fence-close";
+
+        language = isOpening ? fence[1].toLowerCase() : null;
+
+        return `<div class="md-block ${className}">${escapeHtml(line)}</div>`;
+      }
+
+      if (language !== null) {
+        return `<div class="md-block md-codeblock">${renderCode(line, language)}</div>`;
+      }
+
       const indent = / */.exec(line)![0].length;
       const style = indent ? ` style="padding-left:${indent * 0.75}rem"` : "";
 

@@ -24,4 +24,15 @@ assert(continueList("plain") === "", "plain line");
 assert(applyPrefix("- old", "## ") === "## old", "prefix replaces prefix");
 assert(applyPrefix("plain", "> ") === "> plain", "prefix on plain line");
 assert(applyPrefix("# h", "") === "h", "Text command clears prefix");
+
+const fenced = renderDocument("a\n```js\nconst x = **1**;\n```\nb");
+assert(fenced.includes("md-fence-open") && fenced.includes("md-fence-close"), "fences are distinguishable");
+assert(fenced.includes("hljs-keyword"), "code is highlighted with the fence language");
+assert(fenced.includes("md-codeblock"), "lines inside a fence are code");
+assert(!fenced.includes("md-bold"), "code block content is not inline-rendered");
+assert(renderDocument("```\na").includes("md-codeblock"), "unclosed fence runs to the end");
+assert(renderDocument("```\na").includes("hljs") === false, "no language means no highlighting");
+assert(renderDocument("```js\na\n```\n```js\nb\n```").split("md-fence-open").length === 3, "fences pair up");
+assert(!renderDocument("a\nb").includes("md-codeblock"), "no fence, no code block");
+
 console.log("markdown ok");

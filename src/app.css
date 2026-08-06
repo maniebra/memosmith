@@ -83,6 +83,58 @@ body {
     @apply my-4 border-b border-stone-200 dark:border-stone-800;
   }
 
+  /* One continuous slab: no vertical padding per line, only on the fences. */
+  .md-codeblock,
+  .md-fence {
+    @apply bg-stone-500/10 px-4 font-mono text-[0.85em] leading-[1.6];
+  }
+
+  .md-fence {
+    @apply text-stone-400 dark:text-stone-500;
+  }
+
+  .md-fence-open {
+    @apply mt-2 rounded-t-md pt-2;
+  }
+
+  .md-fence-close {
+    @apply mb-2 rounded-b-md pb-2;
+  }
+
+  .hljs-comment,
+  .hljs-quote {
+    @apply text-stone-400 italic dark:text-stone-500;
+  }
+
+  .hljs-keyword,
+  .hljs-built_in,
+  .hljs-literal {
+    @apply text-violet-700 dark:text-violet-300;
+  }
+
+  .hljs-string,
+  .hljs-regexp {
+    @apply text-emerald-700 dark:text-emerald-300;
+  }
+
+  .hljs-number,
+  .hljs-symbol {
+    @apply text-amber-700 dark:text-amber-300;
+  }
+
+  .hljs-title,
+  .hljs-function .hljs-title,
+  .hljs-section {
+    @apply text-sky-700 dark:text-sky-300;
+  }
+
+  .hljs-attr,
+  .hljs-attribute,
+  .hljs-variable,
+  .hljs-params {
+    @apply text-rose-700 dark:text-rose-300;
+  }
+
   .md-bold {
     @apply font-semibold;
   }
