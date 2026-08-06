@@ -87,6 +87,10 @@ function renderInline(escaped: string) {
   });
 }
 
+function emptyAnchor() {
+  return "&#8203;";
+}
+
 export const SLASH_COMMANDS = [
   { label: "Heading 1", hint: "#", prefix: "# " },
   { label: "Heading 2", hint: "##", prefix: "## " },
@@ -174,14 +178,14 @@ export function lineClass(line: string) {
 
 export function renderLine(line: string) {
   if (!line) {
-    return "<br>";
+    return emptyAnchor();
   }
 
   const rule = blockRule(line);
   const prefix = rule?.hideMark ? rule.match.exec(line)![0] : "";
   const body = renderInline(escapeHtml(line.slice(prefix.length)));
 
-  return `${prefix ? mark(escapeHtml(prefix)) : ""}${body || "<br>"}`;
+  return `${prefix ? mark(escapeHtml(prefix)) : ""}${body || emptyAnchor()}`;
 }
 
 const FENCE = /^\s*```(\w*)/;
@@ -189,7 +193,7 @@ const FENCE = /^\s*```(\w*)/;
 /** Highlighting is per line so each line stays one block the caret can map onto. */
 function renderCode(line: string, language: string) {
   if (!line) {
-    return "<br>";
+    return emptyAnchor();
   }
 
   if (!language || !hljs.getLanguage(language)) {

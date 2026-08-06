@@ -44,6 +44,11 @@
   export let resolveAsset: ((source: string) => string) | null = null;
 
   let composing = false;
+  const EMPTY_CARET = String.fromCharCode(8203);
+
+  function withoutEmptyCaret(text: string) {
+    return text.split(EMPTY_CARET).join("");
+  }
 
   /** Without an initial render the editor has no blocks, so typed text has nowhere to land. */
   onMount(() => {
@@ -115,7 +120,7 @@
     }
 
     if (node.nodeType === Node.TEXT_NODE) {
-      return node.textContent ?? "";
+      return withoutEmptyCaret(node.textContent ?? "");
     }
 
     return Array.from(node.childNodes).map(sourceText).join("");
@@ -127,7 +132,8 @@
 
   function sourceLengthBefore(node: Node, offset: number) {
     if (node.nodeType === Node.TEXT_NODE) {
-      return (node.textContent ?? "").slice(0, offset).length;
+      return withoutEmptyCaret((node.textContent ?? "").slice(0, offset))
+        .length;
     }
 
     return Array.from(node.childNodes)
@@ -195,6 +201,13 @@
       }
 
       if (length === 0) {
+        if (
+          child.nodeType === Node.TEXT_NODE &&
+          child.textContent?.includes(EMPTY_CARET)
+        ) {
+          return { node: child, offset: 0 };
+        }
+
         return { node, offset: index };
       }
 
@@ -261,15 +274,19 @@
       : null;
   }
 
+  function previewForNode(node: Node | null) {
+    return (
+      node instanceof HTMLElement ? node : node?.parentElement
+    )?.closest(".md-preview");
+  }
+
   function offsetForPosition(node: Node, nodeOffset: number): number | null {
     if (!element || !element.contains(node)) {
       return null;
     }
 
     // A caret parked in a preview belongs to the source line above it, not to nowhere.
-    const preview = (
-      node instanceof HTMLElement ? node : node.parentElement
-    )?.closest(".md-preview");
+    const preview = previewForNode(node);
 
     if (preview) {
       const source = preview.previousElementSibling;
@@ -341,8 +358,93 @@
     }
   }
 
+  let previewNavigation:
+    | { direction: "up" | "down"; column: number }
+    | null = null;
+  let normalizingSelection = false;
+
+  function adjacentSourceBlock(
+    node: Element,
+    direction: "previous" | "next",
+  ) {
+    let sibling =
+      direction === "previous"
+        ? node.previousElementSibling
+        : node.nextElementSibling;
+
+    while (sibling?.classList.contains("md-preview")) {
+      sibling =
+        direction === "previous"
+          ? sibling.previousElementSibling
+          : sibling.nextElementSibling;
+    }
+
+    return sibling instanceof HTMLElement ? sibling : null;
+  }
+
+  function offsetInBlock(block: HTMLElement, column: number) {
+    const start = offsetForPosition(block, 0);
+
+    return start === null
+      ? null
+      : start + Math.min(column, sourceLength(block));
+  }
+
+  function normalizePreviewSelection() {
+    if (normalizingSelection) {
+      return false;
+    }
+
+    const selection = getSelection();
+    const preview = previewForNode(selection?.focusNode ?? null);
+
+    if (!preview) {
+      return false;
+    }
+
+    const source = preview.previousElementSibling;
+    const column =
+      previewNavigation?.column ??
+      (source instanceof HTMLElement ? sourceLength(source) : 0);
+    const target =
+      previewNavigation?.direction === "down"
+        ? adjacentSourceBlock(preview, "next") ?? source
+        : source ?? adjacentSourceBlock(preview, "previous");
+    const offset =
+      target instanceof HTMLElement ? offsetInBlock(target, column) : null;
+
+    if (offset === null) {
+      return false;
+    }
+
+    normalizingSelection = true;
+    setCaret(offset);
+    normalizingSelection = false;
+    previewNavigation = null;
+    markActiveBlock();
+
+    return true;
+  }
+
+  function repairPreviewNavigation(direction: "up" | "down", offset: number) {
+    previewNavigation = {
+      direction,
+      column: offset - lineStartAt(offset),
+    };
+
+    requestAnimationFrame(() => {
+      if (!normalizePreviewSelection()) {
+        previewNavigation = null;
+      }
+    });
+  }
+
   /** Markdown markers stay hidden except on the block holding the caret; a code block counts as one. */
   function markActiveBlock() {
+    if (normalizePreviewSelection()) {
+      return;
+    }
+
     const selection = getSelection();
     const containing = blocks().find((block) =>
       Boolean(selection?.focusNode && block.contains(selection.focusNode)),
@@ -767,6 +869,11 @@
     }
 
     const start = lineStartAt(offset);
+
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      repairPreviewNavigation(event.key === "ArrowDown" ? "down" : "up", offset);
+      return;
+    }
 
     // Third backtick opens a fenced block and closes it, caret on the line between.
     if (
