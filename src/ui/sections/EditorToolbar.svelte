@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { PanelLeftClose, PanelLeftOpen, Settings } from "@lucide/svelte";
   import Button from "../components/Button.svelte";
 
   export let title: string;
@@ -21,29 +22,25 @@
     title="Toggle space pane (Ctrl B)"
     onclick={onToggleSpacePane}
   >
-    <svg viewBox="0 0 16 16" class="size-4" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true">
-      <rect x="1.5" y="2.5" width="13" height="11" rx="2" />
-      <line x1="6" y1="2.5" x2="6" y2="13.5" />
-      <rect
-        x="1.5"
-        y="2.5"
-        width="4.5"
-        height="11"
-        rx="2"
-        fill="currentColor"
-        class="origin-left transition-opacity duration-200"
-        opacity={spacePaneOpen ? 0.35 : 0}
-      />
-    </svg>
+    {#if spacePaneOpen}
+      <PanelLeftClose class="size-4" strokeWidth={1.8} aria-hidden="true" />
+    {:else}
+      <PanelLeftOpen class="size-4" strokeWidth={1.8} aria-hidden="true" />
+    {/if}
   </button>
 
-  <span class="shrink-0 text-sm font-semibold tracking-tight text-stone-400 dark:text-stone-500">
+  <span
+    class="shrink-0 text-sm font-semibold tracking-tight text-stone-400 dark:text-stone-500"
+  >
     {title}
   </span>
   <span class="shrink-0 text-stone-300 dark:text-stone-700">/</span>
 
   <div class="flex min-w-0 items-center gap-2">
-    <span class="truncate text-sm font-medium text-stone-800 dark:text-stone-100">{fileLabel}</span>
+    <span
+      class="truncate text-sm font-medium text-stone-800 dark:text-stone-100"
+      >{fileLabel}</span
+    >
     {#if isDirty}
       <span
         class="size-1.5 shrink-0 rounded-full bg-amber-500"
@@ -54,6 +51,12 @@
   </div>
 
   <div class="ml-auto flex shrink-0 items-center gap-0.5">
-    <Button label="Settings" onClick={onToggleSettings} variant="ghost" size="sm" />
+    <Button
+      label="Settings"
+      icon={Settings}
+      onClick={onToggleSettings}
+      variant="ghost"
+      size="sm"
+    />
   </div>
 </header>

@@ -3,6 +3,7 @@
 
   export let label: string;
   export let onClick: () => void | Promise<void>;
+  export let icon: any = null;
   export let variant: "primary" | "secondary" | "ghost" = "secondary";
   export let size: "sm" | "md" | "lg" = "md";
   export let disabled = false;
@@ -12,9 +13,12 @@
     "inline-flex items-center justify-center rounded-lg border font-medium transition-colors",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/40",
     "disabled:pointer-events-none disabled:opacity-50",
-    size === "sm" && "h-8 px-2.5 text-[0.8125rem]",
-    size === "md" && "h-9 min-w-20 px-3 text-sm",
-    size === "lg" && "h-11 min-w-20 px-4 text-base",
+    icon && size === "sm" && "size-8 p-0",
+    icon && size === "md" && "size-9 p-0",
+    icon && size === "lg" && "size-11 p-0",
+    !icon && size === "sm" && "h-8 px-2.5 text-[0.8125rem]",
+    !icon && size === "md" && "h-9 min-w-20 px-3 text-sm",
+    !icon && size === "lg" && "h-11 min-w-20 px-4 text-base",
     variant === "primary" &&
       "border-emerald-700 bg-emerald-700 text-white shadow-sm hover:bg-emerald-800 dark:border-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-500",
     variant === "secondary" &&
@@ -25,4 +29,14 @@
   );
 </script>
 
-<button type="button" class={classes} {disabled} onclick={onClick}>{label}</button>
+<button type="button" class={classes} {disabled} onclick={onClick}>
+  {#if icon}
+    <svelte:component
+      this={icon}
+      class="size-4 shrink-0"
+      strokeWidth={1.8}
+      aria-hidden="true"
+    />
+  {/if}
+  <span class={icon ? "sr-only" : ""}>{label}</span>
+</button>

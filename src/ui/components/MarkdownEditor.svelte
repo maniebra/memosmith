@@ -1,5 +1,14 @@
 <script lang="ts">
   import { getCurrentWebview } from "@tauri-apps/api/webview";
+  import {
+    AlignCenter,
+    AlignLeft,
+    AlignRight,
+    ClipboardCopy,
+    ClipboardPaste,
+    FileUp,
+    Scissors,
+  } from "@lucide/svelte";
   import { onMount } from "svelte";
   import { cubicOut } from "svelte/easing";
   import { scale } from "svelte/transition";
@@ -27,7 +36,10 @@
   export let className = "";
   export let onInput: () => void = () => {};
   /** Stores dropped/pasted/picked files next to the note and returns the markdown to insert. */
-  export let onAssets: (source: { files?: File[]; paths?: string[] }) => Promise<string> = async () => "";
+  export let onAssets: (source: {
+    files?: File[];
+    paths?: string[];
+  }) => Promise<string> = async () => "";
   export let onPickAssets: (() => Promise<string>) | null = null;
   export let resolveAsset: ((source: string) => string) | null = null;
 
@@ -44,9 +56,17 @@
       }
 
       const rect = element?.getBoundingClientRect();
-      const { x, y } = event.payload.position.toLogical(window.devicePixelRatio);
+      const { x, y } = event.payload.position.toLogical(
+        window.devicePixelRatio,
+      );
 
-      if (!rect || x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+      if (
+        !rect ||
+        x < rect.left ||
+        x > rect.right ||
+        y < rect.top ||
+        y > rect.bottom
+      ) {
         return;
       }
 
@@ -60,13 +80,11 @@
   let slashQuery = "";
   let slashIndex = 0;
   let menuPosition = { top: 0, left: 0 };
-  let contextMenu:
-    | {
-        x: number;
-        y: number;
-        hasSelection: boolean;
-      }
-    | null = null;
+  let contextMenu: {
+    x: number;
+    y: number;
+    hasSelection: boolean;
+  } | null = null;
 
   $: matches = SLASH_COMMANDS.filter((command) =>
     command.label.toLowerCase().includes(slashQuery.toLowerCase()),
@@ -86,7 +104,9 @@
   }
 
   function isRenderedMath(node: Node) {
-    return node instanceof HTMLElement && node.classList.contains("md-math-rendered");
+    return (
+      node instanceof HTMLElement && node.classList.contains("md-math-rendered")
+    );
   }
 
   function sourceText(node: Node): string {
@@ -149,7 +169,10 @@
     return found ? offset : null;
   }
 
-  function caretPositionIn(node: Node, offset: number): { node: Node; offset: number } | null {
+  function caretPositionIn(
+    node: Node,
+    offset: number,
+  ): { node: Node; offset: number } | null {
     if (isRenderedMath(node)) {
       return null;
     }
@@ -192,12 +215,17 @@
     activeBlock = active;
     const group = active?.dataset.code ?? active?.dataset.math;
     const groupName =
-      active?.dataset.code !== undefined ? "code" : active?.dataset.math !== undefined ? "math" : null;
+      active?.dataset.code !== undefined
+        ? "code"
+        : active?.dataset.math !== undefined
+          ? "math"
+          : null;
 
     for (const block of Array.from(element?.children ?? []) as HTMLElement[]) {
       block.toggleAttribute(
         "data-active",
-        block === active || (groupName !== null && block.dataset[groupName] === group),
+        block === active ||
+          (groupName !== null && block.dataset[groupName] === group),
       );
     }
   }
@@ -222,15 +250,15 @@
   }
 
   function getText() {
-    return blocks()
-      .map(sourceText)
-      .join("\n");
+    return blocks().map(sourceText).join("\n");
   }
 
   function caretOffset() {
     const selection = getSelection();
 
-    return selection?.focusNode ? offsetForPosition(selection.focusNode, selection.focusOffset) : null;
+    return selection?.focusNode
+      ? offsetForPosition(selection.focusNode, selection.focusOffset)
+      : null;
   }
 
   function offsetForPosition(node: Node, nodeOffset: number): number | null {
@@ -239,12 +267,16 @@
     }
 
     // A caret parked in a preview belongs to the source line above it, not to nowhere.
-    const preview = (node instanceof HTMLElement ? node : node.parentElement)?.closest(".md-preview");
+    const preview = (
+      node instanceof HTMLElement ? node : node.parentElement
+    )?.closest(".md-preview");
 
     if (preview) {
       const source = preview.previousElementSibling;
 
-      return source ? offsetForPosition(source, source.childNodes.length) : null;
+      return source
+        ? offsetForPosition(source, source.childNodes.length)
+        : null;
     }
 
     let offset = 0;
@@ -269,7 +301,10 @@
       return null;
     }
 
-    const anchor = offsetForPosition(selection.anchorNode, selection.anchorOffset);
+    const anchor = offsetForPosition(
+      selection.anchorNode,
+      selection.anchorOffset,
+    );
     const focus = offsetForPosition(selection.focusNode, selection.focusOffset);
 
     if (anchor === null || focus === null) {
@@ -314,7 +349,9 @@
     );
     const offset = containing ? null : caretOffset();
 
-    setActiveBlock(containing ?? (offset === null ? undefined : blockAtOffset(offset)));
+    setActiveBlock(
+      containing ?? (offset === null ? undefined : blockAtOffset(offset)),
+    );
   }
 
   function render(offset: number | null) {
@@ -332,7 +369,12 @@
     markActiveBlock();
   }
 
-  function replace(start: number, end: number, text: string, caret = start + text.length) {
+  function replace(
+    start: number,
+    end: number,
+    text: string,
+    caret = start + text.length,
+  ) {
     value = value.slice(0, start) + text + value.slice(end);
     render(caret);
     onInput();
@@ -356,7 +398,10 @@
     }
 
     const offset = caretOffset() ?? value.length;
-    const lineEnd = value.indexOf("\n", offset) === -1 ? value.length : value.indexOf("\n", offset);
+    const lineEnd =
+      value.indexOf("\n", offset) === -1
+        ? value.length
+        : value.indexOf("\n", offset);
     const lead = value.slice(lineStartAt(lineEnd), lineEnd) ? "\n" : "";
 
     replace(lineEnd, lineEnd, `${lead}${markdown}\n`);
@@ -366,7 +411,9 @@
     const source = preview.previousElementSibling;
     const start = source ? offsetForPosition(source, 0) : null;
 
-    return start === null || !source ? null : { start, end: start + sourceLength(source) };
+    return start === null || !source
+      ? null
+      : { start, end: start + sourceLength(source) };
   }
 
   function caretLineRange() {
@@ -381,7 +428,10 @@
     return { start: lineStartAt(offset), end: end === -1 ? value.length : end };
   }
 
-  function setMediaOption(range: { start: number; end: number }, options: Parameters<typeof withMediaOptions>[1]) {
+  function setMediaOption(
+    range: { start: number; end: number },
+    options: Parameters<typeof withMediaOptions>[1],
+  ) {
     const line = withMediaOptions(value.slice(range.start, range.end), options);
 
     // Re-render without a caret: parking it on the media line would expand the source under the pointer.
@@ -397,7 +447,9 @@
       return;
     }
 
-    const media = handle.parentElement?.querySelector(".md-media") as HTMLElement | null;
+    const media = handle.parentElement?.querySelector(
+      ".md-media",
+    ) as HTMLElement | null;
     const preview = handle.closest(".md-preview");
     const range = preview ? lineRangeFor(preview) : null;
 
@@ -420,7 +472,9 @@
     const onUp = () => {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
-      setMediaOption(range, { width: Math.round(media.getBoundingClientRect().width) });
+      setMediaOption(range, {
+        width: Math.round(media.getBoundingClientRect().width),
+      });
     };
 
     window.addEventListener("pointermove", onMove);
@@ -436,12 +490,19 @@
 
     const caretDocument = document as Document & {
       caretRangeFromPoint?: (x: number, y: number) => Range | null;
-      caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null;
+      caretPositionFromPoint?: (
+        x: number,
+        y: number,
+      ) => { offsetNode: Node; offset: number } | null;
     };
-    let range = caretDocument.caretRangeFromPoint?.(event.clientX, event.clientY) ?? null;
+    let range =
+      caretDocument.caretRangeFromPoint?.(event.clientX, event.clientY) ?? null;
 
     if (!range) {
-      const position = caretDocument.caretPositionFromPoint?.(event.clientX, event.clientY);
+      const position = caretDocument.caretPositionFromPoint?.(
+        event.clientX,
+        event.clientY,
+      );
 
       if (position) {
         range = document.createRange();
@@ -467,7 +528,9 @@
       return;
     }
 
-    await navigator.clipboard.writeText(value.slice(selection.start, selection.end));
+    await navigator.clipboard.writeText(
+      value.slice(selection.start, selection.end),
+    );
   }
 
   async function cutSelection() {
@@ -477,7 +540,9 @@
       return;
     }
 
-    await navigator.clipboard.writeText(value.slice(selection.start, selection.end));
+    await navigator.clipboard.writeText(
+      value.slice(selection.start, selection.end),
+    );
     replace(selection.start, selection.end, "");
   }
 
@@ -520,15 +585,30 @@
   function alignItems(): ContextMenuItem[] {
     const range = caretLineRange();
 
-    if (!editable || !range || !isMediaLine(value.slice(range.start, range.end))) {
+    if (
+      !editable ||
+      !range ||
+      !isMediaLine(value.slice(range.start, range.end))
+    ) {
       return [];
     }
 
     return [
-      ...(["left", "center", "right"] as const).map((align) => ({
-        label: `Align ${align}`,
-        onSelect: () => setMediaOption(range, { align }),
-      })),
+      {
+        label: "Align left",
+        icon: AlignLeft,
+        onSelect: () => setMediaOption(range, { align: "left" }),
+      },
+      {
+        label: "Align center",
+        icon: AlignCenter,
+        onSelect: () => setMediaOption(range, { align: "center" }),
+      },
+      {
+        label: "Align right",
+        icon: AlignRight,
+        onSelect: () => setMediaOption(range, { align: "right" }),
+      },
       { separator: true },
     ];
   }
@@ -539,23 +619,27 @@
       {
         label: "Cut",
         shortcut: "Ctrl X",
+        icon: Scissors,
         disabled: !editable || !contextMenu?.hasSelection,
         onSelect: cutSelection,
       },
       {
         label: "Copy",
         shortcut: "Ctrl C",
+        icon: ClipboardCopy,
         disabled: !contextMenu?.hasSelection,
         onSelect: copySelection,
       },
       {
         label: "Paste",
         shortcut: "Ctrl V",
+        icon: ClipboardPaste,
         disabled: !editable,
         onSelect: pasteClipboard,
       },
       {
         label: "Insert file",
+        icon: FileUp,
         disabled: !editable || !onPickAssets,
         onSelect: async () => insertAssets(await onPickAssets!()),
       },
@@ -585,7 +669,9 @@
       return;
     }
 
-    const typed = /(?:^|\s)\/([\w ]*)$/.exec(value.slice(lineStartAt(offset), offset));
+    const typed = /(?:^|\s)\/([\w ]*)$/.exec(
+      value.slice(lineStartAt(offset), offset),
+    );
 
     if (!typed) {
       closeMenu();
@@ -611,7 +697,10 @@
     }
 
     const start = lineStartAt(offset);
-    const lineEnd = value.indexOf("\n", offset) === -1 ? value.length : value.indexOf("\n", offset);
+    const lineEnd =
+      value.indexOf("\n", offset) === -1
+        ? value.length
+        : value.indexOf("\n", offset);
     const tail = value.slice(offset, lineEnd);
     const nextLine = applyPrefix(value.slice(start, slashStart) + tail, prefix);
 
@@ -621,7 +710,12 @@
     if (prefix.startsWith("```")) {
       const opening = applyPrefix(value.slice(start, slashStart), prefix);
 
-      replace(start, lineEnd, `${opening}\n${tail}\n\`\`\``, start + opening.length + 1);
+      replace(
+        start,
+        lineEnd,
+        `${opening}\n${tail}\n\`\`\``,
+        start + opening.length + 1,
+      );
       return;
     }
 
@@ -648,7 +742,9 @@
     if (slashCommands && slashStart !== null && matches.length) {
       if (event.key === "ArrowDown" || event.key === "ArrowUp") {
         event.preventDefault();
-        slashIndex = (slashIndex + (event.key === "ArrowDown" ? 1 : matches.length - 1)) % matches.length;
+        slashIndex =
+          (slashIndex + (event.key === "ArrowDown" ? 1 : matches.length - 1)) %
+          matches.length;
         return;
       }
 
@@ -673,7 +769,11 @@
     const start = lineStartAt(offset);
 
     // Third backtick opens a fenced block and closes it, caret on the line between.
-    if (event.key === "`" && /^[ \t]*``$/.test(value.slice(start, offset)) && !insideFence(value.slice(0, start))) {
+    if (
+      event.key === "`" &&
+      /^[ \t]*``$/.test(value.slice(start, offset)) &&
+      !insideFence(value.slice(0, start))
+    ) {
       event.preventDefault();
       closeMenu();
       replace(offset, offset, "`\n\n```", offset + 2);
@@ -681,7 +781,11 @@
     }
 
     // Only close a `$$` that has no partner; inside an existing block Enter is just a new line.
-    if (event.key === "Enter" && /^[ \t]*\$\$$/.test(value.slice(start, offset)) && mathUnclosed(value)) {
+    if (
+      event.key === "Enter" &&
+      /^[ \t]*\$\$$/.test(value.slice(start, offset)) &&
+      mathUnclosed(value)
+    ) {
       event.preventDefault();
       closeMenu();
       replace(offset, offset, "\n\n$$", offset + 1);
@@ -708,7 +812,11 @@
       event.preventDefault();
 
       if (event.shiftKey) {
-        replace(start, offset, value.slice(start, offset).replace(/^ {1,2}/, ""));
+        replace(
+          start,
+          offset,
+          value.slice(start, offset).replace(/^ {1,2}/, ""),
+        );
       } else {
         replace(offset, offset, "  ");
       }
@@ -824,7 +932,10 @@
   /* Hint on the caret's empty line, and on an empty document. */
   [contenteditable]
     :global(
-      .md-block:not(.md-codeblock, .md-fence):has(> br:only-child):is([data-active], :only-child)
+      .md-block:not(.md-codeblock, .md-fence):has(> br:only-child):is(
+          [data-active],
+          :only-child
+        )
     )::before {
     content: var(--md-placeholder);
     position: absolute;

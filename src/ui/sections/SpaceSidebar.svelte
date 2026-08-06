@@ -1,8 +1,10 @@
 <script lang="ts">
-  import Button from "../components/Button.svelte";
+  import { FolderOpen, FolderPlus, Plus, RotateCcw } from "@lucide/svelte";
   import { basename } from "../../lib/utils/path";
   import { buildTree } from "../../lib/utils/tree";
-  import ContextMenu, { type ContextMenuItem } from "../components/ContextMenu.svelte";
+  import ContextMenu, {
+    type ContextMenuItem,
+  } from "../components/ContextMenu.svelte";
   import SpaceTree from "./SpaceTree.svelte";
   import TreeNameInput from "./TreeNameInput.svelte";
 
@@ -13,19 +15,21 @@
   export let onRefresh: () => void | Promise<void>;
   export let onSelect: (relativePath: string) => void;
   export let onRename: (relativePath: string, name: string) => void;
-  export let onCreate: (parentPath: string, name: string, folder: boolean) => void;
+  export let onCreate: (
+    parentPath: string,
+    name: string,
+    folder: boolean,
+  ) => void;
   export let onDelete: (relativePath: string) => void;
   export let width = 240;
 
   let renaming: string | null = null;
   let creating: string | null = null;
   let creatingFolder = false;
-  let contextMenu:
-    | {
-        x: number;
-        y: number;
-      }
-    | null = null;
+  let contextMenu: {
+    x: number;
+    y: number;
+  } | null = null;
 
   $: tree = buildTree(notes);
 
@@ -72,6 +76,7 @@
       return [
         {
           label: "Choose space",
+          icon: FolderOpen,
           onSelect: onChooseSpace,
         },
       ];
@@ -80,21 +85,25 @@
     return [
       {
         label: "Add note",
+        icon: Plus,
         onSelect: () => startCreate(""),
       },
       {
         label: "Add folder",
         shortcut: "Ctrl Shift N",
+        icon: FolderPlus,
         onSelect: startRootFolder,
       },
       { separator: true },
       {
         label: "Refresh",
         shortcut: "Ctrl R",
+        icon: RotateCcw,
         onSelect: onRefresh,
       },
       {
         label: "Change space",
+        icon: FolderOpen,
         onSelect: onChooseSpace,
       },
     ];
@@ -128,7 +137,9 @@
   style="width: {width}px;"
   aria-label="Space"
 >
-  <div class="flex h-12 shrink-0 items-center gap-1 border-b border-stone-200/70 px-2 dark:border-stone-800">
+  <div
+    class="flex h-12 shrink-0 items-center gap-1 border-b border-stone-200/70 px-2 dark:border-stone-800"
+  >
     <button
       type="button"
       class="min-w-0 flex-1 truncate rounded-md px-1 py-1 text-left text-xs font-semibold tracking-wide text-stone-500 uppercase hover:bg-stone-500/10 hover:text-stone-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 dark:hover:text-stone-300"
@@ -138,11 +149,23 @@
       {root ? basename(root) : "No space"}
     </button>
     {#if root}
-      <Button label="+" onClick={() => startCreate("")} variant="ghost" size="sm" className="px-2" />
+      <button
+        type="button"
+        class="flex size-8 items-center justify-center rounded-md border border-transparent text-stone-500 transition-colors hover:bg-stone-500/10 hover:text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 dark:text-stone-400 dark:hover:text-stone-100"
+        aria-label="Add note"
+        title="Add note"
+        onclick={() => startCreate("")}
+      >
+        <Plus class="size-4" strokeWidth={1.8} aria-hidden="true" />
+      </button>
     {/if}
   </div>
 
-  <div class="min-h-0 flex-1 overflow-y-auto p-1.5" role="presentation" oncontextmenu={openContextMenu}>
+  <div
+    class="min-h-0 flex-1 overflow-y-auto p-1.5"
+    role="presentation"
+    oncontextmenu={openContextMenu}
+  >
     {#if !root}
       <p class="px-2 py-6 text-center text-xs leading-relaxed text-stone-400">
         Choose a folder to use as your space.
@@ -158,7 +181,9 @@
       {/if}
 
       {#if !notes.length && creating !== ""}
-        <p class="px-2 py-6 text-center text-xs text-stone-400">No notes yet.</p>
+        <p class="px-2 py-6 text-center text-xs text-stone-400">
+          No notes yet.
+        </p>
       {/if}
 
       <SpaceTree

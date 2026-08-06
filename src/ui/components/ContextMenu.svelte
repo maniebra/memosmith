@@ -5,6 +5,7 @@
     disabled?: boolean;
     danger?: boolean;
     separator?: false;
+    icon?: any;
     onSelect?: () => void | Promise<void>;
   };
 
@@ -28,7 +29,10 @@
   const width = 192;
 
   $: left = Math.max(8, Math.min(x, window.innerWidth - width - 8));
-  $: top = Math.max(8, Math.min(y, window.innerHeight - items.length * 34 - 16));
+  $: top = Math.max(
+    8,
+    Math.min(y, window.innerHeight - items.length * 34 - 16),
+  );
 
   async function selectItem(item: ContextMenuItem) {
     if (item.separator) {
@@ -57,7 +61,10 @@
   }
 </script>
 
-<svelte:window onpointerdown={handleWindowPointerDown} onkeydown={handleWindowKeydown} />
+<svelte:window
+  onpointerdown={handleWindowPointerDown}
+  onkeydown={handleWindowKeydown}
+/>
 
 <div
   class="fixed z-[80] w-48 rounded-xl border border-stone-200/80 bg-stone-50/95 p-1.5 shadow-lg shadow-stone-900/8 backdrop-blur dark:border-stone-700/80 dark:bg-stone-900/95 dark:shadow-black/20"
@@ -68,14 +75,17 @@
 >
   {#each items as item}
     {#if item.separator}
-      <div class="my-1 h-px bg-stone-200/70 dark:bg-stone-700/70" role="separator"></div>
+      <div
+        class="my-1 h-px bg-stone-200/70 dark:bg-stone-700/70"
+        role="separator"
+      ></div>
     {:else}
       <button
         type="button"
         role="menuitem"
         disabled={item.disabled}
         class={cn(
-          "flex h-8 w-full items-center justify-between gap-3 rounded-lg px-2.5 text-left text-sm transition-colors",
+          "flex h-8 w-full items-center gap-2 rounded-lg px-2.5 text-left text-sm transition-colors",
           "disabled:pointer-events-none disabled:opacity-40",
           item.danger
             ? "text-rose-700 hover:bg-rose-500/10 dark:text-rose-300"
@@ -87,9 +97,20 @@
         }}
         onpointerdown={(event) => event.stopPropagation()}
       >
-        <span class="truncate">{item.label}</span>
+        {#if item.icon}
+          <svelte:component
+            this={item.icon}
+            class="size-4 shrink-0"
+            strokeWidth={1.8}
+            aria-hidden="true"
+          />
+        {/if}
+        <span class="sr-only">{item.label}</span>
         {#if item.shortcut}
-          <span class="shrink-0 text-[0.7rem] text-stone-400 dark:text-stone-500">{item.shortcut}</span>
+          <span
+            class="shrink-0 text-[0.7rem] text-stone-400 dark:text-stone-500"
+            >{item.shortcut}</span
+          >
         {/if}
       </button>
     {/if}

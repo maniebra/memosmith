@@ -11,6 +11,7 @@
     "tauri": "GDK_BACKEND=x11 tauri"
   },
   "dependencies": {
+    "@lucide/svelte": "^1.28.0",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-dialog": "^2",
     "clsx": "^2.1.1",

@@ -1,8 +1,18 @@
 <script lang="ts">
+  import {
+    ChevronDown,
+    ChevronRight,
+    FolderPlus,
+    Pencil,
+    Plus,
+    Trash2,
+  } from "@lucide/svelte";
   import { cn } from "../../lib/utils/cn";
   import { displayNoteName } from "../../lib/utils/path";
   import type { TreeNode } from "../../lib/utils/tree";
-  import ContextMenu, { type ContextMenuItem } from "../components/ContextMenu.svelte";
+  import ContextMenu, {
+    type ContextMenuItem,
+  } from "../components/ContextMenu.svelte";
   import Self from "./SpaceTree.svelte";
   import TreeNameInput from "./TreeNameInput.svelte";
 
@@ -22,13 +32,11 @@
   export let depth = 0;
 
   let collapsed: Record<string, boolean> = {};
-  let contextMenu:
-    | {
-        x: number;
-        y: number;
-        node: TreeNode;
-      }
-    | null = null;
+  let contextMenu: {
+    x: number;
+    y: number;
+    node: TreeNode;
+  } | null = null;
 
   function label(node: TreeNode) {
     return node.children ? node.name : displayNoteName(node.name);
@@ -57,11 +65,13 @@
     if (node.children) {
       items.push({
         label: collapsed[node.path] ? "Expand" : "Collapse",
+        icon: collapsed[node.path] ? ChevronRight : ChevronDown,
         onSelect: () => toggle(node),
       });
       items.push({ separator: true });
       items.push({
         label: "Add note",
+        icon: Plus,
         onSelect: () => {
           collapsed = { ...collapsed, [node.path]: false };
           onStartCreate(node.path);
@@ -69,6 +79,7 @@
       });
       items.push({
         label: "Add folder",
+        icon: FolderPlus,
         onSelect: () => {
           collapsed = { ...collapsed, [node.path]: false };
           onStartCreate(node.path, true);
@@ -79,10 +90,12 @@
     items.push({ separator: true });
     items.push({
       label: "Rename",
+      icon: Pencil,
       onSelect: () => onStartRename(node.path),
     });
     items.push({
       label: "Delete",
+      icon: Trash2,
       danger: true,
       onSelect: () => onDelete(node.path),
     });
@@ -116,48 +129,75 @@
             <button
               type="button"
               class={cn(
-                "shrink-0 py-1 pr-1 text-[0.65rem] text-stone-400 transition-transform",
-                collapsed[node.path] ? "" : "rotate-90",
+                "shrink-0 py-1 pr-1 text-stone-400 transition-colors hover:text-stone-700 dark:hover:text-stone-200",
               )}
               style="padding-left: {depth * 0.75 + 0.375}rem"
               title={collapsed[node.path] ? "Expand" : "Collapse"}
-              onclick={() => toggle(node)}>▶</button
+              aria-label={collapsed[node.path] ? "Expand" : "Collapse"}
+              onclick={() => toggle(node)}
             >
+              {#if collapsed[node.path]}
+                <ChevronRight
+                  class="size-3.5"
+                  strokeWidth={1.8}
+                  aria-hidden="true"
+                />
+              {:else}
+                <ChevronDown
+                  class="size-3.5"
+                  strokeWidth={1.8}
+                  aria-hidden="true"
+                />
+              {/if}
+            </button>
           {/if}
 
           <button
             type="button"
             class="flex min-w-0 flex-1 items-center py-1 text-left text-[0.8125rem]"
-            style={node.children ? "padding-left: 0.375rem" : `padding-left: ${depth * 0.75 + 1.375}rem`}
+            style={node.children
+              ? "padding-left: 0.375rem"
+              : `padding-left: ${depth * 0.75 + 1.375}rem`}
             onclick={() => (node.note ? onSelect(node.note) : toggle(node))}
           >
             <span class="truncate">{label(node)}</span>
           </button>
 
-          <span class="flex shrink-0 items-center opacity-0 focus-within:opacity-100 group-hover:opacity-100">
+          <span
+            class="flex shrink-0 items-center opacity-0 focus-within:opacity-100 group-hover:opacity-100"
+          >
             {#if node.children}
               <button
                 type="button"
-                class="rounded px-1 text-xs text-stone-400 hover:text-stone-800 dark:hover:text-stone-100"
+                class="rounded p-1 text-stone-400 hover:text-stone-800 dark:hover:text-stone-100"
                 title="Add note here"
+                aria-label="Add note here"
                 onclick={() => {
                   collapsed = { ...collapsed, [node.path]: false };
                   onStartCreate(node.path);
-                }}>+</button
+                }}
               >
+                <Plus class="size-3.5" strokeWidth={1.8} aria-hidden="true" />
+              </button>
             {/if}
             <button
               type="button"
-              class="rounded px-1 text-xs text-stone-400 hover:text-stone-800 dark:hover:text-stone-100"
+              class="rounded p-1 text-stone-400 hover:text-stone-800 dark:hover:text-stone-100"
               title="Rename"
-              onclick={() => onStartRename(node.path)}>✎</button
+              aria-label="Rename"
+              onclick={() => onStartRename(node.path)}
             >
+              <Pencil class="size-3.5" strokeWidth={1.8} aria-hidden="true" />
+            </button>
             <button
               type="button"
-              class="rounded px-1 text-xs text-stone-400 hover:text-rose-600"
+              class="rounded p-1 text-stone-400 hover:text-rose-600"
               title="Delete"
-              onclick={() => onDelete(node.path)}>✕</button
+              aria-label="Delete"
+              onclick={() => onDelete(node.path)}
             >
+              <Trash2 class="size-3.5" strokeWidth={1.8} aria-hidden="true" />
+            </button>
           </span>
         </div>
       {/if}

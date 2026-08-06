@@ -6,6 +6,7 @@
 </script>
 
 <script lang="ts">
+  import { ChevronDown } from "@lucide/svelte";
   import { cn } from "../../lib/utils/cn";
 
   export let value = "";
@@ -109,7 +110,11 @@
     onkeydown={handleButtonKeydown}
   >
     <span class="truncate">{selected?.label}</span>
-    <span class="text-stone-400 dark:text-stone-500" aria-hidden="true">⌄</span>
+    <ChevronDown
+      class="size-4 shrink-0 text-stone-400 dark:text-stone-500"
+      strokeWidth={1.8}
+      aria-hidden="true"
+    />
   </button>
 
   {#if open}
