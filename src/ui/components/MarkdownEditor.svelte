@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import { cn } from "../../lib/utils/cn";
   import { applyPrefix, continueList, renderDocument, SLASH_COMMANDS } from "../../lib/utils/markdown";
 
@@ -9,6 +10,10 @@
   export let onInput: () => void = () => {};
 
   let composing = false;
+
+  /** Without an initial render the editor has no blocks, so typed text has nowhere to land. */
+  onMount(() => render(null));
+
   let slashStart: number | null = null;
   let slashQuery = "";
   let slashIndex = 0;
@@ -255,7 +260,7 @@
   tabindex="0"
   aria-multiline="true"
   aria-label="Markdown editor"
-  data-placeholder={placeholder}
+  style="--md-placeholder: '{placeholder}'"
   class={cn(
     "min-h-[60vh] w-full text-[1.0625rem] leading-[1.75] whitespace-pre-wrap text-stone-900 caret-emerald-700",
     "focus-visible:outline-none",
@@ -310,16 +315,10 @@
 {/if}
 
 <style>
-  [contenteditable]:has(> :global(div:only-child > br:only-child))::before,
-  [contenteditable]:empty::before {
-    content: attr(data-placeholder);
-    color: rgb(168 162 158);
-    pointer-events: none;
-  }
-
-  /* Notion-style hint on whichever empty line holds the caret. */
-  [contenteditable]:not(:empty) :global(.md-block[data-active]:has(> br:only-child))::before {
-    content: "Type '/' for commands";
+  /* Hint on the caret's empty line, and on an empty document. */
+  [contenteditable]
+    :global(.md-block:has(> br:only-child):is([data-active], :only-child))::before {
+    content: var(--md-placeholder);
     position: absolute;
     inset-inline-start: 0;
     color: rgb(168 162 158 / 0.7);

@@ -1,21 +1,30 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
-  import { loadDraft, saveDraft } from "../../lib/storage/draft";
+  import { loadDraft, loadSpaceRoot, saveDraft, saveSpaceRoot } from "../../lib/storage/draft";
   import {
     chooseNotePath,
     chooseSavePath,
+    chooseSpaceRoot,
+    confirmDelete,
+    createNote,
+    deletePath,
+    listSpace,
     readNote,
+    renamePath,
     writeNote,
   } from "../../lib/tauri/files";
-  import { basename } from "../../lib/utils/path";
+  import { basename, withNoteExtension } from "../../lib/utils/path";
   import NoteEditorForm from "../forms/NoteEditorForm.svelte";
   import EditorStatusBar from "../sections/EditorStatusBar.svelte";
   import EditorToolbar from "../sections/EditorToolbar.svelte";
+  import SpaceSidebar from "../sections/SpaceSidebar.svelte";
 
   const appTitle = "MemoSmith";
   const draft = loadDraft();
 
   let path = draft.path;
+  let spaceRoot = loadSpaceRoot();
+  let spaceNotes: string[] = [];
   let isDirty = false;
   let contents = draft.contents;
   let statusMessage = "Draft autosaved locally";
@@ -25,7 +34,10 @@
   let draftSaveTimer: ReturnType<typeof setTimeout> | undefined;
   let statsTimer: ReturnType<typeof setTimeout> | undefined;
 
-  $: fileLabel = path ? basename(path) : "Untitled note";
+  $: spacePrefix = spaceRoot ? `${spaceRoot}/` : null;
+  $: activeRelativePath =
+    path && spacePrefix && path.startsWith(spacePrefix) ? path.slice(spacePrefix.length) : null;
+  $: fileLabel = activeRelativePath ?? (path ? basename(path) : "Untitled note");
   $: dirtyMarker = isDirty ? " *" : "";
   $: displayName = `${fileLabel}${dirtyMarker}`;
   $: document.title = `${displayName} - ${appTitle}`;
@@ -104,6 +116,7 @@
     isDirty = false;
     flushDraftSave();
     statusMessage = `Saved ${basename(selectedPath)}`;
+    await refreshSpace();
   }
 
   async function openNote() {
@@ -117,6 +130,85 @@
     setEditorText(await readNote(selectedPath), selectedPath);
     statusMessage = `Opened ${basename(selectedPath)}`;
     focusEditor();
+  }
+
+  async function refreshSpace() {
+    spaceNotes = spaceRoot ? await listSpace(spaceRoot) : [];
+  }
+
+  async function openSpace() {
+    const selectedRoot = await chooseSpaceRoot();
+
+    if (!selectedRoot) {
+      return;
+    }
+
+    spaceRoot = selectedRoot;
+    saveSpaceRoot(spaceRoot);
+    await refreshSpace();
+    statusMessage = `Space ${basename(spaceRoot)}`;
+  }
+
+  async function openSpaceNote(relativePath: string) {
+    const notePath = spacePath(relativePath);
+
+    setEditorText(await readNote(notePath), notePath);
+    statusMessage = `Opened ${relativePath}`;
+    focusEditor();
+  }
+
+  function spacePath(relativePath: string) {
+    return `${spaceRoot}/${relativePath}`;
+  }
+
+  /** Names come from a text field, so they must not walk out of the space. */
+  function safeName(name: string) {
+    if (/[\\/]/.test(name) || name === "." || name === "..") {
+      throw new Error("Names cannot contain slashes");
+    }
+
+    return name;
+  }
+
+  async function createSpaceNote(parentPath: string, name: string) {
+    const relativePath = `${parentPath ? `${parentPath}/` : ""}${withNoteExtension(safeName(name))}`;
+
+    await createNote(spacePath(relativePath));
+    await refreshSpace();
+    setEditorText("", spacePath(relativePath));
+    statusMessage = `Created ${relativePath}`;
+    focusEditor();
+  }
+
+  async function renameSpaceEntry(relativePath: string, name: string) {
+    const parent = relativePath.includes("/") ? `${relativePath.slice(0, relativePath.lastIndexOf("/"))}/` : "";
+    const isFolder = !spaceNotes.includes(relativePath);
+    const nextRelativePath = `${parent}${isFolder ? safeName(name) : withNoteExtension(safeName(name))}`;
+
+    await renamePath(spacePath(relativePath), spacePath(nextRelativePath));
+
+    if (path === spacePath(relativePath)) {
+      path = spacePath(nextRelativePath);
+      flushDraftSave();
+    }
+
+    await refreshSpace();
+    statusMessage = `Renamed to ${nextRelativePath}`;
+  }
+
+  async function deleteSpaceEntry(relativePath: string) {
+    if (!(await confirmDelete(relativePath))) {
+      return;
+    }
+
+    await deletePath(spacePath(relativePath));
+
+    if (path === spacePath(relativePath)) {
+      setEditorText("", null);
+    }
+
+    await refreshSpace();
+    statusMessage = `Deleted ${relativePath}`;
   }
 
   function newNote() {
@@ -169,6 +261,8 @@
     }
   }
 
+  runWithStatus(refreshSpace);
+
   onDestroy(() => {
     if (draftSaveTimer) {
       clearTimeout(draftSaveTimer);
@@ -196,7 +290,23 @@
     onSaveAs={() => runWithStatus(() => saveNote(true))}
   />
 
-  <NoteEditorForm bind:contents bind:editor onInput={updateDraft} />
+  <div class="flex min-h-0">
+    <SpaceSidebar
+      root={spaceRoot}
+      notes={spaceNotes}
+      activePath={activeRelativePath}
+      onOpenSpace={() => runWithStatus(openSpace)}
+      onRefresh={() => runWithStatus(refreshSpace)}
+      onSelect={(relativePath) => runWithStatus(() => openSpaceNote(relativePath))}
+      onCreate={(parentPath, name) => runWithStatus(() => createSpaceNote(parentPath, name))}
+      onRename={(relativePath, name) => runWithStatus(() => renameSpaceEntry(relativePath, name))}
+      onDelete={(relativePath) => runWithStatus(() => deleteSpaceEntry(relativePath))}
+    />
+
+    <div class="min-w-0 flex-1">
+      <NoteEditorForm bind:contents bind:editor onInput={updateDraft} />
+    </div>
+  </div>
 
   <EditorStatusBar {statusMessage} {words} {characters} />
 </main>

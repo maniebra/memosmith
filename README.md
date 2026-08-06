@@ -4,6 +4,9 @@ Notion-like markdown editor on Tauri 2 + Svelte + Tailwind. Markdown is styled
 live as you type (headings, lists, quotes, bold/italic/code/links), with list
 continuation, open/save, and local autosave.
 
+Open a folder as a **space** and its notes show up as a sidebar tree, with
+create, rename, and delete in place. The space root is remembered between runs.
+
 ## Use
 
 ```sh
