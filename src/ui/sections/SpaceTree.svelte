@@ -1,5 +1,6 @@
 <script lang="ts">
   import { cn } from "../../lib/utils/cn";
+  import { displayNoteName } from "../../lib/utils/path";
   import type { TreeNode } from "../../lib/utils/tree";
   import Self from "./SpaceTree.svelte";
   import TreeNameInput from "./TreeNameInput.svelte";
@@ -22,7 +23,7 @@
   let collapsed: Record<string, boolean> = {};
 
   function label(node: TreeNode) {
-    return node.children ? node.name : node.name.replace(/\.(md|markdown|txt)$/i, "");
+    return node.children ? node.name : displayNoteName(node.name);
   }
 
   function toggle(node: TreeNode) {

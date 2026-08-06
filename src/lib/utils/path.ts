@@ -4,6 +4,10 @@ export function basename(filePath: string): string {
 
 const NOTE_EXTENSIONS = /\.(md|markdown|txt)$/i;
 
+export function stripNoteExtension(name: string): string {
+  return name.replace(NOTE_EXTENSIONS, "");
+}
+
 export function withNoteExtension(name: string): string {
   return NOTE_EXTENSIONS.test(name) ? name : `${name}.md`;
 }
@@ -15,4 +19,20 @@ export function dirNoteName(folderName: string): string {
 
 export function dirNotePath(folderPath: string): string {
   return `${folderPath}/${dirNoteName(basename(folderPath))}`;
+}
+
+export function displayNotePath(notePath: string): string {
+  const segments = notePath.split("/");
+  const name = segments[segments.length - 1] ?? "";
+  const parentName = segments[segments.length - 2];
+
+  if (parentName && name === dirNoteName(parentName)) {
+    return segments.slice(0, -1).join("/");
+  }
+
+  return [...segments.slice(0, -1), stripNoteExtension(name)].join("/");
+}
+
+export function displayNoteName(notePath: string): string {
+  return basename(displayNotePath(notePath));
 }

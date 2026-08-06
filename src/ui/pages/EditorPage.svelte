@@ -12,7 +12,14 @@
     renamePath,
     writeNote,
   } from "../../lib/tauri/files";
-  import { basename, dirNoteName, dirNotePath, withNoteExtension } from "../../lib/utils/path";
+  import {
+    basename,
+    dirNoteName,
+    dirNotePath,
+    displayNoteName,
+    displayNotePath,
+    withNoteExtension,
+  } from "../../lib/utils/path";
   import NoteEditorForm from "../forms/NoteEditorForm.svelte";
   import EditorStatusBar from "../sections/EditorStatusBar.svelte";
   import EditorToolbar from "../sections/EditorToolbar.svelte";
@@ -39,7 +46,8 @@
   $: spacePrefix = spaceRoot ? `${spaceRoot}/` : null;
   $: activeRelativePath =
     path && spacePrefix && path.startsWith(spacePrefix) ? path.slice(spacePrefix.length) : null;
-  $: fileLabel = activeRelativePath ?? (spaceRoot ? "No note selected" : "No space");
+  $: fileLabel = activeRelativePath ? displayNotePath(activeRelativePath) : spaceRoot ? "No note selected" : "No space";
+  $: noteTitle = activeRelativePath ? displayNoteName(activeRelativePath) : "";
   $: dirtyMarker = isDirty ? " *" : "";
   $: displayName = `${fileLabel}${dirtyMarker}`;
   $: document.title = `${displayName} - ${appTitle}`;
@@ -79,7 +87,7 @@
 
     if (path === notePath) {
       isDirty = false;
-      statusMessage = `Synced ${activeRelativePath ?? basename(notePath)}`;
+      statusMessage = `Synced ${activeRelativePath ? displayNotePath(activeRelativePath) : displayNoteName(notePath)}`;
     }
   }
 
@@ -162,7 +170,7 @@
     const notePath = spacePath(relativePath);
 
     setEditorText(await readNote(notePath), notePath);
-    statusMessage = `Selected ${relativePath}`;
+    statusMessage = `Selected ${displayNotePath(relativePath)}`;
     focusEditor();
   }
 
@@ -190,7 +198,7 @@
     await createNote(spacePath(relativePath));
     await refreshSpace();
     setEditorText("", spacePath(relativePath));
-    statusMessage = `Created ${relativePath}`;
+    statusMessage = `Created ${displayNotePath(relativePath)}`;
     focusEditor();
   }
 
@@ -221,7 +229,7 @@
     }
 
     await refreshSpace();
-    statusMessage = `Renamed to ${nextRelativePath}`;
+    statusMessage = `Renamed to ${displayNotePath(nextRelativePath)}`;
   }
 
   async function deleteSpaceEntry(relativePath: string) {
@@ -238,7 +246,7 @@
     }
 
     await refreshSpace();
-    statusMessage = `Deleted ${relativePath}`;
+    statusMessage = `Deleted ${displayNotePath(relativePath)}`;
   }
 
   async function runWithStatus(action: () => Promise<void>) {
@@ -344,6 +352,8 @@
         spellcheck={settings.spellcheck}
         slashCommands={settings.slashCommands}
         editable={Boolean(path)}
+        {noteTitle}
+        showPageTitle={settings.showPageTitle}
         placeholder={spaceRoot ? "Select or create a note" : "Choose a space from the sidebar"}
         onInput={updateNote}
       />

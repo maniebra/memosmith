@@ -11,6 +11,8 @@
   export let spellcheck: boolean;
   export let slashCommands: boolean;
   export let editable: boolean;
+  export let noteTitle: string;
+  export let showPageTitle: boolean;
   export let placeholder = "Select or create a note";
 
   const widthClasses: Record<EditorWidth, string> = {
@@ -24,6 +26,12 @@
 
 <section class="h-full min-h-0 overflow-y-auto" aria-label="Markdown editor">
   <div class={cn("mx-auto w-full px-6 pt-14 pb-32 sm:px-10", editorClass)}>
+    {#if editable && showPageTitle}
+      <h1 class="mb-8 text-[2.5rem] leading-tight font-bold tracking-normal text-stone-900 dark:text-stone-100">
+        {noteTitle}
+      </h1>
+    {/if}
+
     <MarkdownEditor
       bind:value={contents}
       bind:element={editor}

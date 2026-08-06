@@ -9,6 +9,7 @@ export type AppSettings = {
   textSize: number;
   spellcheck: boolean;
   slashCommands: boolean;
+  showPageTitle: boolean;
 };
 
 export const defaultSettings: AppSettings = {
@@ -17,6 +18,7 @@ export const defaultSettings: AppSettings = {
   textSize: 17,
   spellcheck: true,
   slashCommands: true,
+  showPageTitle: true,
 };
 
 function isThemePreference(value: unknown): value is ThemePreference {
@@ -54,6 +56,8 @@ export function loadSettings(): AppSettings {
       spellcheck: typeof parsed.spellcheck === "boolean" ? parsed.spellcheck : defaultSettings.spellcheck,
       slashCommands:
         typeof parsed.slashCommands === "boolean" ? parsed.slashCommands : defaultSettings.slashCommands,
+      showPageTitle:
+        typeof parsed.showPageTitle === "boolean" ? parsed.showPageTitle : defaultSettings.showPageTitle,
     };
   } catch {
     return { ...defaultSettings };

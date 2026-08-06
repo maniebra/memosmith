@@ -83,6 +83,11 @@
 
         <div class="grid gap-3 border-t border-stone-200/50 pt-4 dark:border-stone-800/80">
           <Switch
+            checked={settings.showPageTitle}
+            label="Page title"
+            onChange={(showPageTitle) => updateSettings({ showPageTitle })}
+          />
+          <Switch
             checked={settings.spellcheck}
             label="Spellcheck"
             onChange={(spellcheck) => updateSettings({ spellcheck })}
