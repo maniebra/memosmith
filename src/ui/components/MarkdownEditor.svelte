@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { cn } from "../../lib/utils/cn";
+  import ContextMenu, { type ContextMenuItem } from "./ContextMenu.svelte";
   import {
     applyPrefix,
     continueList,
@@ -28,6 +29,13 @@
   let slashQuery = "";
   let slashIndex = 0;
   let menuPosition = { top: 0, left: 0 };
+  let contextMenu:
+    | {
+        x: number;
+        y: number;
+        hasSelection: boolean;
+      }
+    | null = null;
 
   $: matches = SLASH_COMMANDS.filter((command) =>
     command.label.toLowerCase().includes(slashQuery.toLowerCase()),
@@ -71,6 +79,48 @@
     }
 
     return null;
+  }
+
+  function offsetForPosition(node: Node, nodeOffset: number) {
+    if (!element || !element.contains(node)) {
+      return null;
+    }
+
+    let offset = 0;
+
+    for (const block of blocks()) {
+      if (block.contains(node) || block === node) {
+        const range = document.createRange();
+        range.selectNodeContents(block);
+        range.setEnd(node, nodeOffset);
+
+        return offset + range.toString().length;
+      }
+
+      offset += (block.textContent ?? "").length + 1;
+    }
+
+    return null;
+  }
+
+  function selectionOffsets() {
+    const selection = getSelection();
+
+    if (!selection?.anchorNode || !selection.focusNode) {
+      return null;
+    }
+
+    const anchor = offsetForPosition(selection.anchorNode, selection.anchorOffset);
+    const focus = offsetForPosition(selection.focusNode, selection.focusOffset);
+
+    if (anchor === null || focus === null) {
+      return null;
+    }
+
+    return {
+      start: Math.min(anchor, focus),
+      end: Math.max(anchor, focus),
+    };
   }
 
   function setCaret(offset: number) {
@@ -137,6 +187,137 @@
     value = value.slice(0, start) + text + value.slice(end);
     render(caret);
     onInput();
+  }
+
+  function replaceSelection(text: string) {
+    const selection = selectionOffsets();
+    const start = selection?.start ?? caretOffset();
+
+    if (start === null) {
+      return;
+    }
+
+    replace(start, selection?.end ?? start, text);
+  }
+
+  function placeCaretAtPoint(event: MouseEvent) {
+    const selection = selectionOffsets();
+
+    if (selection && selection.start !== selection.end) {
+      return;
+    }
+
+    const caretDocument = document as Document & {
+      caretRangeFromPoint?: (x: number, y: number) => Range | null;
+      caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null;
+    };
+    let range = caretDocument.caretRangeFromPoint?.(event.clientX, event.clientY) ?? null;
+
+    if (!range) {
+      const position = caretDocument.caretPositionFromPoint?.(event.clientX, event.clientY);
+
+      if (position) {
+        range = document.createRange();
+        range.setStart(position.offsetNode, position.offset);
+      }
+    }
+
+    if (!range || !element?.contains(range.startContainer)) {
+      return;
+    }
+
+    range.collapse(true);
+    const nextSelection = getSelection();
+    nextSelection?.removeAllRanges();
+    nextSelection?.addRange(range);
+    markActiveBlock();
+  }
+
+  async function copySelection() {
+    const selection = selectionOffsets();
+
+    if (!selection || selection.start === selection.end) {
+      return;
+    }
+
+    await navigator.clipboard.writeText(value.slice(selection.start, selection.end));
+  }
+
+  async function cutSelection() {
+    const selection = selectionOffsets();
+
+    if (!selection || selection.start === selection.end) {
+      return;
+    }
+
+    await navigator.clipboard.writeText(value.slice(selection.start, selection.end));
+    replace(selection.start, selection.end, "");
+  }
+
+  async function pasteClipboard() {
+    const text = await navigator.clipboard.readText();
+
+    if (text) {
+      replaceSelection(text);
+    }
+  }
+
+  function selectAll() {
+    if (!element) {
+      return;
+    }
+
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    const selection = getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+    markActiveBlock();
+  }
+
+  function openContextMenu(event: MouseEvent) {
+    event.preventDefault();
+    element?.focus();
+    closeMenu();
+    placeCaretAtPoint(event);
+
+    const selection = selectionOffsets();
+
+    contextMenu = {
+      x: event.clientX,
+      y: event.clientY,
+      hasSelection: Boolean(selection && selection.start !== selection.end),
+    };
+  }
+
+  function contextItems(): ContextMenuItem[] {
+    return [
+      {
+        label: "Cut",
+        shortcut: "Ctrl X",
+        disabled: !editable || !contextMenu?.hasSelection,
+        onSelect: cutSelection,
+      },
+      {
+        label: "Copy",
+        shortcut: "Ctrl C",
+        disabled: !contextMenu?.hasSelection,
+        onSelect: copySelection,
+      },
+      {
+        label: "Paste",
+        shortcut: "Ctrl V",
+        disabled: !editable,
+        onSelect: pasteClipboard,
+      },
+      { separator: true },
+      {
+        label: "Select all",
+        shortcut: "Ctrl A",
+        disabled: !value,
+        onSelect: selectAll,
+      },
+    ];
   }
 
   function lineStartAt(offset: number) {
@@ -312,6 +493,7 @@
   )}
   oninput={handleInput}
   onkeydown={handleKeydown}
+  oncontextmenu={openContextMenu}
   onpaste={handlePaste}
   onblur={closeMenu}
   oncompositionstart={() => (composing = true)}
@@ -320,6 +502,15 @@
     handleInput();
   }}
 ></div>
+
+{#if contextMenu}
+  <ContextMenu
+    x={contextMenu.x}
+    y={contextMenu.y}
+    items={contextItems()}
+    onClose={() => (contextMenu = null)}
+  />
+{/if}
 
 {#if slashStart !== null && matches.length}
   <ul

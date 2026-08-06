@@ -2,6 +2,7 @@
   import Button from "../components/Button.svelte";
   import { basename } from "../../lib/utils/path";
   import { buildTree } from "../../lib/utils/tree";
+  import ContextMenu, { type ContextMenuItem } from "../components/ContextMenu.svelte";
   import SpaceTree from "./SpaceTree.svelte";
   import TreeNameInput from "./TreeNameInput.svelte";
 
@@ -18,6 +19,12 @@
   let renaming: string | null = null;
   let creating: string | null = null;
   let creatingFolder = false;
+  let contextMenu:
+    | {
+        x: number;
+        y: number;
+      }
+    | null = null;
 
   $: tree = buildTree(notes);
 
@@ -49,6 +56,42 @@
     cancelEdit();
     onCreate(parentPath, name, folder);
   }
+
+  function openContextMenu(event: MouseEvent) {
+    event.preventDefault();
+    contextMenu = { x: event.clientX, y: event.clientY };
+  }
+
+  function contextItems(): ContextMenuItem[] {
+    if (!root) {
+      return [
+        {
+          label: "Choose space",
+          onSelect: onChooseSpace,
+        },
+      ];
+    }
+
+    return [
+      {
+        label: "Add note",
+        onSelect: () => startCreate(""),
+      },
+      {
+        label: "Add folder",
+        onSelect: () => startCreate("", true),
+      },
+      { separator: true },
+      {
+        label: "Refresh",
+        onSelect: onRefresh,
+      },
+      {
+        label: "Change space",
+        onSelect: onChooseSpace,
+      },
+    ];
+  }
 </script>
 
 <aside
@@ -67,7 +110,7 @@
     <Button label="Space…" onClick={onChooseSpace} variant="ghost" size="sm" />
   </div>
 
-  <div class="min-h-0 flex-1 overflow-y-auto p-1.5">
+  <div class="min-h-0 flex-1 overflow-y-auto p-1.5" role="presentation" oncontextmenu={openContextMenu}>
     {#if !root}
       <p class="px-2 py-6 text-center text-xs leading-relaxed text-stone-400">
         Choose a folder to use as your space.
@@ -101,4 +144,13 @@
       />
     {/if}
   </div>
+
+  {#if contextMenu}
+    <ContextMenu
+      x={contextMenu.x}
+      y={contextMenu.y}
+      items={contextItems()}
+      onClose={() => (contextMenu = null)}
+    />
+  {/if}
 </aside>

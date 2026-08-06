@@ -2,6 +2,7 @@
   import { cn } from "../../lib/utils/cn";
   import { displayNoteName } from "../../lib/utils/path";
   import type { TreeNode } from "../../lib/utils/tree";
+  import ContextMenu, { type ContextMenuItem } from "../components/ContextMenu.svelte";
   import Self from "./SpaceTree.svelte";
   import TreeNameInput from "./TreeNameInput.svelte";
 
@@ -21,6 +22,13 @@
   export let depth = 0;
 
   let collapsed: Record<string, boolean> = {};
+  let contextMenu:
+    | {
+        x: number;
+        y: number;
+        node: TreeNode;
+      }
+    | null = null;
 
   function label(node: TreeNode) {
     return node.children ? node.name : displayNoteName(node.name);
@@ -28,6 +36,58 @@
 
   function toggle(node: TreeNode) {
     collapsed = { ...collapsed, [node.path]: !collapsed[node.path] };
+  }
+
+  function openContextMenu(event: MouseEvent, node: TreeNode) {
+    event.preventDefault();
+    event.stopPropagation();
+    contextMenu = { x: event.clientX, y: event.clientY, node };
+  }
+
+  function contextItems(node: TreeNode): ContextMenuItem[] {
+    const items: ContextMenuItem[] = [];
+
+    if (node.note) {
+      items.push({
+        label: "Select",
+        onSelect: () => onSelect(node.note!),
+      });
+    }
+
+    if (node.children) {
+      items.push({
+        label: collapsed[node.path] ? "Expand" : "Collapse",
+        onSelect: () => toggle(node),
+      });
+      items.push({ separator: true });
+      items.push({
+        label: "Add note",
+        onSelect: () => {
+          collapsed = { ...collapsed, [node.path]: false };
+          onStartCreate(node.path);
+        },
+      });
+      items.push({
+        label: "Add folder",
+        onSelect: () => {
+          collapsed = { ...collapsed, [node.path]: false };
+          onStartCreate(node.path, true);
+        },
+      });
+    }
+
+    items.push({ separator: true });
+    items.push({
+      label: "Rename",
+      onSelect: () => onStartRename(node.path),
+    });
+    items.push({
+      label: "Delete",
+      danger: true,
+      onSelect: () => onDelete(node.path),
+    });
+
+    return items;
   }
 </script>
 
@@ -49,6 +109,8 @@
               ? "bg-emerald-600/12 text-emerald-800 dark:text-emerald-300"
               : "text-stone-600 hover:bg-stone-500/10 dark:text-stone-400",
           )}
+          role="presentation"
+          oncontextmenu={(event) => openContextMenu(event, node)}
         >
           {#if node.children}
             <button
@@ -137,3 +199,12 @@
     </li>
   {/each}
 </ul>
+
+{#if contextMenu}
+  <ContextMenu
+    x={contextMenu.x}
+    y={contextMenu.y}
+    items={contextItems(contextMenu.node)}
+    onClose={() => (contextMenu = null)}
+  />
+{/if}
