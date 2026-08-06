@@ -1,0 +1,62 @@
+# Tauri Svelte UI Template
+
+Small Tauri 2 desktop app template with Svelte, Vite, Tailwind CSS, TypeScript,
+a reusable component library, and a working notepad tech demo.
+
+## Use
+
+```sh
+pnpm install
+pnpm tauri dev
+```
+
+## Build
+
+```sh
+pnpm check
+pnpm build
+pnpm tauri build
+```
+
+## Rename
+
+Change these before using it as a real app:
+
+- `package.json`: `name`
+- `src-tauri/Cargo.toml`: `package.name`, `description`, `authors`, and `lib.name`
+- `src-tauri/src/main.rs`: library crate name
+- `src-tauri/tauri.conf.json`: `productName`, `identifier`, and window `title`
+- `index.html`: `<title>`
+
+## Source Layout
+
+- `src/App.svelte`: top-level app composition
+- `src/ui/pages`: page-level Svelte components
+- `src/ui/components`: reusable Tailwind UI components
+- `src/ui/sections`: page sections and layout chunks
+- `src/ui/forms`: form/editor components
+- `src/lib/tauri`: frontend Tauri wrappers
+- `src/lib/storage`: browser storage helpers
+- `src/lib/utils`: shared helpers
+- `src/app.css`: global styles
+
+## UI Components
+
+Ready-to-use components live in `src/ui/components`.
+
+- `Badge.svelte`
+- `Button.svelte`
+- `Card.svelte`
+- `Checkbox.svelte`
+- `Field.svelte`
+- `Input.svelte`
+- `Progress.svelte`
+- `Select.svelte`
+- `Slider.svelte`
+- `Switch.svelte`
+- `TextArea.svelte`
+
+## KDE
+
+The `tauri` script runs with `GDK_BACKEND=x11` so KWin gets normal window
+decorations on KDE.

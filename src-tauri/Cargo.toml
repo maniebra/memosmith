@@ -1,0 +1,17 @@
+[package]
+name = "tauri-svelte-ui-template"
+version = "0.1.0"
+description = "A Tauri Svelte UI template"
+authors = ["template-user"]
+edition = "2021"
+
+[lib]
+name = "tauri_svelte_ui_template_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
