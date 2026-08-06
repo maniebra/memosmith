@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { getCurrentWebview } from "@tauri-apps/api/webview";
   import { onMount } from "svelte";
   import { cubicOut } from "svelte/easing";
   import { scale } from "svelte/transition";
@@ -8,9 +9,12 @@
     applyPrefix,
     continueList,
     insideFence,
+    isMediaLine,
     mathUnclosed,
+    mediaOptions,
     renderDocument,
     SLASH_COMMANDS,
+    withMediaOptions,
   } from "../../lib/utils/markdown";
 
   export let value: string;
@@ -22,11 +26,35 @@
   export let editable = true;
   export let className = "";
   export let onInput: () => void = () => {};
+  /** Stores dropped/pasted/picked files next to the note and returns the markdown to insert. */
+  export let onAssets: (source: { files?: File[]; paths?: string[] }) => Promise<string> = async () => "";
+  export let onPickAssets: (() => Promise<string>) | null = null;
+  export let resolveAsset: ((source: string) => string) | null = null;
 
   let composing = false;
 
   /** Without an initial render the editor has no blocks, so typed text has nowhere to land. */
-  onMount(() => render(null));
+  onMount(() => {
+    render(null);
+
+    // Tauri swallows HTML5 file drops, so dropped paths arrive on this webview event instead.
+    const dragDrop = getCurrentWebview().onDragDropEvent(async (event) => {
+      if (event.payload.type !== "drop" || !editable) {
+        return;
+      }
+
+      const rect = element?.getBoundingClientRect();
+      const { x, y } = event.payload.position.toLogical(window.devicePixelRatio);
+
+      if (!rect || x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+        return;
+      }
+
+      insertAssets(await onAssets({ paths: event.payload.paths }));
+    });
+
+    return () => void dragDrop.then((unlisten) => unlisten());
+  });
 
   let slashStart: number | null = null;
   let slashQuery = "";
@@ -294,7 +322,7 @@
       return;
     }
 
-    element.innerHTML = renderDocument(value);
+    element.innerHTML = renderDocument(value, resolveAsset ?? undefined);
 
     if (offset !== null) {
       setActiveBlock(blockAtOffset(offset));
@@ -319,6 +347,84 @@
     }
 
     replace(start, selection?.end ?? start, text);
+  }
+
+  /** Media wants its own line, so it lands after the current one rather than inside it. */
+  function insertAssets(markdown: string) {
+    if (!markdown) {
+      return;
+    }
+
+    const offset = caretOffset() ?? value.length;
+    const lineEnd = value.indexOf("\n", offset) === -1 ? value.length : value.indexOf("\n", offset);
+    const lead = value.slice(lineStartAt(lineEnd), lineEnd) ? "\n" : "";
+
+    replace(lineEnd, lineEnd, `${lead}${markdown}\n`);
+  }
+
+  function lineRangeFor(preview: Element) {
+    const source = preview.previousElementSibling;
+    const start = source ? offsetForPosition(source, 0) : null;
+
+    return start === null || !source ? null : { start, end: start + sourceLength(source) };
+  }
+
+  function caretLineRange() {
+    const offset = caretOffset();
+
+    if (offset === null) {
+      return null;
+    }
+
+    const end = value.indexOf("\n", offset);
+
+    return { start: lineStartAt(offset), end: end === -1 ? value.length : end };
+  }
+
+  function setMediaOption(range: { start: number; end: number }, options: Parameters<typeof withMediaOptions>[1]) {
+    const line = withMediaOptions(value.slice(range.start, range.end), options);
+
+    // Re-render without a caret: parking it on the media line would expand the source under the pointer.
+    value = value.slice(0, range.start) + line + value.slice(range.end);
+    render(null);
+    onInput();
+  }
+
+  function handlePointerDown(event: PointerEvent) {
+    const handle = event.target as HTMLElement;
+
+    if (!editable || !handle.classList?.contains("md-resize")) {
+      return;
+    }
+
+    const media = handle.parentElement?.querySelector(".md-media") as HTMLElement | null;
+    const preview = handle.closest(".md-preview");
+    const range = preview ? lineRangeFor(preview) : null;
+
+    if (!media || !range) {
+      return;
+    }
+
+    event.preventDefault();
+
+    const startX = event.clientX;
+    const startWidth = media.getBoundingClientRect().width;
+    // A centered image grows from both edges, a right-aligned one grows leftwards.
+    const align = mediaOptions(value.slice(range.start, range.end)).align;
+    const factor = align === "center" ? 2 : align === "right" ? -1 : 1;
+
+    const onMove = (moveEvent: PointerEvent) => {
+      media.style.width = `${Math.max(64, Math.round(startWidth + (moveEvent.clientX - startX) * factor))}px`;
+    };
+
+    const onUp = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      setMediaOption(range, { width: Math.round(media.getBoundingClientRect().width) });
+    };
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
   }
 
   function placeCaretAtPoint(event: MouseEvent) {
@@ -411,8 +517,25 @@
     };
   }
 
+  function alignItems(): ContextMenuItem[] {
+    const range = caretLineRange();
+
+    if (!editable || !range || !isMediaLine(value.slice(range.start, range.end))) {
+      return [];
+    }
+
+    return [
+      ...(["left", "center", "right"] as const).map((align) => ({
+        label: `Align ${align}`,
+        onSelect: () => setMediaOption(range, { align }),
+      })),
+      { separator: true },
+    ];
+  }
+
   function contextItems(): ContextMenuItem[] {
     return [
+      ...alignItems(),
       {
         label: "Cut",
         shortcut: "Ctrl X",
@@ -430,6 +553,11 @@
         shortcut: "Ctrl V",
         disabled: !editable,
         onSelect: pasteClipboard,
+      },
+      {
+        label: "Insert file",
+        disabled: !editable || !onPickAssets,
+        onSelect: async () => insertAssets(await onPickAssets!()),
       },
       { separator: true },
       {
@@ -588,6 +716,14 @@
   }
 
   function handlePaste(event: ClipboardEvent) {
+    const files = Array.from(event.clipboardData?.files ?? []);
+
+    if (files.length) {
+      event.preventDefault();
+      void onAssets({ files }).then(insertAssets);
+      return;
+    }
+
     const offset = caretOffset();
     const text = event.clipboardData?.getData("text/plain");
 
@@ -623,6 +759,7 @@
   oninput={handleInput}
   onkeydown={handleKeydown}
   oncontextmenu={openContextMenu}
+  onpointerdown={handlePointerDown}
   onpaste={handlePaste}
   onblur={closeMenu}
   oncompositionstart={() => (composing = true)}

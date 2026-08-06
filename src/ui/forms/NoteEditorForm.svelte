@@ -14,6 +14,9 @@
   export let noteTitle: string;
   export let showPageTitle: boolean;
   export let placeholder = "Select or create a note";
+  export let onAssets: (source: { files?: File[]; paths?: string[] }) => Promise<string>;
+  export let onPickAssets: () => Promise<string>;
+  export let resolveAsset: (source: string) => string;
 
   const widthClasses: Record<EditorWidth, string> = {
     focused: "max-w-[38rem]",
@@ -42,6 +45,9 @@
       {slashCommands}
       {editable}
       {onInput}
+      {onAssets}
+      {onPickAssets}
+      {resolveAsset}
     />
   </div>
 </section>

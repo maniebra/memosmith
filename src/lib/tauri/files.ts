@@ -31,6 +31,26 @@ export function deletePath(path: string) {
   return invoke("delete_path", { path });
 }
 
+/** Stored asset path, absolute and `/`-separated. */
+export function writeAsset(dir: string, name: string, bytes: number[]) {
+  return invoke<string>("write_asset", { dir, name, bytes });
+}
+
+export function copyAsset(dir: string, source: string) {
+  return invoke<string>("copy_asset", { dir, source });
+}
+
+/** Number of unreferenced asset files deleted under `dir`. */
+export function pruneAssets(dir: string) {
+  return invoke<number>("prune_assets", { dir });
+}
+
+export async function chooseFiles() {
+  const selected = await open({ multiple: true });
+
+  return Array.isArray(selected) ? selected : selected ? [selected] : [];
+}
+
 export function confirmDelete(name: string) {
   return ask(`Delete ${name}? This cannot be undone.`, { title: "Delete", kind: "warning" });
 }

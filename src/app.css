@@ -219,4 +219,38 @@ body {
   .md-math-preview .katex-display {
     @apply my-0;
   }
+
+  /* Same collapse trick as a closed equation: the source stays, it just takes no room. */
+  .md-media-line:not([data-active]) {
+    font-size: 0;
+    line-height: 0;
+    letter-spacing: 0;
+  }
+
+  .md-media-preview {
+    @apply my-3 flex max-w-full;
+    user-select: none;
+  }
+
+  .md-media-wrap {
+    @apply relative inline-flex max-w-full;
+  }
+
+  .md-media {
+    @apply max-w-full rounded-lg;
+  }
+
+  audio.md-media {
+    @apply w-full;
+  }
+
+  /* Drag target for manual sizing; only worth showing while the pointer is over the media. */
+  .md-resize {
+    @apply absolute top-1/2 right-1 h-10 w-1.5 -translate-y-1/2 cursor-ew-resize rounded-full bg-stone-900/0 transition-colors;
+  }
+
+  .md-media-wrap:hover .md-resize,
+  .md-resize:active {
+    @apply bg-stone-900/40 dark:bg-stone-100/50;
+  }
 }

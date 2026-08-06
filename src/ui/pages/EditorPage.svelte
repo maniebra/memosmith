@@ -4,12 +4,19 @@
   import { slide } from "svelte/transition";
   import { defaultSettings, loadSettings, saveSettings } from "../../lib/storage/settings";
   import { loadSpaceRoot, saveSpaceRoot } from "../../lib/storage/space";
+  import { convertFileSrc } from "@tauri-apps/api/core";
+  import { assetFolder, assetMarkdown } from "../../lib/utils/assets";
+  import { compressImage } from "../../lib/utils/image";
   import {
+    chooseFiles,
     chooseSpaceRoot,
     confirmDelete,
+    copyAsset,
+    writeAsset,
     createNote,
     deletePath,
     listSpace,
+    pruneAssets,
     readNote,
     renamePath,
     writeNote,
@@ -59,6 +66,7 @@
       }
     | null = null;
 
+  $: noteDir = path ? path.slice(0, path.lastIndexOf("/")) : null;
   $: spacePrefix = spaceRoot ? `${spaceRoot}/` : null;
   $: activeRelativePath =
     path && spacePrefix && path.startsWith(spacePrefix) ? path.slice(spacePrefix.length) : null;
@@ -318,6 +326,10 @@
       setEditorText("", null);
     }
 
+    // The deleted note's media is now unreferenced, so its folder loses the orphans.
+    const parent = relativePath.includes("/") ? relativePath.slice(0, relativePath.lastIndexOf("/")) : "";
+
+    await pruneAssets(parent ? spacePath(parent) : spaceRoot!);
     await refreshSpace();
     statusMessage = `Deleted ${displayNotePath(relativePath)}`;
   }
@@ -345,6 +357,54 @@
     if (statusMessage !== "Saving...") {
       statusMessage = "Saving...";
     }
+  }
+
+  function assetDir(name: string, mime = "") {
+    return `${noteDir}/assets/${assetFolder(name, mime)}`;
+  }
+
+  function relativeToNote(assetPath: string) {
+    return assetPath.startsWith(`${noteDir}/`) ? assetPath.slice(noteDir!.length + 1) : assetPath;
+  }
+
+  /** Markdown for every stored file, one per line. */
+  async function storeAssets(source: { files?: File[]; paths?: string[] }) {
+    if (!noteDir) {
+      return "";
+    }
+
+    const stored: string[] = [];
+
+    for (const file of source.files ?? []) {
+      const compressed = await compressImage(file);
+      const name = compressed.name || `pasted-${Date.now()}.${compressed.blob.type.split("/")[1] || "bin"}`;
+      // ponytail: bytes cross as a JSON number array; move to a raw request if large files drag.
+      const bytes = Array.from(new Uint8Array(await compressed.blob.arrayBuffer()));
+
+      stored.push(await writeAsset(assetDir(name, compressed.blob.type), name, bytes));
+    }
+
+    for (const filePath of source.paths ?? []) {
+      stored.push(await copyAsset(assetDir(basename(filePath)), filePath));
+    }
+
+    statusMessage = `Added ${stored.length} file${stored.length === 1 ? "" : "s"}`;
+
+    return stored.map((assetPath) => assetMarkdown(relativeToNote(assetPath))).join("\n");
+  }
+
+  async function pickAssets() {
+    const paths = await chooseFiles();
+
+    return paths.length ? storeAssets({ paths }) : "";
+  }
+
+  function resolveAsset(source: string) {
+    if (!noteDir || /^[a-z][\w+.-]*:/i.test(source) || source.startsWith("/")) {
+      return source;
+    }
+
+    return convertFileSrc(`${noteDir}/${decodeURI(source)}`);
   }
 
   function handleShortcut(event: KeyboardEvent) {
@@ -455,6 +515,17 @@
         showPageTitle={settings.showPageTitle}
         placeholder={spaceRoot ? "Select or create a note" : "Choose a space from the sidebar"}
         onInput={updateNote}
+        onAssets={(source) =>
+          storeAssets(source).catch((error) => {
+            statusMessage = error instanceof Error ? error.message : String(error);
+            return "";
+          })}
+        onPickAssets={() =>
+          pickAssets().catch((error) => {
+            statusMessage = error instanceof Error ? error.message : String(error);
+            return "";
+          })}
+        {resolveAsset}
       />
     </div>
 

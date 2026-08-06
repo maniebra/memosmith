@@ -1,5 +1,6 @@
 import hljs from "highlight.js/lib/common";
 import katex from "katex";
+import { assetFolder } from "./assets";
 
 type BlockRule = {
   match: RegExp;
@@ -100,6 +101,65 @@ export const SLASH_COMMANDS = [
   { label: "Text", hint: "plain", prefix: "" },
 ];
 
+const MEDIA_LINE = /^(\s*)!\[([^\]\n]*)\]\(([^)\n]+)\)\s*$/;
+
+export type MediaOptions = { width?: number; align?: "left" | "center" | "right" };
+
+export function isMediaLine(line: string) {
+  return MEDIA_LINE.test(line);
+}
+
+/** Obsidian-style pipe options in the alt text: `![alt|center|400](src)`. */
+export function mediaOptions(line: string): MediaOptions {
+  const parts = MEDIA_LINE.exec(line)?.[2].split("|").slice(1) ?? [];
+  const width = parts.find((part) => /^\d+$/.test(part));
+  const align = parts.find((part) => /^(left|center|right)$/.test(part));
+
+  return {
+    width: width ? Number(width) : undefined,
+    align: align as MediaOptions["align"],
+  };
+}
+
+export function withMediaOptions(line: string, options: MediaOptions) {
+  const media = MEDIA_LINE.exec(line);
+
+  if (!media) {
+    return line;
+  }
+
+  const [, indent, alt, source] = media;
+  const { width, align } = { ...mediaOptions(line), ...options };
+  const parts = [alt.split("|")[0], align, width].filter(Boolean);
+
+  return `${indent}![${parts.join("|")}](${source})`;
+}
+
+function attribute(text: string) {
+  return escapeHtml(text).replace(/"/g, "&quot;");
+}
+
+/** Source stays editable; the media sits in a sibling preview the caret never enters. */
+function mediaPreview(line: string, alt: string, source: string, resolveAsset: (source: string) => string) {
+  const url = attribute(resolveAsset(source));
+  const folder = assetFolder(source);
+  const { width, align } = mediaOptions(line);
+  const size = width ? ` style="width:${width}px"` : "";
+  const media =
+    folder === "videos"
+      ? `<video class="md-media" src="${url}"${size} controls></video>`
+      : folder === "audio"
+        ? `<audio class="md-media" src="${url}" controls></audio>`
+        : `<img class="md-media" src="${url}" alt="${attribute(alt.split("|")[0])}"${size}>`;
+
+  // The handle is a drag target only; the editor rewrites the source line on release.
+  const handle = folder === "audio" ? "" : `<span class="md-resize" aria-hidden="true"></span>`;
+
+  return `<div class="md-preview md-media-preview" style="justify-content:${
+    align === "center" ? "center" : align === "right" ? "flex-end" : "flex-start"
+  }" contenteditable="false"><span class="md-media-wrap">${media}${handle}</span></div>`;
+}
+
 export function escapeHtml(text: string) {
   return text.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!);
 }
@@ -149,7 +209,7 @@ export function insideFence(text: string) {
   return (text.match(/^[ \t]*```/gm) ?? []).length % 2 === 1;
 }
 
-export function renderDocument(text: string) {
+export function renderDocument(text: string, resolveAsset?: (source: string) => string) {
   let language: string | null = null;
   let codeGroup = 0;
   let mathGroup = 0;
@@ -210,6 +270,16 @@ export function renderDocument(text: string) {
 
     if (line.trim() === "$$") {
       mathLines = [line];
+      continue;
+    }
+
+    const media = resolveAsset ? MEDIA_LINE.exec(line) : null;
+
+    if (media) {
+      output.push(
+        `<div class="md-block md-media-line">${renderLine(line)}</div>`,
+        mediaPreview(line, media[2], media[3], resolveAsset!),
+      );
       continue;
     }
 

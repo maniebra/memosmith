@@ -31,6 +31,8 @@ cargo check
 - `src/app.css`: global browser styles
 - `src/ui/pages/`: route-level page components
 - `src/lib/utils/markdown.ts`: block/inline styling rules and list continuation (`markdown.test.ts` is the check)
+- `src/lib/utils/image.ts`: pasted-image downscale and webp re-encode
+- `src/lib/utils/assets.ts`: media file classification and markdown embed (`assets.test.ts` is the check)
 - `src/lib/utils/tree.ts`: builds the space sidebar tree from flat relative paths (`tree.test.ts` is the check)
 - `src/ui/components/`: reusable Tailwind UI components
 - `src/ui/sections/`: page sections and layout chunks
@@ -57,6 +59,21 @@ cargo check
 - Do not edit generated Tauri schema files. They are ignored.
 - If you add a Tauri plugin, add the package, Rust plugin init, and capability permission together.
 - Verify with `pnpm build` and `cargo check` before handing off.
+
+## Media Note
+
+Pasted, dropped, or picked files are copied next to the note into
+`assets/images`, `assets/videos`, `assets/audio`, or `assets/misc`, and linked
+relative to the note. `assets` folders are skipped by the space listing.
+Dropped files arrive through Tauri's webview drag-drop event because Tauri
+swallows HTML5 file drops. Previews load through the asset protocol
+(`convertFileSrc`), which `tauri.conf.json` enables.
+
+Size and alignment ride in the alt text, Obsidian-style: `![alt|center|400](src)`.
+Drag the handle on a preview to resize; the context menu aligns left/center/right.
+Pasted images over 1920px or 512 KB are downscaled and re-encoded as webp;
+dropped and picked files are copied as-is. Deleting a note prunes unreferenced
+files from its folder's `assets` (`prune_assets`).
 
 ## KDE Note
 

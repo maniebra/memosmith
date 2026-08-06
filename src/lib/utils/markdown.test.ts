@@ -1,5 +1,5 @@
 const assert = (ok: unknown, msg: string) => { if (!ok) throw new Error(msg); };
-import { applyPrefix, continueList, insideFence, lineClass, mathUnclosed, renderDocument, renderLine } from "./markdown";
+import { applyPrefix, continueList, insideFence, isMediaLine, lineClass, mathUnclosed, mediaOptions, renderDocument, renderLine, withMediaOptions } from "./markdown";
 
 assert(lineClass("# Title") === "md-h1", "h1 class");
 assert(lineClass("#NoSpace") === "", "hash without space is not a heading");
@@ -55,3 +55,14 @@ console.log("markdown ok");
 assert(insideFence("```js\na"), "unclosed fence is inside");
 assert(!insideFence("```js\na\n```\n"), "closed fence is outside");
 assert(renderDocument("```js\na\n```\n```\nb\n```").includes('data-code="1"'), "code blocks are grouped");
+
+assert(isMediaLine("![a.png](assets/images/a.png)"), "image line is media");
+assert(!isMediaLine("text ![a](b) tail"), "inline image is not a media line");
+assert(mediaOptions("![a|center|300](x.png)").width === 300, "width option parsed");
+assert(mediaOptions("![a|center|300](x.png)").align === "center", "align option parsed");
+assert(withMediaOptions("![a](x.png)", { width: 200 }) === "![a|200](x.png)", "width added");
+assert(withMediaOptions("![a|200](x.png)", { align: "right" }) === "![a|right|200](x.png)", "align added, width kept");
+assert(withMediaOptions("![a|left|200](x.png)", { width: 50 }) === "![a|left|50](x.png)", "width replaced");
+assert(withMediaOptions("plain", { width: 50 }) === "plain", "non-media line untouched");
+assert(renderDocument("![a|center|300](x.png)", (s) => s).includes("width:300px"), "preview uses the width option");
+assert(renderDocument("![a](x.png)", (s) => s).includes("md-resize"), "image preview gets a resize handle");
