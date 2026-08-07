@@ -25,7 +25,7 @@
     Trash2,
     Type,
   } from "@lucide/svelte";
-  import { onMount } from "svelte";
+  import { onDestroy, onMount } from "svelte";
   import { cubicOut } from "svelte/easing";
   import { scale } from "svelte/transition";
   import { cn } from "../../lib/utils/cn";
@@ -136,6 +136,7 @@
     | null = null;
   let dragIndicatorTop: number | null = null;
   let suppressBlockMenuClick = false;
+  let blockToolbarHideTimer: ReturnType<typeof setTimeout> | undefined;
 
   type BlockUnit = {
     key: string;
@@ -291,12 +292,38 @@
       return;
     }
 
+    if ((event.target as HTMLElement | null)?.closest(".md-block-toolbar")) {
+      clearBlockToolbarHide();
+      return;
+    }
+
     const block = blockFromTarget(event.target);
 
     if (block !== hoveredBlock) {
+      clearBlockToolbarHide();
       hoveredBlock = block;
       syncBlockToolbar();
     }
+  }
+
+  function clearBlockToolbarHide() {
+    if (blockToolbarHideTimer) {
+      clearTimeout(blockToolbarHideTimer);
+      blockToolbarHideTimer = undefined;
+    }
+  }
+
+  function scheduleBlockToolbarHide() {
+    clearBlockToolbarHide();
+
+    blockToolbarHideTimer = setTimeout(() => {
+      if (!blockMenu && !draggingUnit) {
+        hoveredBlock = undefined;
+        syncBlockToolbar();
+      }
+
+      blockToolbarHideTimer = undefined;
+    }, 220);
   }
 
   function openBlockMenu(event: MouseEvent) {
@@ -773,6 +800,8 @@
 
     return () => observer.disconnect();
   });
+
+  onDestroy(clearBlockToolbarHide);
 
   let previewNavigation:
     | { direction: "up" | "down"; column: number }
@@ -1898,6 +1927,32 @@
     return value.lastIndexOf("\n", offset - 1) + 1;
   }
 
+  function lineEndAt(offset: number) {
+    const end = value.indexOf("\n", offset);
+
+    return end === -1 ? value.length : end;
+  }
+
+  function codeFenceExitOffset(start: number, offset: number) {
+    const end = lineEndAt(offset);
+
+    if (value.slice(start, end).trim()) {
+      return null;
+    }
+
+    const block = blockAtOffset(offset);
+
+    if (!block?.classList.contains("md-codeblock") || !insideFence(value.slice(0, start))) {
+      return null;
+    }
+
+    const closingStart = end + 1;
+    const closingEnd = lineEndAt(closingStart);
+    const closingLine = value.slice(closingStart, closingEnd);
+
+    return /^[ \t]*```/.test(closingLine) ? closingEnd : null;
+  }
+
   function closeMenu() {
     slashStart = null;
     slashQuery = "";
@@ -2060,6 +2115,18 @@
       event.preventDefault();
       closeMenu();
 
+      const codeExit = codeFenceExitOffset(start, offset);
+
+      if (codeExit !== null) {
+        if (codeExit === value.length) {
+          replace(codeExit, codeExit, "\n", codeExit + 1);
+        } else {
+          setCaret(codeExit + 1);
+        }
+
+        return;
+      }
+
       const line = value.slice(start, offset);
       const prefix = continueList(line);
 
@@ -2126,19 +2193,21 @@
   class="md-editor-shell relative"
   role="presentation"
   onpointermove={trackHoveredBlock}
-  onmouseleave={() => {
-    if (!blockMenu && !draggingUnit) {
-      hoveredBlock = undefined;
-      syncBlockToolbar();
-    }
-  }}
+  onmouseleave={scheduleBlockToolbarHide}
 >
 {#if editable && blockToolbar.visible}
   <div
     class="md-block-toolbar"
     style={`top: ${blockToolbar.top}px;`}
     contenteditable="false"
+    role="toolbar"
+    tabindex="-1"
     aria-label="Block controls"
+    onpointerenter={clearBlockToolbarHide}
+    onpointermove={(event) => {
+      event.stopPropagation();
+      clearBlockToolbarHide();
+    }}
   >
     <button
       type="button"

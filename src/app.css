@@ -45,13 +45,7 @@ body {
   }
 
   .md-block-toolbar {
-    @apply absolute -left-18 z-40 flex h-7 items-center gap-1 rounded-md bg-[#fffdfa]/90 p-0.5 opacity-0 shadow-sm ring-1 ring-stone-200/70 backdrop-blur transition-opacity dark:bg-[#1a1917]/90 dark:ring-stone-700/70;
-  }
-
-  .md-editor-shell:hover>.md-block-toolbar,
-  .md-block-toolbar:focus-within,
-  .md-block-toolbar:hover {
-    @apply opacity-100;
+    @apply absolute -left-18 z-40 flex h-7 items-center gap-1 rounded-md bg-[#fffdfa]/90 p-0.5 shadow-sm ring-1 ring-stone-200/70 backdrop-blur dark:bg-[#1a1917]/90 dark:ring-stone-700/70;
   }
 
   .md-block-button {
