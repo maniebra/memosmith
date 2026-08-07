@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Database, PanelLeftClose, PanelLeftOpen, Settings } from "@lucide/svelte";
+  import { Database, PanelLeftClose, PanelLeftOpen, Settings, ShieldCheck } from "@lucide/svelte";
   import Button from "../components/Button.svelte";
 
   export let title: string;
@@ -9,6 +9,7 @@
   export let onToggleSpacePane: () => void;
   export let onToggleSettings: () => void;
   export let onToggleDatabases: () => void;
+  export let onToggleGrammar: () => void;
 </script>
 
 <header
@@ -52,6 +53,13 @@
   </div>
 
   <div class="ml-auto flex shrink-0 items-center gap-0.5">
+    <Button
+      label="Grammar Police"
+      icon={ShieldCheck}
+      onClick={onToggleGrammar}
+      variant="ghost"
+      size="sm"
+    />
     <Button
       label="Databases"
       icon={Database}

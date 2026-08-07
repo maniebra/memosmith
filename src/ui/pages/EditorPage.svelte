@@ -7,6 +7,9 @@
   import { convertFileSrc } from "@tauri-apps/api/core";
   import { assetFolder, assetMarkdown } from "../../lib/utils/assets";
   import { compressImage } from "../../lib/utils/image";
+  import { checkGrammar, explainIssue, generateContent } from "../../lib/tauri/llm";
+  import { applyIssue, issueRange, type GrammarIssue, type GrammarReport } from "../../lib/utils/grammar";
+  import GrammarPolice from "../sections/GrammarPolice.svelte";
   import {
     chooseFiles,
     chooseSpaceRoot,
@@ -80,6 +83,12 @@
   let characters = contents.length;
   let settings = loadSettings();
   let settingsOpen = false;
+  let grammarOpen = false;
+  let grammarReport: GrammarReport | null = null;
+  let grammarChecking = false;
+  let grammarError = "";
+  let grammarTimer: ReturnType<typeof setTimeout> | undefined;
+  let grammarCheckedText = "";
   let prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
   let noteSaveTimer: ReturnType<typeof setTimeout> | undefined;
   let statsTimer: ReturnType<typeof setTimeout> | undefined;
@@ -251,6 +260,9 @@
     contents = text;
     path = nextPath;
     isDirty = false;
+    grammarReport = null;
+    grammarError = "";
+    grammarCheckedText = "";
     syncStats();
   }
 
@@ -506,6 +518,7 @@
 
     scheduleStats();
     scheduleNoteSave();
+    scheduleGrammarCheck();
 
     if (statusMessage !== "Saving...") {
       statusMessage = "Saving...";
@@ -550,6 +563,98 @@
     const paths = await chooseFiles();
 
     return paths.length ? storeAssets({ paths }) : "";
+  }
+
+  async function generateFromPrompt(prompt: string) {
+    statusMessage = "Generating...";
+
+    try {
+      const generated = await generateContent(settings.llm, prompt);
+
+      statusMessage = "Generated content";
+
+      return generated;
+    } catch (error) {
+      statusMessage = error instanceof Error ? error.message : String(error);
+      throw error;
+    }
+  }
+
+  $: grammarDecorations = (grammarReport?.issues ?? []).flatMap((issue) => {
+    const range = issueRange(contents, issue);
+
+    return range ? [{ ...range, tone: issue.kind }] : [];
+  });
+
+  async function runGrammarCheck() {
+    if (!contents.trim() || grammarChecking) {
+      return;
+    }
+
+    grammarChecking = true;
+    grammarError = "";
+    grammarCheckedText = contents;
+    statusMessage = "Grammar Police is reading...";
+
+    try {
+      grammarReport = await checkGrammar(settings.llm, contents);
+      statusMessage = `Writing score ${grammarReport.score}`;
+    } catch (error) {
+      grammarError = error instanceof Error ? error.message : String(error);
+      statusMessage = grammarError;
+    } finally {
+      grammarChecking = false;
+    }
+  }
+
+  /** Re-checking costs a request per run, so it waits for a real pause in typing. */
+  function scheduleGrammarCheck() {
+    if (!grammarOpen) {
+      return;
+    }
+
+    if (grammarTimer) {
+      clearTimeout(grammarTimer);
+    }
+
+    grammarTimer = setTimeout(() => {
+      grammarTimer = undefined;
+
+      if (contents !== grammarCheckedText) {
+        void runGrammarCheck();
+      }
+    }, 2500);
+  }
+
+  function toggleGrammar() {
+    grammarOpen = !grammarOpen;
+
+    if (grammarOpen && !grammarReport && !grammarError) {
+      void runGrammarCheck();
+    }
+  }
+
+  function dismissGrammarIssue(issue: GrammarIssue) {
+    if (grammarReport) {
+      grammarReport = {
+        ...grammarReport,
+        issues: grammarReport.issues.filter((entry) => entry !== issue),
+      };
+    }
+  }
+
+  /** An excerpt that no longer matches means the note moved on, so the issue just goes away. */
+  function applyGrammarIssue(issue: GrammarIssue) {
+    const next = applyIssue(contents, issue);
+
+    if (next === null) {
+      statusMessage = "That text changed, so the fix no longer applies";
+    } else {
+      contents = next;
+      updateNote();
+    }
+
+    dismissGrammarIssue(issue);
   }
 
   function resolveAsset(source: string) {
@@ -606,6 +711,10 @@
     if (statsTimer) {
       clearTimeout(statsTimer);
     }
+
+    if (grammarTimer) {
+      clearTimeout(grammarTimer);
+    }
   });
 </script>
 
@@ -628,6 +737,7 @@
     onToggleSpacePane={toggleSpacePane}
     onToggleSettings={() => (settingsOpen = !settingsOpen)}
     onToggleDatabases={() => (databasesOpen = !databasesOpen)}
+    onToggleGrammar={toggleGrammar}
   />
 
   <div class="flex min-h-0 min-w-0">
@@ -697,10 +807,28 @@
             statusMessage = error instanceof Error ? error.message : String(error);
             return "";
           })}
+        onGenerate={generateFromPrompt}
+        decorations={grammarOpen ? grammarDecorations : []}
         {resolveAsset}
       />
       {/if}
     </div>
+
+    {#if grammarOpen && !activeDatabaseId}
+      <div class="flex min-h-0" transition:slide={paneSlide}>
+        <GrammarPolice
+          report={grammarReport}
+          checking={grammarChecking}
+          error={grammarError}
+          canCheck={Boolean(path) && Boolean(contents.trim())}
+          onCheck={runGrammarCheck}
+          onApply={applyGrammarIssue}
+          onDismiss={dismissGrammarIssue}
+          onExplain={(issue) => explainIssue(settings.llm, issue)}
+          onClose={() => (grammarOpen = false)}
+        />
+      </div>
+    {/if}
 
     {#if databasesOpen}
       <div

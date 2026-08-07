@@ -8,6 +8,7 @@
     ClipboardPaste,
     FileUp,
     Scissors,
+    Sparkles,
   } from "@lucide/svelte";
   import { onMount } from "svelte";
   import { cubicOut } from "svelte/easing";
@@ -43,9 +44,16 @@
     paths?: string[];
   }) => Promise<string> = async () => "";
   export let onPickAssets: (() => Promise<string>) | null = null;
+  /** Takes the selected text as a prompt and returns generated markdown. */
+  export let onGenerate: ((prompt: string) => Promise<string>) | null = null;
+  /** Source ranges to underline, drawn in an overlay so the editable DOM stays untouched. */
+  export let decorations: Decoration[] = [];
   export let resolveAsset: ((source: string) => string) | null = null;
 
+  type Decoration = { start: number; end: number; tone: "mistake" | "suggestion" };
+
   let composing = false;
+  let decorationBoxes: { left: number; top: number; width: number; height: number; tone: string }[] = [];
   const EMPTY_CARET = String.fromCharCode(8203);
 
   function withoutEmptyCaret(text: string) {
@@ -91,7 +99,9 @@
     x: number;
     y: number;
     hasSelection: boolean;
+    textSelection?: { start: number; end: number } | null;
   } | null = null;
+  let generating = false;
   let selectedTableCell: {
     group: string;
     row: number;
@@ -378,6 +388,88 @@
       return;
     }
   }
+
+  /** A source offset resolves to a DOM position the same way the caret does. */
+  function positionAtOffset(offset: number) {
+    let remaining = offset;
+
+    for (const block of blocks()) {
+      const length = sourceLength(block);
+
+      if (remaining > length) {
+        remaining -= length + 1;
+        continue;
+      }
+
+      return caretPositionIn(block, remaining) ?? { node: block, offset: 0 };
+    }
+
+    return null;
+  }
+
+  /**
+   * Underlines are drawn as boxes over the editor rather than as markup, so the
+   * contenteditable DOM (and every caret offset derived from it) stays untouched.
+   */
+  function measureDecorations() {
+    if (!element || !decorations.length) {
+      decorationBoxes = [];
+      return;
+    }
+
+    const origin = element.getBoundingClientRect();
+    const boxes: typeof decorationBoxes = [];
+
+    for (const decoration of decorations) {
+      const from = positionAtOffset(decoration.start);
+      const to = positionAtOffset(decoration.end);
+
+      if (!from || !to) {
+        continue;
+      }
+
+      const range = document.createRange();
+
+      try {
+        range.setStart(from.node, from.offset);
+        range.setEnd(to.node, to.offset);
+      } catch {
+        continue;
+      }
+
+      for (const rect of Array.from(range.getClientRects())) {
+        if (rect.width < 1) {
+          continue;
+        }
+
+        boxes.push({
+          left: rect.left - origin.left,
+          top: rect.top - origin.top,
+          width: rect.width,
+          height: rect.height,
+          tone: decoration.tone,
+        });
+      }
+    }
+
+    decorationBoxes = boxes;
+  }
+
+  function scheduleMeasure() {
+    requestAnimationFrame(measureDecorations);
+  }
+
+  $: decorations, element, value, textSize, scheduleMeasure();
+
+  onMount(() => {
+    const observer = new ResizeObserver(scheduleMeasure);
+
+    if (element) {
+      observer.observe(element);
+    }
+
+    return () => observer.disconnect();
+  });
 
   let previewNavigation:
     | { direction: "up" | "down"; column: number }
@@ -1180,6 +1272,7 @@
       hasSelection: Boolean(
         table ? table.text || table.cell.innerText : textSelection && textSelection.start !== textSelection.end,
       ),
+      textSelection,
     };
   }
 
@@ -1267,6 +1360,26 @@
     ];
   }
 
+  /** The selection is the prompt; generated markdown lands right after it. */
+  async function generateFromSelection() {
+    const range = contextMenu?.textSelection;
+    const prompt = range ? value.slice(range.start, range.end).trim() : "";
+
+    if (!onGenerate || !prompt || generating) {
+      return;
+    }
+
+    generating = true;
+
+    try {
+      const generated = await onGenerate(prompt);
+
+      replace(range!.end, range!.end, `\n\n${generated}\n`);
+    } finally {
+      generating = false;
+    }
+  }
+
   function contextItems(): ContextMenuItem[] {
     return [
       ...alignItems(),
@@ -1291,6 +1404,12 @@
         icon: ClipboardPaste,
         disabled: !editable,
         onSelect: pasteClipboard,
+      },
+      {
+        label: generating ? "Generating..." : "Generate with AI",
+        icon: Sparkles,
+        disabled: !editable || !onGenerate || !contextMenu?.hasSelection || generating,
+        onSelect: generateFromSelection,
       },
       {
         label: "Insert file",
@@ -1531,6 +1650,7 @@
 
 <svelte:document onselectionchange={markActiveBlock} />
 
+<div class="relative">
 <div
   bind:this={element}
   contenteditable={editable}
@@ -1565,6 +1685,23 @@
     handleInput();
   }}
 ></div>
+
+{#if decorationBoxes.length}
+  <div class="pointer-events-none absolute inset-0" aria-hidden="true">
+    {#each decorationBoxes as box}
+      <span
+        class={cn(
+          "absolute border-b-2",
+          box.tone === "mistake"
+            ? "border-rose-500/80 bg-rose-500/5"
+            : "border-amber-500/80 bg-amber-500/5",
+        )}
+        style={`left: ${box.left}px; top: ${box.top}px; width: ${box.width}px; height: ${box.height}px;`}
+      ></span>
+    {/each}
+  </div>
+{/if}
+</div>
 
 {#if contextMenu}
   <ContextMenu

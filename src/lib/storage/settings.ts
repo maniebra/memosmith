@@ -3,6 +3,23 @@ const SETTINGS_KEY = "memosmith:settings";
 export type ThemePreference = "system" | "light" | "dark";
 export type EditorWidth = "focused" | "comfortable" | "wide";
 
+/** Every field is a string so an empty one simply means "leave it out of the request". */
+export type LlmSettings = {
+  baseUrl: string;
+  apiKey: string;
+  model: string;
+  systemPrompt: string;
+  reasoningEffort: string;
+  temperature: string;
+  topP: string;
+  maxTokens: string;
+  presencePenalty: string;
+  frequencyPenalty: string;
+  seed: string;
+  stop: string;
+  extraBody: string;
+};
+
 export type AppSettings = {
   theme: ThemePreference;
   editorWidth: EditorWidth;
@@ -13,6 +30,23 @@ export type AppSettings = {
   spacePaneWidth: number;
   settingsPaneWidth: number;
   spacePaneOpen: boolean;
+  llm: LlmSettings;
+};
+
+export const defaultLlmSettings: LlmSettings = {
+  baseUrl: "https://api.openai.com/v1",
+  apiKey: "",
+  model: "",
+  systemPrompt: "You write markdown notes. Answer with markdown content only, no preamble.",
+  reasoningEffort: "",
+  temperature: "",
+  topP: "",
+  maxTokens: "",
+  presencePenalty: "",
+  frequencyPenalty: "",
+  seed: "",
+  stop: "",
+  extraBody: "",
 };
 
 export const defaultSettings: AppSettings = {
@@ -25,7 +59,21 @@ export const defaultSettings: AppSettings = {
   spacePaneWidth: 240,
   settingsPaneWidth: 320,
   spacePaneOpen: true,
+  llm: defaultLlmSettings,
 };
+
+function readLlm(value: unknown): LlmSettings {
+  const parsed = (value ?? {}) as Partial<LlmSettings>;
+  const llm = { ...defaultLlmSettings };
+
+  for (const key of Object.keys(llm) as (keyof LlmSettings)[]) {
+    if (typeof parsed[key] === "string") {
+      llm[key] = parsed[key];
+    }
+  }
+
+  return llm;
+}
 
 function isThemePreference(value: unknown): value is ThemePreference {
   return value === "system" || value === "light" || value === "dark";
@@ -78,6 +126,7 @@ export function loadSettings(): AppSettings {
       settingsPaneWidth: clampPaneWidth(parsed.settingsPaneWidth, defaultSettings.settingsPaneWidth),
       spacePaneOpen:
         typeof parsed.spacePaneOpen === "boolean" ? parsed.spacePaneOpen : defaultSettings.spacePaneOpen,
+      llm: readLlm(parsed.llm),
     };
   } catch {
     return { ...defaultSettings };

@@ -19,6 +19,8 @@
   export let placeholder = "Select or create a note";
   export let onAssets: (source: { files?: File[]; paths?: string[] }) => Promise<string>;
   export let onPickAssets: () => Promise<string>;
+  export let onGenerate: ((prompt: string) => Promise<string>) | null = null;
+  export let decorations: { start: number; end: number; tone: "mistake" | "suggestion" }[] = [];
   export let onIconChange: (icon: PageIcon | null) => void | Promise<void>;
   export let onCoverChange: (cover: string | null) => void | Promise<void>;
   export let onPickCover: () => void | Promise<void>;
@@ -58,6 +60,8 @@
       {onInput}
       {onAssets}
       {onPickAssets}
+      {onGenerate}
+      {decorations}
       {resolveAsset}
     />
   </div>

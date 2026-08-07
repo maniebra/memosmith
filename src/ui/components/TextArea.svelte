@@ -6,7 +6,7 @@
   export let placeholder = "";
   export let className = "";
   export let size: "sm" | "md" | "lg" | "fill" = "md";
-  export let onInput: () => void = () => {};
+  export let onInput: (event: Event) => void = () => {};
 
   $: sizeClass = {
     sm: "min-h-24",

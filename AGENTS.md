@@ -90,6 +90,22 @@ cargo check
 - **Access**: Databases open from the toolbar's Databases modal (`DatabaseManager.svelte`), not the note sidebar.
 - **Filtering**: Nested and/or condition groups, evaluated in the frontend (`src/lib/utils/database.ts`, tested by `database.test.ts`).
 
+### 🤖 LLM (BYOLLM)
+- **Config**: Base URL, API key, model, and system prompt live in settings (`Settings > AI`), stored with the rest of `AppSettings` in localStorage.
+- **Protocol**: OpenAI-compatible `POST {baseUrl}/chat/completions` (`src/lib/tauri/llm.ts`), sent through `@tauri-apps/plugin-http` so provider CORS rules do not apply.
+- **Request options**: Reasoning effort, temperature, top P, max tokens, presence/frequency penalty, seed, stop sequences, plus a raw JSON "extra body" for provider-specific knobs. All are stored as strings; empty means the parameter is left out of the request (`src/lib/utils/llmOptions.ts`, tested by `llmOptions.test.ts`).
+- **Usage**: Select text in the editor and pick "Generate with AI" from the context menu; the selection is the prompt and the reply is inserted after it.
+
+### 🚔 Grammar Police
+- **What**: Grammarly-style proofreading of the open note through the same BYOLLM endpoint (`checkGrammar` in `src/lib/tauri/llm.ts`).
+- **Report**: A 0-100 writing score, a summary, and issues tagged `mistake` or `suggestion`, each with an excerpt, a replacement, and a reason.
+- **Parsing**: The model answers with JSON; `src/lib/utils/grammar.ts` unwraps fences, validates, and clamps (`grammar.test.ts`).
+- **Applying**: Fixes match the excerpt literally in the note text, so an excerpt that no longer matches is skipped and dropped.
+- **UI**: Right-hand panel (`GrammarPolice.svelte`), toggled from the toolbar shield button; opening it runs the first check.
+- **Underlines**: `MarkdownEditor` takes a `decorations` prop of source ranges and paints them as absolutely positioned boxes measured with `Range.getClientRects()`. The editable DOM is never touched, so caret offsets stay correct.
+- **Re-checking**: While the panel is open, typing schedules a re-check 2.5s after the last keystroke, skipped when the text has not changed since the last run.
+- **Explain**: Each issue has an "Explain" button that asks the model for a short rationale (`explainIssue`); answers are cached per issue in the panel.
+
 ## 🐛 Debugging & Platform Notes
 
 - **KDE/KWin**: The `tauri` script forces `GDK_BACKEND=x11` to ensure standard window decorations.
