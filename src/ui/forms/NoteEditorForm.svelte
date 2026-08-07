@@ -1,7 +1,9 @@
 <script lang="ts">
   import type { EditorWidth } from "../../lib/storage/settings";
   import { cn } from "../../lib/utils/cn";
+  import type { PageIcon, PageMeta } from "../../lib/utils/pageMeta";
   import MarkdownEditor from "../components/MarkdownEditor.svelte";
+  import PageIdentity from "../components/PageIdentity.svelte";
 
   export let contents: string;
   export let editor: HTMLElement | undefined = undefined;
@@ -13,9 +15,13 @@
   export let editable: boolean;
   export let noteTitle: string;
   export let showPageTitle: boolean;
+  export let pageMeta: PageMeta = {};
   export let placeholder = "Select or create a note";
   export let onAssets: (source: { files?: File[]; paths?: string[] }) => Promise<string>;
   export let onPickAssets: () => Promise<string>;
+  export let onIconChange: (icon: PageIcon | null) => void | Promise<void>;
+  export let onCoverChange: (cover: string | null) => void | Promise<void>;
+  export let onPickCover: () => void | Promise<void>;
   export let resolveAsset: (source: string) => string;
 
   const widthClasses: Record<EditorWidth, string> = {
@@ -30,11 +36,16 @@
 <!-- overflow-x-hidden so a wide equation scrolls inside its own box instead of widening the app. -->
 <section class="h-full min-h-0 overflow-x-hidden overflow-y-auto" aria-label="Markdown editor">
   <div class={cn("mx-auto w-full px-6 pt-14 pb-32 sm:px-10", editorClass)}>
-    {#if editable && showPageTitle}
-      <h1 class="mb-8 text-[2.5rem] leading-tight font-bold tracking-normal text-stone-900 dark:text-stone-100">
-        {noteTitle}
-      </h1>
-    {/if}
+    <PageIdentity
+      title={noteTitle}
+      meta={pageMeta}
+      {editable}
+      showTitle={showPageTitle}
+      {resolveAsset}
+      {onIconChange}
+      {onCoverChange}
+      {onPickCover}
+    />
 
     <MarkdownEditor
       bind:value={contents}

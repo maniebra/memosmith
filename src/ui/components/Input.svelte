@@ -6,7 +6,7 @@
     placeholder = "",
     type = "text" as "text" | "email" | "password" | "search" | "url",
     className = "",
-    oninput,
+    oninput = undefined as ((event: Event) => void) | undefined,
   } = $props();
 </script>
 

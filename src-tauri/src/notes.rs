@@ -1,4 +1,26 @@
 use crate::utils::NOTE_EXTENSIONS;
+use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
+
+const META_FOLDER: &str = ".memosmith";
+const PAGE_META_FILE: &str = "page-meta.json";
+
+#[derive(Clone, Default, Serialize, Deserialize)]
+pub struct PageIcon {
+    #[serde(rename = "type")]
+    pub kind: String,
+    pub value: String,
+}
+
+#[derive(Clone, Default, Serialize, Deserialize)]
+pub struct PageMeta {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub icon: Option<PageIcon>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cover: Option<String>,
+}
+
+type SpaceMeta = BTreeMap<String, PageMeta>;
 
 #[tauri::command]
 pub fn read_note(path: String) -> Result<String, String> {
@@ -102,6 +124,58 @@ pub fn search_notes(root: String, query: String) -> Result<Vec<String>, String> 
 }
 
 #[tauri::command]
+pub fn load_space_meta(root: String) -> Result<SpaceMeta, String> {
+    read_space_meta(&std::path::PathBuf::from(root))
+}
+
+#[tauri::command]
+pub fn save_page_meta(root: String, path: String, meta: PageMeta) -> Result<(), String> {
+    let root = std::path::PathBuf::from(root);
+    let mut space_meta = read_space_meta(&root)?;
+
+    if meta.icon.is_none() && meta.cover.is_none() {
+        space_meta.remove(&path);
+    } else {
+        space_meta.insert(path, meta);
+    }
+
+    write_space_meta(&root, &space_meta)
+}
+
+#[tauri::command]
+pub fn rename_page_meta(root: String, from: String, to: String, folder: bool) -> Result<(), String> {
+    let root = std::path::PathBuf::from(root);
+    let space_meta = read_space_meta(&root)?;
+    let mut next_meta = SpaceMeta::new();
+    let prefix = format!("{from}/");
+
+    for (key, value) in space_meta {
+        if key == from {
+            next_meta.insert(to.clone(), value);
+        } else if folder && key.starts_with(&prefix) {
+            next_meta.insert(format!("{to}/{}", &key[prefix.len()..]), value);
+        } else {
+            next_meta.insert(key, value);
+        }
+    }
+
+    write_space_meta(&root, &next_meta)
+}
+
+#[tauri::command]
+pub fn delete_page_meta(root: String, path: String, folder: bool) -> Result<(), String> {
+    let root = std::path::PathBuf::from(root);
+    let space_meta = read_space_meta(&root)?;
+    let prefix = format!("{path}/");
+    let next_meta = space_meta
+        .into_iter()
+        .filter(|(key, _)| key != &path && !(folder && key.starts_with(&prefix)))
+        .collect();
+
+    write_space_meta(&root, &next_meta)
+}
+
+#[tauri::command]
 pub fn list_space(root: String) -> Result<Vec<String>, String> {
     let root = std::path::PathBuf::from(root);
     let mut notes = Vec::new();
@@ -143,4 +217,32 @@ fn collect_notes(
     }
 
     Ok(())
+}
+
+fn page_meta_path(root: &std::path::Path) -> std::path::PathBuf {
+    root.join(META_FOLDER).join(PAGE_META_FILE)
+}
+
+fn read_space_meta(root: &std::path::Path) -> Result<SpaceMeta, String> {
+    let path = page_meta_path(root);
+
+    if !path.exists() {
+        return Ok(SpaceMeta::new());
+    }
+
+    let raw = std::fs::read_to_string(path).map_err(|error| error.to_string())?;
+
+    serde_json::from_str(&raw).map_err(|error| error.to_string())
+}
+
+fn write_space_meta(root: &std::path::Path, meta: &SpaceMeta) -> Result<(), String> {
+    let path = page_meta_path(root);
+
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+    }
+
+    let raw = serde_json::to_string_pretty(meta).map_err(|error| error.to_string())?;
+
+    std::fs::write(path, raw).map_err(|error| error.to_string())
 }

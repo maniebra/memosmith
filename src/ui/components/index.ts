@@ -7,6 +7,8 @@ export { default as DatabaseCell } from "./DatabaseCell.svelte";
 export { default as Field } from "./Field.svelte";
 export { default as Input } from "./Input.svelte";
 export { default as Progress } from "./Progress.svelte";
+export { default as PageIcon } from "./PageIcon.svelte";
+export { default as PageIdentity } from "./PageIdentity.svelte";
 export { default as Select } from "./Select.svelte";
 export { default as Slider } from "./Slider.svelte";
 export { default as Switch } from "./Switch.svelte";

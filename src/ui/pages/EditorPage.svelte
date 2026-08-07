@@ -14,11 +14,15 @@
     copyAsset,
     writeAsset,
     createNote,
+    deletePageMeta,
     deletePath,
     listSpace,
+    loadSpaceMeta,
     pruneAssets,
     readNote,
+    renamePageMeta,
     renamePath,
+    savePageMeta,
     writeNote,
   } from "../../lib/tauri/files";
   import {
@@ -27,8 +31,16 @@
     dirNotePath,
     displayNoteName,
     displayNotePath,
+    entryPathFromNote,
     withNoteExtension,
   } from "../../lib/utils/path";
+  import {
+    cleanPageMeta,
+    hasPageMeta,
+    type PageIcon,
+    type PageMeta,
+    type SpaceMeta,
+  } from "../../lib/utils/pageMeta";
   import {
     createDatabase,
     deleteDatabase,
@@ -56,6 +68,7 @@
   let path: string | null = null;
   let spaceRoot = loadSpaceRoot();
   let spaceNotes: string[] = [];
+  let spaceMeta: SpaceMeta = {};
   let databases: DatabaseSummary[] = [];
   let activeDatabaseId: string | null = null;
   let databasesOpen = false;
@@ -82,6 +95,8 @@
   $: spacePrefix = spaceRoot ? `${spaceRoot}/` : null;
   $: activeRelativePath =
     path && spacePrefix && path.startsWith(spacePrefix) ? path.slice(spacePrefix.length) : null;
+  $: activeEntryPath = activeRelativePath ? entryPathFromNote(activeRelativePath) : null;
+  $: activePageMeta = activeEntryPath ? (spaceMeta[activeEntryPath] ?? {}) : {};
   $: fileLabel = activeRelativePath ? displayNotePath(activeRelativePath) : spaceRoot ? "No note selected" : "No space";
   $: noteTitle = activeRelativePath ? displayNoteName(activeRelativePath) : "";
   $: dirtyMarker = isDirty ? " *" : "";
@@ -241,6 +256,7 @@
 
   async function refreshSpace() {
     spaceNotes = spaceRoot ? await listSpace(spaceRoot) : [];
+    spaceMeta = spaceRoot ? await loadSpaceMeta(spaceRoot) : {};
     databases = spaceRoot ? await listDatabases(spaceRoot) : [];
   }
 
@@ -366,6 +382,8 @@
       path = path === spacePath(dirNote) ? spacePath(nextDirNote) : path.replace(spacePath(relativePath), spacePath(nextRelativePath));
     }
 
+    await renamePageMeta(spaceRoot!, relativePath, nextRelativePath, isFolder);
+    spaceMeta = renamedMeta(spaceMeta, relativePath, nextRelativePath, isFolder);
     await refreshSpace();
     statusMessage = `Renamed to ${displayNotePath(nextRelativePath)}`;
   }
@@ -383,12 +401,90 @@
       setEditorText("", null);
     }
 
+    const isFolder = !spaceNotes.includes(relativePath);
+
+    await deletePageMeta(spaceRoot!, relativePath, isFolder);
+    spaceMeta = deletedMeta(spaceMeta, relativePath, isFolder);
+
     // The deleted note's media is now unreferenced, so its folder loses the orphans.
     const parent = relativePath.includes("/") ? relativePath.slice(0, relativePath.lastIndexOf("/")) : "";
 
     await pruneAssets(parent ? spacePath(parent) : spaceRoot!);
     await refreshSpace();
     statusMessage = `Deleted ${displayNotePath(relativePath)}`;
+  }
+
+  async function updateActiveMeta(nextMeta: PageMeta) {
+    if (!spaceRoot || !activeEntryPath) {
+      return;
+    }
+
+    const cleaned = cleanPageMeta(nextMeta);
+
+    await savePageMeta(spaceRoot, activeEntryPath, cleaned);
+
+    if (hasPageMeta(cleaned)) {
+      spaceMeta = { ...spaceMeta, [activeEntryPath]: cleaned };
+    } else {
+      const { [activeEntryPath]: _removed, ...rest } = spaceMeta;
+      spaceMeta = rest;
+    }
+  }
+
+  function updateActiveIcon(icon: PageIcon | null) {
+    return updateActiveMeta({ ...activePageMeta, icon });
+  }
+
+  function updateActiveCover(cover: string | null) {
+    return updateActiveMeta({ ...activePageMeta, cover });
+  }
+
+  async function pickActiveCover() {
+    if (!path || !noteDir) {
+      return;
+    }
+
+    const paths = await chooseFiles();
+    const coverPath = paths[0];
+
+    if (!coverPath) {
+      return;
+    }
+
+    const stored = await copyAsset(`${noteDir}/assets/images`, coverPath);
+
+    await updateActiveCover(relativeToNote(stored));
+    statusMessage = "Updated cover";
+  }
+
+  function renamedMeta(meta: SpaceMeta, from: string, to: string, folder: boolean): SpaceMeta {
+    const next: SpaceMeta = {};
+    const prefix = `${from}/`;
+
+    for (const [key, value] of Object.entries(meta)) {
+      if (key === from) {
+        next[to] = value;
+      } else if (folder && key.startsWith(prefix)) {
+        next[`${to}/${key.slice(prefix.length)}`] = value;
+      } else {
+        next[key] = value;
+      }
+    }
+
+    return next;
+  }
+
+  function deletedMeta(meta: SpaceMeta, path: string, folder: boolean): SpaceMeta {
+    const next: SpaceMeta = {};
+    const prefix = `${path}/`;
+
+    for (const [key, value] of Object.entries(meta)) {
+      if (key !== path && !(folder && key.startsWith(prefix))) {
+        next[key] = value;
+      }
+    }
+
+    return next;
   }
 
   async function runWithStatus(action: () => Promise<void>) {
@@ -541,6 +637,7 @@
           width={settings.spacePaneWidth}
           root={spaceRoot}
           notes={spaceNotes}
+          meta={spaceMeta}
           activePath={activeRelativePath}
           onChooseSpace={() => runWithStatus(chooseSpace)}
           onRefresh={() => runWithStatus(refreshSpace)}
@@ -583,9 +680,13 @@
         slashCommands={settings.slashCommands}
         editable={Boolean(path)}
         {noteTitle}
+        pageMeta={activePageMeta}
         showPageTitle={settings.showPageTitle}
         placeholder={spaceRoot ? "Select or create a note" : "Choose a space from the sidebar"}
         onInput={updateNote}
+        onIconChange={(icon) => runWithStatus(() => updateActiveIcon(icon))}
+        onCoverChange={(cover) => runWithStatus(() => updateActiveCover(cover))}
+        onPickCover={() => runWithStatus(pickActiveCover)}
         onAssets={(source) =>
           storeAssets(source).catch((error) => {
             statusMessage = error instanceof Error ? error.message : String(error);
@@ -626,8 +727,17 @@
     {/if}
 
     {#if settingsOpen}
-      <div class="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/40 backdrop-blur-sm" onclick={() => (settingsOpen = false)}>
-        <div class="relative z-50 overflow-hidden rounded-xl border border-stone-200/50 shadow-xl dark:border-stone-800/50" transition:scale={{ duration: 150, start: 0.95 }} onclick={(e) => e.stopPropagation()}>
+      <div
+        class="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/40 backdrop-blur-sm"
+        role="presentation"
+        onclick={() => (settingsOpen = false)}
+      >
+        <div
+          class="relative z-50 overflow-hidden rounded-xl border border-stone-200/50 shadow-xl dark:border-stone-800/50"
+          role="presentation"
+          transition:scale={{ duration: 150, start: 0.95 }}
+          onclick={(e) => e.stopPropagation()}
+        >
           <SettingsPanel
             {settings}
             onClose={() => (settingsOpen = false)}

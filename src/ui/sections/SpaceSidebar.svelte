@@ -1,6 +1,7 @@
 <script lang="ts">
 import { FolderOpen, FolderPlus, Plus, RotateCcw, Search } from "@lucide/svelte";
 import { basename } from "../../lib/utils/path";
+import type { SpaceMeta } from "../../lib/utils/pageMeta";
 import { buildTree } from "../../lib/utils/tree";
 import type { TreeNode } from "../../lib/utils/tree";
 import { searchNotes } from "../../lib/tauri/files";
@@ -13,6 +14,7 @@ import ContextMenu, {
 
   export let root: string | null;
   export let notes: string[];
+  export let meta: SpaceMeta = {};
   export let activePath: string | null;
   export let onChooseSpace: () => void | Promise<void>;
   export let onRefresh: () => void | Promise<void>;
@@ -39,7 +41,7 @@ import ContextMenu, {
   let searchResults: TreeNode[] | null = null;
 
   $: tree = buildTree(notes);
-  $: displayTree = searchQuery ? searchResults : tree;
+  $: displayTree = searchQuery ? (searchResults ?? []) : tree;
 
   let searchTimeout: ReturnType<typeof setTimeout>;
 
@@ -204,7 +206,7 @@ import ContextMenu, {
         placeholder="Search notes..."
         bind:value={searchQuery}
         oninput={handleSearch}
-        class="h-8"
+        className="h-8"
       />
     </div>
   {/if}
@@ -236,6 +238,7 @@ import ContextMenu, {
 
         <SpaceTree
         nodes={displayTree}
+        {meta}
         {activePath}
         {onSelect}
         {renaming}

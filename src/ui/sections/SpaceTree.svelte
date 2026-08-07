@@ -2,6 +2,8 @@
   import {
     ChevronDown,
     ChevronRight,
+    FileText,
+    Folder,
     FolderPlus,
     Pencil,
     Plus,
@@ -9,7 +11,9 @@
   } from "@lucide/svelte";
   import { cn } from "../../lib/utils/cn";
   import { displayNoteName } from "../../lib/utils/path";
+  import type { SpaceMeta } from "../../lib/utils/pageMeta";
   import type { TreeNode } from "../../lib/utils/tree";
+  import PageIcon from "../components/PageIcon.svelte";
   import ContextMenu, {
     type ContextMenuItem,
   } from "../components/ContextMenu.svelte";
@@ -17,6 +21,7 @@
   import TreeNameInput from "./TreeNameInput.svelte";
 
   export let nodes: TreeNode[];
+  export let meta: SpaceMeta = {};
   export let activePath: string | null;
   export let onSelect: (relativePath: string) => void;
   /** Relative path of the node being renamed, if any. */
@@ -160,6 +165,11 @@
               : `padding-left: ${depth * 0.75 + 1.375}rem`}
             onclick={() => (node.note ? onSelect(node.note) : toggle(node))}
           >
+            <PageIcon
+              icon={meta[node.path]?.icon}
+              fallback={node.children ? Folder : FileText}
+              className="mr-1.5 size-4 text-base text-stone-400 dark:text-stone-500"
+            />
             <span class="truncate">{label(node)}</span>
           </button>
 
@@ -214,6 +224,7 @@
 
         <Self
           nodes={node.children}
+          {meta}
           {activePath}
           {onSelect}
           {renaming}

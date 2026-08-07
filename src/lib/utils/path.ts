@@ -21,14 +21,25 @@ export function dirNotePath(folderPath: string): string {
   return `${folderPath}/${dirNoteName(basename(folderPath))}`;
 }
 
-export function displayNotePath(notePath: string): string {
+export function isDirNotePath(notePath: string): boolean {
   const segments = notePath.split("/");
   const name = segments[segments.length - 1] ?? "";
   const parentName = segments[segments.length - 2];
 
-  if (parentName && name === dirNoteName(parentName)) {
-    return segments.slice(0, -1).join("/");
+  return Boolean(parentName && name === dirNoteName(parentName));
+}
+
+export function entryPathFromNote(notePath: string): string {
+  return isDirNotePath(notePath) ? notePath.split("/").slice(0, -1).join("/") : notePath;
+}
+
+export function displayNotePath(notePath: string): string {
+  if (isDirNotePath(notePath)) {
+    return notePath.split("/").slice(0, -1).join("/");
   }
+
+  const segments = notePath.split("/");
+  const name = segments[segments.length - 1] ?? "";
 
   return [...segments.slice(0, -1), stripNoteExtension(name)].join("/");
 }
