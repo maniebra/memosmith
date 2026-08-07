@@ -29,6 +29,7 @@ import ContextMenu, {
   let renaming: string | null = null;
   let creating: string | null = null;
   let creatingFolder = false;
+  let isSearching = false;
   let contextMenu: {
     x: number;
     y: number;
@@ -184,19 +185,31 @@ import ContextMenu, {
       >
         <Plus class="size-4" strokeWidth={1.8} aria-hidden="true" />
       </button>
+
+      <button
+        type="button"
+        class="flex size-8 items-center justify-center rounded-md border border-transparent text-stone-500 transition-colors hover:bg-stone-500/10 hover:text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 dark:text-stone-400 dark:hover:text-stone-100"
+        aria-label="Toggle search"
+        title="Toggle search"
+        onclick={() => (isSearching = !isSearching)}
+      >
+        <Search class="size-4" strokeWidth={1.8} aria-hidden="true" />
+      </button>
     {/if}
   </div>
-<div class="px-2 py-1">
-  <Input
-    type="search"
-    placeholder="Search notes..."
-    bind:value={searchQuery}
-    oninput={handleSearch}
-    class="h-8"
-  />
-</div>
+  {#if isSearching}
+    <div class="px-2 py-1">
+      <Input
+        type="search"
+        placeholder="Search notes..."
+        bind:value={searchQuery}
+        oninput={handleSearch}
+        class="h-8"
+      />
+    </div>
+  {/if}
 
-<div
+  <div
     class="min-h-0 flex-1 overflow-y-auto p-1.5"
     role="presentation"
     oncontextmenu={openContextMenu}
