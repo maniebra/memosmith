@@ -45,6 +45,60 @@ fn delete_path(path: String) -> Result<(), String> {
     }
 }
 
+#[tauri::command]
+fn search_notes(root: String, query: String) -> Result<Vec<String>, String> {
+    let root = std::path::PathBuf::from(root);
+    let query = query.to_lowercase();
+    let mut matches = Vec::new();
+
+    if !root.is_dir() {
+        return Err("Root path is not a directory".to_string());
+    }
+
+    fn search_recursive(
+        dir: &std::path::Path,
+        root: &std::path::Path,
+        query: &str,
+        matches: &mut Vec<String>,
+    ) -> std::io::Result<()> {
+        for entry in std::fs::read_dir(dir)? {
+            let entry = entry?;
+            let path = entry.path();
+            let name = path.file_name().unwrap_or_default().to_string_lossy().to_string();
+
+            if name.starts_with('.') || name == "assets" || entry.file_type()?.is_symlink() {
+                continue;
+            }
+
+            if path.is_dir() {
+                search_recursive(&path, root, query, matches)?;
+                continue;
+            }
+
+            let extension = path.extension().unwrap_or_default().to_string_lossy().to_lowercase();
+            if NOTE_EXTENSIONS.contains(&extension.as_str()) {
+                let matches_name = name.to_lowercase().contains(query);
+                let matches_content = if let Ok(content) = std::fs::read_to_string(&path) {
+                    content.to_lowercase().contains(query)
+                } else {
+                    false
+                };
+
+                if matches_name || matches_content {
+                    if let Ok(relative) = path.strip_prefix(root) {
+                        matches.push(relative.to_string_lossy().replace('\\', "/"));
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    search_recursive(&root, &root, &query, &mut matches).map_err(|e| e.to_string())?;
+    matches.sort();
+    Ok(matches)
+}
+
 /// Never overwrite an existing asset: `shot.png` becomes `shot-1.png`.
 fn unique_path(dir: &std::path::Path, name: &str) -> std::path::PathBuf {
     // Only the file name part is trusted: a caller-supplied name must not walk out of `dir`.
@@ -248,6 +302,7 @@ pub fn run() {
             create_note,
             rename_path,
             delete_path,
+            search_notes,
             write_asset,
             copy_asset,
             prune_assets

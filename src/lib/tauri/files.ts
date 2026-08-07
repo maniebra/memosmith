@@ -54,3 +54,7 @@ export async function chooseFiles() {
 export function confirmDelete(name: string) {
   return ask(`Delete ${name}? This cannot be undone.`, { title: "Delete", kind: "warning" });
 }
+
+export function searchNotes(root: string, query: string) {
+  return invoke<string[]>("search_notes", { root, query });
+}
