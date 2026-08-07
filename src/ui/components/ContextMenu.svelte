@@ -26,7 +26,7 @@
   export let items: ContextMenuItem[] = [];
   export let onClose: () => void = () => {};
 
-  const width = 192;
+  const width = 320;
 
   $: left = Math.max(8, Math.min(x, window.innerWidth - width - 8));
   $: top = Math.max(
@@ -67,7 +67,7 @@
 />
 
 <div
-  class="fixed z-[80] w-48 rounded-xl border border-stone-200/80 bg-stone-50/95 p-1.5 shadow-lg shadow-stone-900/8 backdrop-blur dark:border-stone-700/80 dark:bg-stone-900/95 dark:shadow-black/20"
+  class="fixed z-[80] w-min-48 w-max-80 rounded-xl border border-stone-200/80 bg-stone-50/95 p-1.5 shadow-lg shadow-stone-900/8 backdrop-blur dark:border-stone-700/80 dark:bg-stone-900/95 dark:shadow-black/20"
   style="left: {left}px; top: {top}px; transform-origin: top left;"
   role="menu"
   tabindex="-1"
@@ -106,6 +106,7 @@
           />
         {/if}
         <span class="sr-only">{item.label}</span>
+        <span class="flex-1 truncate">{item.label}</span>
         {#if item.shortcut}
           <span
             class="shrink-0 text-[0.7rem] text-stone-400 dark:text-stone-500"

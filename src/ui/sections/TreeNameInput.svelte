@@ -43,5 +43,5 @@
       onCancel();
     }
   }}
-  onblur={commit}
+  onblur={onCancel}
 />
