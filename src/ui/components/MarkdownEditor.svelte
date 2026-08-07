@@ -257,31 +257,52 @@
     return value.slice(unit.start, unit.end);
   }
 
-  function visibleUnitBlock(unit: BlockUnit) {
-    return (
-      unit.blocks.find((block) => {
-        const rect = block.getBoundingClientRect();
+  function unitVisualElements(unit: BlockUnit) {
+    const [kind, group] = unit.key.split(":");
 
-        return rect.width > 0 || rect.height > 0;
-      }) ?? unit.blocks[0]
-    );
+    if (
+      element &&
+      group !== undefined &&
+      (kind === "code" || kind === "math" || kind === "table")
+    ) {
+      return Array.from(
+        element.querySelectorAll(`[data-${kind}="${CSS.escape(group)}"]`),
+      ) as HTMLElement[];
+    }
+
+    return unit.blocks;
+  }
+
+  function unitVisualRect(unit: BlockUnit) {
+    const rects = unitVisualElements(unit)
+      .map((node) => node.getBoundingClientRect())
+      .filter((rect) => rect.height > 0);
+    const fallback = unit.blocks[0]?.getBoundingClientRect();
+
+    if (!rects.length) {
+      return fallback ?? null;
+    }
+
+    const top = Math.min(...rects.map((rect) => rect.top));
+    const bottom = Math.max(...rects.map((rect) => rect.bottom));
+
+    return { top, bottom, height: bottom - top };
   }
 
   function syncBlockToolbar() {
     requestAnimationFrame(() => {
       const unit = currentUnit();
-      const block = unit ? visibleUnitBlock(unit) : undefined;
+      const rect = unit ? unitVisualRect(unit) : null;
 
-      if (!shell || !element || !block || !editable || !element.contains(block)) {
+      if (!shell || !element || !unit || !rect || !editable) {
         blockToolbar = { ...blockToolbar, visible: false };
         return;
       }
 
       const shellRect = shell.getBoundingClientRect();
-      const blockRect = block.getBoundingClientRect();
 
       blockToolbar = {
-        top: blockRect.top - shellRect.top + Math.max(0, (blockRect.height - 28) / 2),
+        top: rect.top - shellRect.top + Math.max(0, (rect.height - 28) / 2),
         visible: true,
       };
     });
@@ -366,34 +387,27 @@
     }
 
     const shellRect = shell.getBoundingClientRect();
-    const target = units[targetIndex]?.blocks[0];
+    const target = units[targetIndex] ? unitVisualRect(units[targetIndex]) : null;
 
     if (target) {
-      dragIndicatorTop = target.getBoundingClientRect().top - shellRect.top;
+      dragIndicatorTop = target.top - shellRect.top;
       return;
     }
 
-    const lastUnitBlocks = units[units.length - 1].blocks;
-    const last = lastUnitBlocks[lastUnitBlocks.length - 1];
+    const last = unitVisualRect(units[units.length - 1]);
 
-    dragIndicatorTop = last
-      ? last.getBoundingClientRect().bottom - shellRect.top
-      : null;
+    dragIndicatorTop = last ? last.bottom - shellRect.top : null;
   }
 
   function dragTargetIndex(event: PointerEvent, units: BlockUnit[]) {
     for (const [index, unit] of units.entries()) {
-      const first = unit.blocks[0];
-      const last = unit.blocks[unit.blocks.length - 1];
+      const rect = unitVisualRect(unit);
 
-      if (!first || !last) {
+      if (!rect) {
         continue;
       }
 
-      const top = first.getBoundingClientRect().top;
-      const bottom = last.getBoundingClientRect().bottom;
-
-      if (event.clientY < top + (bottom - top) / 2) {
+      if (event.clientY < rect.top + rect.height / 2) {
         return index;
       }
     }
