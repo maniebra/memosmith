@@ -31,6 +31,16 @@ assert(mathUnclosed("$$\nx"), "lone opener is unclosed");
 assert(!mathUnclosed("$$\nx\n$$"), "paired openers are closed");
 assert(renderDocument("a\nb").split("<div").length === 3, "one block per line");
 assert(renderDocument("  - x").includes("padding-left:1.5rem"), "indent becomes padding");
+const table = renderDocument("| Name | Count |\n| --- | ---: |\n| **Tea** | 2 |");
+assert(table.includes('<table class="md-table">'), "table gets a rendered preview");
+assert(table.includes("<th>Name</th>"), "table header renders");
+assert(table.includes('style="text-align:right"'), "table alignment renders");
+assert(table.includes("md-bold"), "table cells render inline markdown");
+assert(sourceBlocks("| Name | Count |\n| --- | ---: |\n| Tea | 2 |") === 3, "table source lines remain editable blocks");
+assert(
+  renderDocument("| Code | Value |\n| --- | --- |\n| `a|b` | x \\| y |").match(/<td/g)?.length === 2,
+  "table parser ignores pipes in code and escaped pipes",
+);
 assert(continueList("- item") === "- ", "bullet continues");
 assert(continueList("  3. item") === "  4. ", "ordinal increments");
 assert(continueList("- [x] done") === "- [ ] ", "task resets");

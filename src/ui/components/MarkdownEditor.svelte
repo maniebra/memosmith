@@ -226,13 +226,16 @@
     }
 
     activeBlock = active;
-    const group = active?.dataset.code ?? active?.dataset.math;
+    const group =
+      active?.dataset.code ?? active?.dataset.math ?? active?.dataset.table;
     const groupName =
       active?.dataset.code !== undefined
         ? "code"
         : active?.dataset.math !== undefined
           ? "math"
-          : null;
+          : active?.dataset.table !== undefined
+            ? "table"
+            : null;
 
     for (const block of Array.from(element?.children ?? []) as HTMLElement[]) {
       block.toggleAttribute(

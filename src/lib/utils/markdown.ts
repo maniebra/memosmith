@@ -87,6 +87,148 @@ function renderInline(escaped: string) {
   });
 }
 
+type TableAlignment = "left" | "center" | "right" | null;
+
+function endsWithTableDelimiter(line: string) {
+  const trimmed = line.trimEnd();
+
+  if (!trimmed.endsWith("|")) {
+    return false;
+  }
+
+  let backslashes = 0;
+
+  for (let index = trimmed.length - 2; index >= 0 && trimmed[index] === "\\"; index--) {
+    backslashes++;
+  }
+
+  return backslashes % 2 === 0;
+}
+
+function splitTableRow(line: string) {
+  const trimmed = line.trim();
+  const cells: string[] = [];
+  let cell = "";
+  let escaped = false;
+  let inCode = false;
+  let bracketDepth = 0;
+
+  for (const char of trimmed) {
+    if (escaped) {
+      cell += char === "|" ? "|" : `\\${char}`;
+      escaped = false;
+      continue;
+    }
+
+    if (char === "\\") {
+      escaped = true;
+      continue;
+    }
+
+    if (char === "`") {
+      inCode = !inCode;
+    } else if (!inCode && char === "[") {
+      bracketDepth++;
+    } else if (!inCode && char === "]") {
+      bracketDepth = Math.max(0, bracketDepth - 1);
+    }
+
+    if (char === "|" && !inCode && bracketDepth === 0) {
+      cells.push(cell.trim());
+      cell = "";
+      continue;
+    }
+
+    cell += char;
+  }
+
+  if (escaped) {
+    cell += "\\";
+  }
+
+  cells.push(cell.trim());
+
+  if (trimmed.startsWith("|")) {
+    cells.shift();
+  }
+
+  if (endsWithTableDelimiter(trimmed)) {
+    cells.pop();
+  }
+
+  return cells;
+}
+
+function separatorAlign(cell: string): TableAlignment | false {
+  const match = /^\s*(:?)-{3,}(:?)\s*$/.exec(cell);
+
+  if (!match) {
+    return false;
+  }
+
+  return match[1] && match[2] ? "center" : match[2] ? "right" : match[1] ? "left" : null;
+}
+
+function tableSeparator(line: string) {
+  const cells = splitTableRow(line);
+  const alignments = cells.map(separatorAlign);
+
+  return alignments.length > 0 && alignments.every((alignment) => alignment !== false)
+    ? (alignments as TableAlignment[])
+    : null;
+}
+
+function tableCell(content: string, tag: "td" | "th", alignment: TableAlignment) {
+  const align = alignment ? ` style="text-align:${alignment}"` : "";
+  const body = renderInline(escapeHtml(content));
+
+  return `<${tag}${align}>${body || emptyAnchor()}</${tag}>`;
+}
+
+function renderTable(lines: string[]) {
+  const alignments = tableSeparator(lines[1]);
+
+  if (!alignments) {
+    return "";
+  }
+
+  const columns = Math.max(splitTableRow(lines[0]).length, alignments.length);
+  const normalized = (line: string) => {
+    const cells = splitTableRow(line).slice(0, columns);
+
+    return [...cells, ...Array<string>(columns - cells.length).fill("")];
+  };
+  const header = normalized(lines[0]);
+  const rows = lines.slice(2).map(normalized);
+
+  return `<table class="md-table"><thead><tr>${header
+    .map((cell, index) => tableCell(cell, "th", alignments[index] ?? null))
+    .join("")}</tr></thead><tbody>${rows
+    .map(
+      (row) =>
+        `<tr>${row.map((cell, index) => tableCell(cell, "td", alignments[index] ?? null)).join("")}</tr>`,
+    )
+    .join("")}</tbody></table>`;
+}
+
+function isTableStart(lines: string[], index: number) {
+  return index + 1 < lines.length && isTableRow(lines[index]) && tableSeparator(lines[index + 1]) !== null;
+}
+
+function isTableRow(line: string) {
+  return splitTableRow(line).length > 1 || line.trim().startsWith("|");
+}
+
+function tableLine(line: string, group: number) {
+  return `<div class="md-block md-table-line" data-table="${group}">${renderLine(line)}</div>`;
+}
+
+function tablePreview(lines: string[], group: number) {
+  return `<div class="md-preview md-table-preview" data-table="${group}" contenteditable="false">${renderTable(
+    lines,
+  )}</div>`;
+}
+
 function emptyAnchor() {
   return "&#8203;";
 }
@@ -217,6 +359,7 @@ export function renderDocument(text: string, resolveAsset?: (source: string) => 
   let language: string | null = null;
   let codeGroup = 0;
   let mathGroup = 0;
+  let tableGroup = 0;
   let mathLines: string[] | null = null;
   const output: string[] = [];
 
@@ -233,7 +376,10 @@ export function renderDocument(text: string, resolveAsset?: (source: string) => 
     }
   }
 
-  for (const line of text.split("\n")) {
+  const lines = text.split("\n");
+
+  for (let i = 0; i < lines.length; ) {
+    const line = lines[i];
     const fence = FENCE.exec(line);
 
     if (mathLines) {
@@ -244,6 +390,7 @@ export function renderDocument(text: string, resolveAsset?: (source: string) => 
         mathLines = null;
       }
 
+      i++;
       continue;
     }
 
@@ -255,11 +402,13 @@ export function renderDocument(text: string, resolveAsset?: (source: string) => 
       const index = isOpening ? codeGroup : codeGroup++;
 
       output.push(`<div class="md-block ${className}" data-code="${index}">${escapeHtml(line)}</div>`);
+      i++;
       continue;
     }
 
     if (language !== null) {
       output.push(`<div class="md-block md-codeblock" data-code="${codeGroup}">${renderCode(line, language)}</div>`);
+      i++;
       continue;
     }
 
@@ -269,11 +418,13 @@ export function renderDocument(text: string, resolveAsset?: (source: string) => 
       const group = mathGroup++;
 
       output.push(mathLine(line, group, true), mathPreview(equation[1], group));
+      i++;
       continue;
     }
 
     if (line.trim() === "$$") {
       mathLines = [line];
+      i++;
       continue;
     }
 
@@ -284,6 +435,27 @@ export function renderDocument(text: string, resolveAsset?: (source: string) => 
         `<div class="md-block md-media-line">${renderLine(line)}</div>`,
         mediaPreview(line, media[2], media[3], resolveAsset!),
       );
+      i++;
+      continue;
+    }
+
+    if (isTableStart(lines, i)) {
+      const tableLines = [line, lines[i + 1]];
+      let j = i + 2;
+
+      while (j < lines.length && isTableRow(lines[j])) {
+        tableLines.push(lines[j]);
+        j++;
+      }
+
+      const group = tableGroup++;
+
+      for (const tableSourceLine of tableLines) {
+        output.push(tableLine(tableSourceLine, group));
+      }
+
+      output.push(tablePreview(tableLines, group));
+      i = j;
       continue;
     }
 
@@ -291,6 +463,7 @@ export function renderDocument(text: string, resolveAsset?: (source: string) => 
     const style = indent ? ` style="padding-left:${indent * 0.75}rem"` : "";
 
     output.push(`<div class="md-block ${lineClass(line)}"${style}>${renderLine(line)}</div>`);
+    i++;
   }
 
   if (mathLines) {

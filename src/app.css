@@ -182,6 +182,34 @@ body {
     @apply text-emerald-700 underline decoration-emerald-700/30 underline-offset-2 dark:text-emerald-400 dark:decoration-emerald-400/30;
   }
 
+  .md-table-line {
+    @apply font-mono text-[0.85em] text-stone-500 dark:text-stone-400;
+  }
+
+  .md-table-line:not([data-active]) {
+    font-size: 0;
+    line-height: 0;
+    letter-spacing: 0;
+    color: transparent;
+  }
+
+  .md-table-preview {
+    @apply my-3 max-w-full overflow-x-auto;
+    user-select: none;
+  }
+
+  .md-table {
+    @apply w-full border-collapse text-left text-[0.95em];
+  }
+
+  .md-table th {
+    @apply border border-stone-200 bg-stone-100 px-3 py-1.5 font-semibold text-stone-800 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-100;
+  }
+
+  .md-table td {
+    @apply border border-stone-200 px-3 py-1.5 align-top text-stone-700 dark:border-stone-700 dark:text-stone-200;
+  }
+
   /* Collapsed rather than hidden: the caret still needs somewhere to land. */
   .md-math-source {
     font-size: 0;
