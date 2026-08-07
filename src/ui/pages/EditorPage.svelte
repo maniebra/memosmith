@@ -2,13 +2,24 @@
   import { onDestroy, onMount } from "svelte";
   import { cubicOut } from "svelte/easing";
   import { slide, scale } from "svelte/transition";
-  import { defaultSettings, loadSettings, saveSettings } from "../../lib/storage/settings";
+  import {
+    defaultSettings,
+    loadSettings,
+    saveSettings,
+    type GrammarProfile,
+  } from "../../lib/storage/settings";
   import { loadSpaceRoot, saveSpaceRoot } from "../../lib/storage/space";
   import { convertFileSrc } from "@tauri-apps/api/core";
   import { assetFolder, assetMarkdown } from "../../lib/utils/assets";
   import { compressImage } from "../../lib/utils/image";
   import { checkGrammar, explainIssue, generateContent } from "../../lib/tauri/llm";
-  import { applyIssue, issueRange, type GrammarIssue, type GrammarReport } from "../../lib/utils/grammar";
+  import {
+    applyIssue,
+    issueRange,
+    type GrammarIssue,
+    type GrammarMode,
+    type GrammarReport,
+  } from "../../lib/utils/grammar";
   import GrammarPolice from "../sections/GrammarPolice.svelte";
   import {
     chooseFiles,
@@ -580,6 +591,7 @@
     }
   }
 
+  $: grammarProfile = settings.grammarProfiles[settings.grammarMode];
   $: grammarDecorations = (grammarReport?.issues ?? []).flatMap((issue) => {
     const range = issueRange(contents, issue);
 
@@ -597,7 +609,7 @@
     statusMessage = "Grammar Police is reading...";
 
     try {
-      grammarReport = await checkGrammar(settings.llm, contents);
+      grammarReport = await checkGrammar(settings.llm, contents, settings.grammarMode, grammarProfile);
       statusMessage = `Writing score ${grammarReport.score}`;
     } catch (error) {
       grammarError = error instanceof Error ? error.message : String(error);
@@ -624,6 +636,26 @@
         void runGrammarCheck();
       }
     }, 2500);
+  }
+
+  function updateGrammarProfile(profile: GrammarProfile) {
+    settings = {
+      ...settings,
+      grammarProfiles: { ...settings.grammarProfiles, [settings.grammarMode]: profile },
+    };
+  }
+
+  /** A different coach grades the same text differently, so the old report is stale. */
+  function setGrammarMode(mode: GrammarMode) {
+    if (mode === settings.grammarMode) {
+      return;
+    }
+
+    settings = { ...settings, grammarMode: mode };
+    grammarReport = null;
+    grammarError = "";
+    grammarCheckedText = "";
+    void runGrammarCheck();
   }
 
   function toggleGrammar() {
@@ -821,10 +853,15 @@
           checking={grammarChecking}
           error={grammarError}
           canCheck={Boolean(path) && Boolean(contents.trim())}
+          mode={settings.grammarMode}
+          onModeChange={setGrammarMode}
           onCheck={runGrammarCheck}
           onApply={applyGrammarIssue}
           onDismiss={dismissGrammarIssue}
-          onExplain={(issue) => explainIssue(settings.llm, issue)}
+          onExplain={(issue) => explainIssue(settings.llm, issue, grammarProfile)}
+          profile={grammarProfile}
+          onProfileChange={updateGrammarProfile}
+          {words}
           onClose={() => (grammarOpen = false)}
         />
       </div>

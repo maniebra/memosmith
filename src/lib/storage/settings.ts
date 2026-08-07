@@ -1,3 +1,5 @@
+import { GRAMMAR_MODES, isGrammarMode, type GrammarMode } from "../utils/grammar";
+
 const SETTINGS_KEY = "memosmith:settings";
 
 export type ThemePreference = "system" | "light" | "dark";
@@ -30,6 +32,15 @@ export type AppSettings = {
   spacePaneWidth: number;
   settingsPaneWidth: number;
   spacePaneOpen: boolean;
+  grammarMode: GrammarMode;
+  grammarProfiles: Record<GrammarMode, GrammarProfile>;
+  llm: LlmSettings;
+};
+
+/** What a coach knows beyond the note itself, plus its own LLM overrides. */
+export type GrammarProfile = {
+  task: string;
+  wordTarget: string;
   llm: LlmSettings;
 };
 
@@ -49,6 +60,35 @@ export const defaultLlmSettings: LlmSettings = {
   extraBody: "",
 };
 
+/** An override field only counts when it is filled in, so a blank profile inherits everything. */
+export const emptyLlmSettings: LlmSettings = Object.fromEntries(
+  Object.keys(defaultLlmSettings).map((key) => [key, ""]),
+) as LlmSettings;
+
+export const emptyGrammarProfile: GrammarProfile = {
+  task: "",
+  wordTarget: "",
+  llm: emptyLlmSettings,
+};
+
+export function mergeLlm(base: LlmSettings, override: LlmSettings): LlmSettings {
+  const merged = { ...base };
+
+  for (const key of Object.keys(merged) as (keyof LlmSettings)[]) {
+    if (override[key].trim()) {
+      merged[key] = override[key];
+    }
+  }
+
+  return merged;
+}
+
+function defaultProfiles(): Record<GrammarMode, GrammarProfile> {
+  return Object.fromEntries(
+    GRAMMAR_MODES.map((mode) => [mode.id, { ...emptyGrammarProfile }]),
+  ) as Record<GrammarMode, GrammarProfile>;
+}
+
 export const defaultSettings: AppSettings = {
   theme: "system",
   editorWidth: "comfortable",
@@ -59,12 +99,14 @@ export const defaultSettings: AppSettings = {
   spacePaneWidth: 240,
   settingsPaneWidth: 320,
   spacePaneOpen: true,
+  grammarMode: "normal",
+  grammarProfiles: defaultProfiles(),
   llm: defaultLlmSettings,
 };
 
-function readLlm(value: unknown): LlmSettings {
+function readLlm(value: unknown, fallback = defaultLlmSettings): LlmSettings {
   const parsed = (value ?? {}) as Partial<LlmSettings>;
-  const llm = { ...defaultLlmSettings };
+  const llm = { ...fallback };
 
   for (const key of Object.keys(llm) as (keyof LlmSettings)[]) {
     if (typeof parsed[key] === "string") {
@@ -73,6 +115,23 @@ function readLlm(value: unknown): LlmSettings {
   }
 
   return llm;
+}
+
+function readProfiles(value: unknown): Record<GrammarMode, GrammarProfile> {
+  const parsed = (value ?? {}) as Record<string, Partial<GrammarProfile>>;
+  const profiles = defaultProfiles();
+
+  for (const mode of GRAMMAR_MODES) {
+    const stored = parsed[mode.id] ?? {};
+
+    profiles[mode.id] = {
+      task: typeof stored.task === "string" ? stored.task : "",
+      wordTarget: typeof stored.wordTarget === "string" ? stored.wordTarget : "",
+      llm: readLlm(stored.llm, emptyLlmSettings),
+    };
+  }
+
+  return profiles;
 }
 
 function isThemePreference(value: unknown): value is ThemePreference {
@@ -126,6 +185,8 @@ export function loadSettings(): AppSettings {
       settingsPaneWidth: clampPaneWidth(parsed.settingsPaneWidth, defaultSettings.settingsPaneWidth),
       spacePaneOpen:
         typeof parsed.spacePaneOpen === "boolean" ? parsed.spacePaneOpen : defaultSettings.spacePaneOpen,
+      grammarMode: isGrammarMode(parsed.grammarMode) ? parsed.grammarMode : defaultSettings.grammarMode,
+      grammarProfiles: readProfiles(parsed.grammarProfiles),
       llm: readLlm(parsed.llm),
     };
   } catch {

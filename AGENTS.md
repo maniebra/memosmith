@@ -98,7 +98,10 @@ cargo check
 
 ### 🚔 Grammar Police
 - **What**: Grammarly-style proofreading of the open note through the same BYOLLM endpoint (`checkGrammar` in `src/lib/tauri/llm.ts`).
-- **Report**: A 0-100 writing score, a summary, and issues tagged `mistake` or `suggestion`, each with an excerpt, a replacement, and a reason.
+- **Modes**: Normal, IELTS Coach, TOEFL Coach, and Beginner Coach (`GRAMMAR_MODES`). Each swaps the brief appended to the shared JSON contract in `systemPromptFor`; the choice persists in `settings.grammarMode` and switching it discards the old report and re-checks.
+- **Profiles**: Each mode owns a `GrammarProfile` in settings: a task prompt, a word target, and LLM overrides. Overrides are the same all-string shape as the base config and `mergeLlm` takes a field only when it is non-empty, so a blank profile inherits everything. Task and word target are edited in the panel ("Task & length"); the LLM overrides in `Settings > AI` via the Config selector.
+- **Task context**: `checkPrompt` puts the task, the actual word count, and the target ahead of the note, so band scoring sees the question the note answers.
+- **Report**: A 0-100 writing score, an optional `rating` label (IELTS band, TOEFL score, CEFR level), a summary, and issues tagged `mistake` or `suggestion`, each with an excerpt, a replacement, and a reason.
 - **Parsing**: The model answers with JSON; `src/lib/utils/grammar.ts` unwraps fences, validates, and clamps (`grammar.test.ts`).
 - **Applying**: Fixes match the excerpt literally in the note text, so an excerpt that no longer matches is skipped and dropped.
 - **UI**: Right-hand panel (`GrammarPolice.svelte`), toggled from the toolbar shield button; opening it runs the first check.

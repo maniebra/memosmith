@@ -1,11 +1,13 @@
 import { fetch } from "@tauri-apps/plugin-http";
-import type { LlmSettings } from "../storage/settings";
+import { mergeLlm, type GrammarProfile, type LlmSettings } from "../storage/settings";
 import {
+  checkPrompt,
   EXPLAIN_SYSTEM_PROMPT,
   explainPrompt,
-  GRAMMAR_SYSTEM_PROMPT,
   parseReport,
+  systemPromptFor,
   type GrammarIssue,
+  type GrammarMode,
 } from "../utils/grammar";
 import { requestOptions } from "../utils/llmOptions";
 
@@ -56,10 +58,21 @@ export function generateContent(llm: LlmSettings, prompt: string) {
   return chat(llm, llm.systemPrompt, prompt);
 }
 
-export async function checkGrammar(llm: LlmSettings, text: string) {
-  return parseReport(await chat(llm, GRAMMAR_SYSTEM_PROMPT, text));
+export async function checkGrammar(
+  llm: LlmSettings,
+  text: string,
+  mode: GrammarMode,
+  profile: GrammarProfile,
+) {
+  return parseReport(
+    await chat(
+      mergeLlm(llm, profile.llm),
+      systemPromptFor(mode),
+      checkPrompt(text, profile.task, profile.wordTarget),
+    ),
+  );
 }
 
-export function explainIssue(llm: LlmSettings, issue: GrammarIssue) {
-  return chat(llm, EXPLAIN_SYSTEM_PROMPT, explainPrompt(issue));
+export function explainIssue(llm: LlmSettings, issue: GrammarIssue, profile: GrammarProfile) {
+  return chat(mergeLlm(llm, profile.llm), EXPLAIN_SYSTEM_PROMPT, explainPrompt(issue));
 }

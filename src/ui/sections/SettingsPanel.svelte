@@ -10,6 +10,7 @@
   import TextArea from "../components/TextArea.svelte";
   import Select, { type SelectOption } from "../components/Select.svelte";
   import { REASONING_LEVELS } from "../../lib/utils/llmOptions";
+  import { GRAMMAR_MODES, type GrammarMode } from "../../lib/utils/grammar";
   import Slider from "../components/Slider.svelte";
   import Switch from "../components/Switch.svelte";
   import { cn } from "../../lib/utils/cn";
@@ -37,14 +38,47 @@
     onChange({ ...settings, ...nextSettings });
   }
 
+  /** "base" edits the shared config; a mode edits only its overrides. */
+  let llmProfile: "base" | GrammarMode = "base";
+
+  const profileOptions: SelectOption[] = [
+    { label: "Base (all features)", value: "base" },
+    ...GRAMMAR_MODES.map((mode) => ({ label: `Grammar Police: ${mode.label}`, value: mode.id })),
+  ];
+
+  $: activeLlm =
+    llmProfile === "base" ? settings.llm : settings.grammarProfiles[llmProfile].llm;
+  $: isOverride = llmProfile !== "base";
+
   function updateLlm(nextLlm: Partial<AppSettings["llm"]>) {
-    updateSettings({ llm: { ...settings.llm, ...nextLlm } });
+    if (llmProfile === "base") {
+      updateSettings({ llm: { ...settings.llm, ...nextLlm } });
+      return;
+    }
+
+    const profile = settings.grammarProfiles[llmProfile];
+
+    updateSettings({
+      grammarProfiles: {
+        ...settings.grammarProfiles,
+        [llmProfile]: { ...profile, llm: { ...profile.llm, ...nextLlm } },
+      },
+    });
   }
 
-  const reasoningOptions: SelectOption[] = REASONING_LEVELS.map((level) => ({
-    label: level ? level[0].toUpperCase() + level.slice(1) : "Provider default",
+  /** An override shows what it inherits as its placeholder. */
+  function hint(key: keyof AppSettings["llm"], fallback: string) {
+    return isOverride ? settings.llm[key] || `inherit (${fallback})` : fallback;
+  }
+
+  $: reasoningOptions = REASONING_LEVELS.map((level) => ({
+    label: level
+      ? level[0].toUpperCase() + level.slice(1)
+      : isOverride
+        ? "Inherit"
+        : "Provider default",
     value: level,
-  }));
+  })) as SelectOption[];
 
   const samplingFields: { key: keyof AppSettings["llm"]; label: string; placeholder: string }[] = [
     { key: "temperature", label: "Temperature", placeholder: "1" },
@@ -138,11 +172,28 @@
       <div class="grid max-w-xl gap-6">
         <section class="grid gap-2">
           <span class="text-sm font-medium text-stone-800 dark:text-stone-200">
+            Config
+          </span>
+          <Select
+            value={llmProfile}
+            options={profileOptions}
+            className="h-9"
+            onChange={(next) => (llmProfile = next as "base" | GrammarMode)}
+          />
+          <span class="text-xs text-stone-500">
+            {isOverride
+              ? "Only the fields you fill in here override the base config for this coach."
+              : "Used by every feature unless a coach overrides it."}
+          </span>
+        </section>
+
+        <section class="grid gap-2">
+          <span class="text-sm font-medium text-stone-800 dark:text-stone-200">
             Base URL
           </span>
           <Input
-            value={settings.llm.baseUrl}
-            placeholder="https://api.openai.com/v1"
+            value={activeLlm.baseUrl}
+            placeholder={hint("baseUrl", "https://api.openai.com/v1")}
             oninput={(event) =>
               updateLlm({ baseUrl: (event.target as HTMLInputElement).value })}
           />
@@ -156,9 +207,9 @@
             API key
           </span>
           <Input
-            value={settings.llm.apiKey}
+            value={activeLlm.apiKey}
             type="password"
-            placeholder="sk-..."
+            placeholder={isOverride ? "inherit" : "sk-..."}
             oninput={(event) =>
               updateLlm({ apiKey: (event.target as HTMLInputElement).value })}
           />
@@ -169,8 +220,8 @@
             Model
           </span>
           <Input
-            value={settings.llm.model}
-            placeholder="gpt-4o-mini"
+            value={activeLlm.model}
+            placeholder={hint("model", "gpt-4o-mini")}
             oninput={(event) =>
               updateLlm({ model: (event.target as HTMLInputElement).value })}
           />
@@ -181,9 +232,10 @@
             System prompt
           </span>
           <TextArea
-            value={settings.llm.systemPrompt}
+            value={activeLlm.systemPrompt}
             size="sm"
             className="text-sm"
+            placeholder={isOverride ? "inherit (Grammar Police writes its own prompt anyway)" : ""}
             onInput={(event) =>
               updateLlm({ systemPrompt: (event.target as HTMLTextAreaElement).value })}
           />
@@ -194,7 +246,7 @@
             Reasoning effort
           </span>
           <Select
-            value={settings.llm.reasoningEffort}
+            value={activeLlm.reasoningEffort}
             options={reasoningOptions}
             className="h-9"
             onChange={(reasoningEffort) => updateLlm({ reasoningEffort })}
@@ -214,8 +266,8 @@
               <label class="grid gap-1.5 text-xs text-stone-500">
                 {field.label}
                 <Input
-                  value={settings.llm[field.key]}
-                  placeholder={field.placeholder}
+                  value={activeLlm[field.key]}
+                  placeholder={hint(field.key, field.placeholder)}
                   oninput={(event) =>
                     updateLlm({ [field.key]: (event.target as HTMLInputElement).value })}
                 />
@@ -230,7 +282,7 @@
             Stop sequences
           </span>
           <Input
-            value={settings.llm.stop}
+            value={activeLlm.stop}
             placeholder="END, ###"
             oninput={(event) => updateLlm({ stop: (event.target as HTMLInputElement).value })}
           />
@@ -242,7 +294,7 @@
             Extra body (JSON)
           </span>
           <TextArea
-            value={settings.llm.extraBody}
+            value={activeLlm.extraBody}
             size="sm"
             className="text-sm"
             placeholder={'{"top_k": 40}'}
