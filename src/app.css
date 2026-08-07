@@ -39,6 +39,43 @@ body {
     @apply relative;
   }
 
+  .md-block:hover,
+  .md-block[data-active] {
+    @apply bg-stone-900/[0.025] dark:bg-white/[0.035];
+  }
+
+  .md-block-toolbar {
+    @apply absolute -left-18 z-40 flex h-7 items-center gap-1 rounded-md bg-[#fffdfa]/90 p-0.5 opacity-0 shadow-sm ring-1 ring-stone-200/70 backdrop-blur transition-opacity dark:bg-[#1a1917]/90 dark:ring-stone-700/70;
+  }
+
+  .md-editor-shell:hover>.md-block-toolbar,
+  .md-block-toolbar:focus-within,
+  .md-block-toolbar:hover {
+    @apply opacity-100;
+  }
+
+  .md-block-button {
+    @apply grid size-6 place-items-center rounded text-stone-400 transition-colors hover:bg-stone-200/70 hover:text-stone-700 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-emerald-600 dark:text-stone-500 dark:hover:bg-stone-800 dark:hover:text-stone-100 dark:focus-visible:outline-emerald-400;
+  }
+
+  .md-block-grip {
+    @apply cursor-grab active:cursor-grabbing;
+  }
+
+  .md-block-drop-indicator {
+    @apply pointer-events-none absolute left-0 right-0 z-30 h-0.5 rounded-full bg-emerald-500 shadow-[0_0_0_3px_rgb(16_185_129_/_0.14)];
+  }
+
+  @media (max-width: 640px) {
+    .md-editor-surface {
+      @apply pl-16;
+    }
+
+    .md-block-toolbar {
+      @apply left-0;
+    }
+  }
+
   .md-block:has(> br:only-child) {
     min-height: 1.75em;
   }
@@ -124,11 +161,11 @@ body {
   }
 
   /* With the fences hidden the slab loses its cap, so the edge code lines take it over. */
-  .md-fence-open:not([data-active])+.md-codeblock {
+  .md-fence-open+.md-codeblock {
     @apply mt-2 rounded-t-md pt-2;
   }
 
-  .md-codeblock:has(+ .md-fence-close:not([data-active])) {
+  .md-codeblock:has(+ .md-fence-close) {
     @apply mb-2 rounded-b-md pb-2;
   }
 
@@ -322,6 +359,10 @@ body {
     justify-content: safe center;
     user-select: none;
     overscroll-behavior-x: contain;
+  }
+
+  .md-math-preview[data-active] {
+    @apply hidden;
   }
 
   .md-math-preview .katex-display {

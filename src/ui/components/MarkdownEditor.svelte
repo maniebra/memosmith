@@ -4,11 +4,26 @@
     AlignCenter,
     AlignLeft,
     AlignRight,
+    ArrowDown,
+    ArrowUp,
+    CheckSquare,
     ClipboardCopy,
     ClipboardPaste,
+    Code2,
+    Copy,
     FileUp,
+    GripVertical,
+    Heading1,
+    Heading2,
+    Heading3,
+    List,
+    ListOrdered,
+    Plus,
+    Quote,
     Scissors,
     Sparkles,
+    Trash2,
+    Type,
   } from "@lucide/svelte";
   import { onMount } from "svelte";
   import { cubicOut } from "svelte/easing";
@@ -107,6 +122,45 @@
     row: number;
     column: number;
   } | null = null;
+  let shell: HTMLElement | undefined;
+  let hoveredBlock: HTMLElement | undefined;
+  let blockToolbar = { top: 0, visible: false };
+  let blockMenu: { x: number; y: number } | null = null;
+  let draggingUnit:
+    | {
+        key: string;
+        startY: number;
+        moved: boolean;
+        targetIndex: number;
+      }
+    | null = null;
+  let dragIndicatorTop: number | null = null;
+  let suppressBlockMenuClick = false;
+
+  type BlockUnit = {
+    key: string;
+    blocks: HTMLElement[];
+    start: number;
+    end: number;
+  };
+
+  type BlockTransform = {
+    label: string;
+    prefix: string;
+    icon: any;
+  };
+
+  const BLOCK_TRANSFORMS: BlockTransform[] = [
+    { label: "Text", prefix: "", icon: Type },
+    { label: "Heading 1", prefix: "# ", icon: Heading1 },
+    { label: "Heading 2", prefix: "## ", icon: Heading2 },
+    { label: "Heading 3", prefix: "### ", icon: Heading3 },
+    { label: "Bulleted list", prefix: "- ", icon: List },
+    { label: "Numbered list", prefix: "1. ", icon: ListOrdered },
+    { label: "To-do", prefix: "- [ ] ", icon: CheckSquare },
+    { label: "Quote", prefix: "> ", icon: Quote },
+    { label: "Code", prefix: "```", icon: Code2 },
+  ];
 
   $: matches = SLASH_COMMANDS.filter((command) =>
     command.label.toLowerCase().includes(slashQuery.toLowerCase()),
@@ -123,6 +177,252 @@
     return (Array.from(element?.children ?? []) as HTMLElement[]).filter(
       (block) => !block.classList.contains("md-preview"),
     );
+  }
+
+  function blockUnitKey(block: HTMLElement, fallback: number) {
+    if (block.dataset.code !== undefined) {
+      return `code:${block.dataset.code}`;
+    }
+
+    if (block.dataset.math !== undefined) {
+      return `math:${block.dataset.math}`;
+    }
+
+    if (block.dataset.table !== undefined) {
+      return `table:${block.dataset.table}`;
+    }
+
+    return `block:${fallback}`;
+  }
+
+  function sourceUnits(): BlockUnit[] {
+    const units: BlockUnit[] = [];
+
+    for (const [index, block] of blocks().entries()) {
+      const key = blockUnitKey(block, index);
+      const previous = units[units.length - 1];
+
+      if (previous?.key === key) {
+        previous.blocks.push(block);
+        continue;
+      }
+
+      const start = offsetForPosition(block, 0);
+
+      if (start === null) {
+        continue;
+      }
+
+      units.push({
+        key,
+        blocks: [block],
+        start,
+        end: start + sourceLength(block),
+      });
+    }
+
+    for (const unit of units) {
+      const last = unit.blocks[unit.blocks.length - 1];
+      const end = last ? offsetForPosition(last, sourceLength(last)) : null;
+
+      if (end !== null) {
+        unit.end = end;
+      }
+    }
+
+    return units;
+  }
+
+  function blockFromTarget(target: EventTarget | null) {
+    const node = target instanceof HTMLElement ? target : null;
+    const source =
+      node?.closest(".md-block") ??
+      node?.closest(".md-preview")?.previousElementSibling;
+
+    return source instanceof HTMLElement ? source : undefined;
+  }
+
+  function currentBlock() {
+    return hoveredBlock ?? activeBlock;
+  }
+
+  function currentUnit() {
+    const block = currentBlock();
+
+    return block ? sourceUnits().find((unit) => unit.blocks.includes(block)) : undefined;
+  }
+
+  function unitText(unit: BlockUnit) {
+    return value.slice(unit.start, unit.end);
+  }
+
+  function visibleUnitBlock(unit: BlockUnit) {
+    return (
+      unit.blocks.find((block) => {
+        const rect = block.getBoundingClientRect();
+
+        return rect.width > 0 || rect.height > 0;
+      }) ?? unit.blocks[0]
+    );
+  }
+
+  function syncBlockToolbar() {
+    requestAnimationFrame(() => {
+      const unit = currentUnit();
+      const block = unit ? visibleUnitBlock(unit) : undefined;
+
+      if (!shell || !element || !block || !editable || !element.contains(block)) {
+        blockToolbar = { ...blockToolbar, visible: false };
+        return;
+      }
+
+      const shellRect = shell.getBoundingClientRect();
+      const blockRect = block.getBoundingClientRect();
+
+      blockToolbar = {
+        top: blockRect.top - shellRect.top + Math.max(0, (blockRect.height - 28) / 2),
+        visible: true,
+      };
+    });
+  }
+
+  function trackHoveredBlock(event: PointerEvent) {
+    if (draggingUnit) {
+      return;
+    }
+
+    const block = blockFromTarget(event.target);
+
+    if (block !== hoveredBlock) {
+      hoveredBlock = block;
+      syncBlockToolbar();
+    }
+  }
+
+  function openBlockMenu(event: MouseEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (suppressBlockMenuClick) {
+      suppressBlockMenuClick = false;
+      return;
+    }
+
+    element?.focus();
+    blockMenu = { x: event.clientX, y: event.clientY };
+  }
+
+  function startBlockDrag(event: PointerEvent) {
+    const context = unitContext();
+
+    if (!context) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    element?.focus();
+    closeMenu();
+    blockMenu = null;
+    draggingUnit = {
+      key: context.unit.key,
+      startY: event.clientY,
+      moved: false,
+      targetIndex: context.index,
+    };
+  }
+
+  function updateDragIndicator(units: BlockUnit[], targetIndex: number) {
+    if (!shell || !units.length) {
+      dragIndicatorTop = null;
+      return;
+    }
+
+    const shellRect = shell.getBoundingClientRect();
+    const target = units[targetIndex]?.blocks[0];
+
+    if (target) {
+      dragIndicatorTop = target.getBoundingClientRect().top - shellRect.top;
+      return;
+    }
+
+    const lastUnitBlocks = units[units.length - 1].blocks;
+    const last = lastUnitBlocks[lastUnitBlocks.length - 1];
+
+    dragIndicatorTop = last
+      ? last.getBoundingClientRect().bottom - shellRect.top
+      : null;
+  }
+
+  function dragTargetIndex(event: PointerEvent, units: BlockUnit[]) {
+    for (const [index, unit] of units.entries()) {
+      const first = unit.blocks[0];
+      const last = unit.blocks[unit.blocks.length - 1];
+
+      if (!first || !last) {
+        continue;
+      }
+
+      const top = first.getBoundingClientRect().top;
+      const bottom = last.getBoundingClientRect().bottom;
+
+      if (event.clientY < top + (bottom - top) / 2) {
+        return index;
+      }
+    }
+
+    return units.length;
+  }
+
+  function handleBlockDragMove(event: PointerEvent) {
+    if (!draggingUnit) {
+      return;
+    }
+
+    const units = sourceUnits();
+    const targetIndex = dragTargetIndex(event, units);
+
+    draggingUnit = {
+      ...draggingUnit,
+      moved: draggingUnit.moved || Math.abs(event.clientY - draggingUnit.startY) > 4,
+      targetIndex,
+    };
+    updateDragIndicator(units, targetIndex);
+  }
+
+  function handleBlockDragEnd() {
+    if (!draggingUnit) {
+      return;
+    }
+
+    const units = sourceUnits();
+    const currentIndex = units.findIndex((unit) => unit.key === draggingUnit?.key);
+    const chunks = unitChunks(units);
+    const [chunk] = currentIndex === -1 ? [] : chunks.splice(currentIndex, 1);
+    let targetIndex = draggingUnit.targetIndex;
+
+    if (currentIndex !== -1 && chunk !== undefined) {
+      if (targetIndex > currentIndex) {
+        targetIndex--;
+      }
+
+      if (targetIndex !== currentIndex && draggingUnit.moved) {
+        chunks.splice(Math.max(0, Math.min(targetIndex, chunks.length)), 0, chunk);
+        commitChunks(chunks, Math.max(0, Math.min(targetIndex, chunks.length - 1)));
+      }
+    }
+
+    suppressBlockMenuClick = draggingUnit.moved;
+
+    if (suppressBlockMenuClick) {
+      window.setTimeout(() => {
+        suppressBlockMenuClick = false;
+      }, 250);
+    }
+
+    draggingUnit = null;
+    dragIndicatorTop = null;
+    syncBlockToolbar();
   }
 
   function isRenderedMath(node: Node) {
@@ -266,6 +566,8 @@
       selectedTableCell = null;
       markSelectedTableCell();
     }
+
+    syncBlockToolbar();
   }
 
   function blockAtOffset(offset: number) {
@@ -460,6 +762,7 @@
   }
 
   $: decorations, element, value, textSize, scheduleMeasure();
+  $: element, editable, value, textSize, syncBlockToolbar();
 
   onMount(() => {
     const observer = new ResizeObserver(scheduleMeasure);
@@ -625,6 +928,170 @@
     }
 
     replace(start, selection?.end ?? start, text);
+  }
+
+  function unitContext() {
+    const block = currentBlock();
+    const units = sourceUnits();
+    const index = block ? units.findIndex((unit) => unit.blocks.includes(block)) : -1;
+
+    return index === -1 ? null : { units, unit: units[index], index };
+  }
+
+  function unitChunks(units: BlockUnit[]) {
+    return units.map(unitText);
+  }
+
+  function offsetForChunk(chunks: string[], index: number) {
+    return chunks
+      .slice(0, index)
+      .reduce((offset, chunk) => offset + chunk.length + 1, 0);
+  }
+
+  function commitChunks(chunks: string[], caretIndex: number, caretColumn = 0) {
+    const nextChunks = chunks.length ? chunks : [""];
+
+    value = nextChunks.join("\n");
+    render(Math.min(value.length, offsetForChunk(nextChunks, caretIndex) + caretColumn));
+    blockMenu = null;
+    onInput();
+  }
+
+  function addBlockAfter() {
+    const context = unitContext();
+
+    if (!context) {
+      replace(value.length, value.length, value ? "\n" : "", value.length + (value ? 1 : 0));
+      return;
+    }
+
+    const chunks = unitChunks(context.units);
+    const insertionIndex = context.index + 1;
+
+    chunks.splice(insertionIndex, 0, "");
+    commitChunks(chunks, insertionIndex);
+  }
+
+  function duplicateBlock() {
+    const context = unitContext();
+
+    if (!context) {
+      return;
+    }
+
+    const chunks = unitChunks(context.units);
+    const text = chunks[context.index];
+
+    chunks.splice(context.index + 1, 0, text);
+    commitChunks(chunks, context.index + 1, text.length);
+  }
+
+  function deleteBlock() {
+    const context = unitContext();
+
+    if (!context) {
+      return;
+    }
+
+    const chunks = unitChunks(context.units);
+
+    chunks.splice(context.index, 1);
+    commitChunks(chunks, Math.min(context.index, Math.max(0, chunks.length - 1)));
+  }
+
+  function moveBlock(direction: -1 | 1) {
+    const context = unitContext();
+    const targetIndex = context ? context.index + direction : -1;
+
+    if (!context || targetIndex < 0 || targetIndex >= context.units.length) {
+      return;
+    }
+
+    const chunks = unitChunks(context.units);
+    const [chunk] = chunks.splice(context.index, 1);
+
+    chunks.splice(targetIndex, 0, chunk);
+    commitChunks(chunks, targetIndex);
+  }
+
+  function transformBlock(transform: BlockTransform) {
+    const context = unitContext();
+
+    if (!context) {
+      return;
+    }
+
+    const chunks = unitChunks(context.units);
+    const text = chunks[context.index];
+    const lines = text.split("\n");
+
+    if (transform.prefix === "```") {
+      const fenced =
+        lines[0]?.trim().startsWith("```") &&
+        lines[lines.length - 1]?.trim().startsWith("```");
+
+      chunks[context.index] = fenced
+        ? lines.slice(1, -1).join("\n")
+        : `\`\`\`\n${text}\n\`\`\``;
+      commitChunks(chunks, context.index, fenced ? 0 : 4);
+      return;
+    }
+
+    chunks[context.index] = [
+      applyPrefix(lines[0] ?? "", transform.prefix),
+      ...lines.slice(1),
+    ].join("\n");
+    commitChunks(chunks, context.index, transform.prefix.length);
+  }
+
+  function blockContextItems(): ContextMenuItem[] {
+    const context = unitContext();
+    const canTransform = Boolean(
+      context &&
+        (context.unit.blocks.length === 1 || context.unit.key.startsWith("code:")),
+    );
+
+    return [
+      ...BLOCK_TRANSFORMS.map((transform) => ({
+        label: transform.label,
+        icon: transform.icon,
+        disabled: !canTransform,
+        onSelect: () => transformBlock(transform),
+      })),
+      { separator: true },
+      {
+        label: "Add block below",
+        icon: Plus,
+        disabled: !editable,
+        onSelect: addBlockAfter,
+      },
+      {
+        label: "Duplicate",
+        icon: Copy,
+        disabled: !context,
+        onSelect: duplicateBlock,
+      },
+      {
+        label: "Move up",
+        icon: ArrowUp,
+        disabled: !context || context.index === 0,
+        onSelect: () => moveBlock(-1),
+      },
+      {
+        label: "Move down",
+        icon: ArrowDown,
+        disabled: !context || context.index === context.units.length - 1,
+        onSelect: () => moveBlock(1),
+      },
+      { separator: true },
+      {
+        label: "Delete",
+        icon: Trash2,
+        danger: true,
+        disabled: !context,
+        onSelect: deleteBlock,
+      },
+    ];
   }
 
   /** Media wants its own line, so it lands after the current one rather than inside it. */
@@ -1649,8 +2116,65 @@
 </script>
 
 <svelte:document onselectionchange={markActiveBlock} />
+<svelte:window
+  onpointermove={handleBlockDragMove}
+  onpointerup={handleBlockDragEnd}
+/>
 
-<div class="relative">
+<div
+  bind:this={shell}
+  class="md-editor-shell relative"
+  role="presentation"
+  onpointermove={trackHoveredBlock}
+  onmouseleave={() => {
+    if (!blockMenu && !draggingUnit) {
+      hoveredBlock = undefined;
+      syncBlockToolbar();
+    }
+  }}
+>
+{#if editable && blockToolbar.visible}
+  <div
+    class="md-block-toolbar"
+    style={`top: ${blockToolbar.top}px;`}
+    contenteditable="false"
+    aria-label="Block controls"
+  >
+    <button
+      type="button"
+      class="md-block-button"
+      title="Add block below"
+      aria-label="Add block below"
+      onmousedown={(event) => event.preventDefault()}
+      onclick={(event) => {
+        event.stopPropagation();
+        addBlockAfter();
+      }}
+    >
+      <Plus class="size-4" strokeWidth={1.8} aria-hidden="true" />
+    </button>
+    <button
+      type="button"
+      class="md-block-button md-block-grip"
+      title="Block menu. Drag to move."
+      aria-label="Block menu. Drag to move."
+      onmousedown={(event) => event.preventDefault()}
+      onclick={openBlockMenu}
+      onpointerdown={startBlockDrag}
+    >
+      <GripVertical class="size-4" strokeWidth={1.8} aria-hidden="true" />
+    </button>
+  </div>
+{/if}
+
+{#if dragIndicatorTop !== null}
+  <div
+    class="md-block-drop-indicator"
+    style={`top: ${dragIndicatorTop}px;`}
+    aria-hidden="true"
+  ></div>
+{/if}
+
 <div
   bind:this={element}
   contenteditable={editable}
@@ -1662,6 +2186,7 @@
   style="--md-placeholder: '{placeholder}'; font-size: {textSize}px;"
   class={cn(
     "min-h-[60vh] w-full leading-[1.75] whitespace-pre-wrap caret-emerald-700",
+    "md-editor-surface",
     "focus-visible:outline-none",
     editable
       ? "text-stone-900 dark:text-stone-100"
@@ -1712,6 +2237,15 @@
   />
 {/if}
 
+{#if blockMenu}
+  <ContextMenu
+    x={blockMenu.x}
+    y={blockMenu.y}
+    items={blockContextItems()}
+    onClose={() => (blockMenu = null)}
+  />
+{/if}
+
 {#if slashStart !== null && matches.length}
   <ul
     class="fixed z-50 max-h-72 w-64 overflow-y-auto rounded-xl border border-stone-200 bg-white/95 p-1 shadow-xl shadow-stone-900/10 backdrop-blur dark:border-stone-700 dark:bg-stone-900/95 dark:shadow-black/40"
@@ -1750,8 +2284,8 @@
 {/if}
 
 <style>
-  /* The fence lines are scaffolding: only show them while the caret is in that code block. */
-  [contenteditable] :global(.md-fence:not([data-active])) {
+  /* Fence lines are scaffolding; the code body is the editable block surface. */
+  [contenteditable] :global(.md-fence) {
     display: none;
   }
 
