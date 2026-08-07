@@ -89,6 +89,33 @@ function renderInline(escaped: string) {
 
 type TableAlignment = "left" | "center" | "right" | null;
 
+export type TableCell = {
+  text: string;
+  colspan: number;
+  rowspan: number;
+  background?: string;
+  covered: boolean;
+};
+
+export type MarkdownTable = {
+  alignments: TableAlignment[];
+  rows: TableCell[][];
+};
+
+export type TableEdit =
+  | { type: "set-cell-text"; row: number; column: number; text: string }
+  | { type: "insert-row"; row: number }
+  | { type: "insert-column"; column: number }
+  | { type: "merge-right"; row: number; column: number }
+  | { type: "merge-down"; row: number; column: number }
+  | { type: "split-cell"; row: number; column: number }
+  | { type: "set-cell-background"; row: number; column: number; background?: string };
+
+export const DEFAULT_TABLE_MARKDOWN = "| Column 1 | Column 2 |\n| --- | --- |\n|  |  |";
+
+const TABLE_CELL_META = /^\s*\{::\s*([^]*?)\s*::\}\s*/;
+const TABLE_BACKGROUNDS = new Set(["#fee2e2", "#fef3c7", "#dcfce7", "#dbeafe", "#f3e8ff"]);
+
 function endsWithTableDelimiter(line: string) {
   const trimmed = line.trimEnd();
 
@@ -178,36 +205,136 @@ function tableSeparator(line: string) {
     : null;
 }
 
-function tableCell(content: string, tag: "td" | "th", alignment: TableAlignment) {
-  const align = alignment ? ` style="text-align:${alignment}"` : "";
-  const body = renderInline(escapeHtml(content));
-
-  return `<${tag}${align}>${body || emptyAnchor()}</${tag}>`;
+function emptyTableCell(): TableCell {
+  return {
+    text: "",
+    colspan: 1,
+    rowspan: 1,
+    covered: false,
+  };
 }
 
-function renderTable(lines: string[]) {
+function parseTableCell(source: string): TableCell {
+  const cell = emptyTableCell();
+  const meta = TABLE_CELL_META.exec(source);
+
+  if (!meta) {
+    return { ...cell, text: source };
+  }
+
+  for (const token of meta[1].trim().split(/\s+/)) {
+    const [key, value] = token.split("=");
+
+    if (key === "covered") {
+      cell.covered = true;
+    } else if (key === "colspan") {
+      cell.colspan = Math.max(1, Number(value) || 1);
+    } else if (key === "rowspan") {
+      cell.rowspan = Math.max(1, Number(value) || 1);
+    } else if (key === "bg" && /^#[\da-f]{6}$/i.test(value ?? "")) {
+      cell.background = value.toLowerCase();
+    }
+  }
+
+  return {
+    ...cell,
+    text: source.slice(meta[0].length),
+  };
+}
+
+function tableWidth(table: MarkdownTable) {
+  return Math.max(table.alignments.length, ...table.rows.map((row) => row.length));
+}
+
+function normalizeTable(table: MarkdownTable): MarkdownTable {
+  const width = Math.max(1, tableWidth(table));
+  const alignments = [...table.alignments, ...Array<TableAlignment>(width - table.alignments.length).fill(null)];
+  const rows = table.rows.map((row) => {
+    const cells = row.map((cell) => ({ ...cell }));
+
+    return [...cells, ...Array.from({ length: width - cells.length }, emptyTableCell)];
+  });
+
+  return { alignments, rows };
+}
+
+export function parseMarkdownTable(lines: string[]): MarkdownTable | null {
   const alignments = tableSeparator(lines[1]);
 
-  if (!alignments) {
+  if (!alignments || lines.length < 2) {
+    return null;
+  }
+
+  return normalizeTable({
+    alignments,
+    rows: lines.filter((_, index) => index !== 1).map((line) => splitTableRow(line).map(parseTableCell)),
+  });
+}
+
+function escapedTableText(text: string) {
+  return text.replace(/\n/g, " ").replace(/\|/g, "\\|");
+}
+
+function serializedTableCell(cell: TableCell) {
+  const meta = [
+    cell.covered ? "covered" : "",
+    cell.colspan > 1 ? `colspan=${cell.colspan}` : "",
+    cell.rowspan > 1 ? `rowspan=${cell.rowspan}` : "",
+    cell.background ? `bg=${cell.background}` : "",
+  ].filter(Boolean);
+  const text = escapedTableText(cell.text);
+
+  return `${meta.length ? `{:: ${meta.join(" ")} ::} ` : ""}${text}`;
+}
+
+function alignmentMarker(alignment: TableAlignment) {
+  return alignment === "center" ? ":---:" : alignment === "right" ? "---:" : alignment === "left" ? ":---" : "---";
+}
+
+export function serializeMarkdownTable(table: MarkdownTable) {
+  const normalized = normalizeTable(table);
+  const rows = normalized.rows.map((row) => `| ${row.map(serializedTableCell).join(" | ")} |`);
+  const separator = `| ${normalized.alignments.map(alignmentMarker).join(" | ")} |`;
+
+  return [rows[0], separator, ...rows.slice(1)].join("\n");
+}
+
+function tableCell(content: string, tag: "td" | "th", alignment: TableAlignment) {
+  const align = alignment ? `text-align:${alignment};` : "";
+  const cell = parseTableCell(content);
+  const colspan = cell.colspan > 1 ? ` colspan="${cell.colspan}"` : "";
+  const rowspan = cell.rowspan > 1 ? ` rowspan="${cell.rowspan}"` : "";
+  const background =
+    cell.background && TABLE_BACKGROUNDS.has(cell.background) ? `background-color:${cell.background};` : "";
+  const style = align || background ? ` style="${align}${background}"` : "";
+  const body = renderInline(escapeHtml(cell.text));
+
+  if (cell.covered) {
     return "";
   }
 
-  const columns = Math.max(splitTableRow(lines[0]).length, alignments.length);
-  const normalized = (line: string) => {
-    const cells = splitTableRow(line).slice(0, columns);
+  return `<${tag} class="md-table-cell" data-table-cell data-row="" data-column="" contenteditable="true" spellcheck="true"${colspan}${rowspan}${style}>${body || emptyAnchor()}</${tag}>`;
+}
 
-    return [...cells, ...Array<string>(columns - cells.length).fill("")];
-  };
-  const header = normalized(lines[0]);
-  const rows = lines.slice(2).map(normalized);
+function renderTable(lines: string[]) {
+  const table = parseMarkdownTable(lines);
 
-  return `<table class="md-table"><thead><tr>${header
-    .map((cell, index) => tableCell(cell, "th", alignments[index] ?? null))
-    .join("")}</tr></thead><tbody>${rows
-    .map(
-      (row) =>
-        `<tr>${row.map((cell, index) => tableCell(cell, "td", alignments[index] ?? null)).join("")}</tr>`,
-    )
+  if (!table) {
+    return "";
+  }
+
+  const rowHtml = (row: TableCell[], rowIndex: number, tag: "td" | "th") =>
+    `<tr>${row
+      .map((cell, columnIndex) =>
+        tableCell(serializedTableCell(cell), tag, table.alignments[columnIndex] ?? null)
+          .replace('data-row=""', `data-row="${rowIndex}"`)
+          .replace('data-column=""', `data-column="${columnIndex}"`),
+      )
+      .join("")}</tr>`;
+
+  return `<table class="md-table"><thead>${rowHtml(table.rows[0], 0, "th")}</thead><tbody>${table.rows
+    .slice(1)
+    .map((row, index) => rowHtml(row, index + 1, "td"))
     .join("")}</tbody></table>`;
 }
 
@@ -224,9 +351,114 @@ function tableLine(line: string, group: number) {
 }
 
 function tablePreview(lines: string[], group: number) {
-  return `<div class="md-preview md-table-preview" data-table="${group}" contenteditable="false">${renderTable(
-    lines,
-  )}</div>`;
+  const divider = '<span class="md-table-tool-divider" aria-hidden="true">|</span>';
+
+  return `<div class="md-preview md-table-preview" data-table="${group}" contenteditable="false"><div class="md-table-tools-shell" contenteditable="false"><div class="md-table-tools"><button type="button" data-table-action="insert-row" title="Add row">Row +</button>${divider}<button type="button" data-table-action="insert-column" title="Add column">Col +</button>${divider}<button type="button" data-table-action="merge-right" title="Merge with cell on the right">Merge H</button>${divider}<button type="button" data-table-action="merge-down" title="Merge with cell below">Merge V</button>${divider}<button type="button" data-table-action="split-cell" title="Split cell">Split</button>${divider}${Array.from(
+    TABLE_BACKGROUNDS,
+  )
+    .map(
+      (color) =>
+        `<button type="button" class="md-table-swatch" data-table-action="set-color" data-color="${color}" style="background-color:${color}" title="Cell color"></button>`,
+    )
+    .join("")}${divider}<button type="button" data-table-action="clear-color" title="Clear cell color">Clear</button></div></div><div class="md-table-scroll">${renderTable(
+      lines,
+    )}</div></div>`;
+}
+
+function tableCellAt(table: MarkdownTable, row: number, column: number) {
+  return table.rows[row]?.[column];
+}
+
+function ensureCell(table: MarkdownTable, row: number, column: number) {
+  const normalized = normalizeTable(table);
+
+  while (normalized.rows.length <= row) {
+    normalized.rows.push(Array.from({ length: tableWidth(normalized) }, emptyTableCell));
+  }
+
+  while (normalized.rows[row].length <= column) {
+    normalized.rows[row].push(emptyTableCell());
+    normalized.alignments.push(null);
+  }
+
+  return normalized;
+}
+
+function applyTableEdit(table: MarkdownTable, edit: TableEdit): MarkdownTable {
+  const row = "row" in edit ? Math.max(0, edit.row) : 0;
+  const column = "column" in edit ? Math.max(0, edit.column) : 0;
+  const next = ensureCell(table, row, column);
+  const width = tableWidth(next);
+  const cell = tableCellAt(next, row, column);
+
+  if (!cell || cell.covered) {
+    return next;
+  }
+
+  if (edit.type === "set-cell-text") {
+    cell.text = edit.text;
+  } else if (edit.type === "insert-row") {
+    next.rows.splice(Math.max(1, row + 1), 0, Array.from({ length: width }, emptyTableCell));
+  } else if (edit.type === "insert-column") {
+    const insertionColumn = Math.min(width, column + 1);
+
+    next.alignments.splice(insertionColumn, 0, null);
+    for (const tableRow of next.rows) {
+      tableRow.splice(insertionColumn, 0, emptyTableCell());
+    }
+  } else if (edit.type === "merge-right") {
+    const targetColumn = column + cell.colspan;
+    const target = tableCellAt(next, row, targetColumn);
+
+    if (target && !target.covered) {
+      cell.text = [cell.text, target.text].filter(Boolean).join(" ");
+      cell.colspan += target.colspan;
+
+      for (let coveredColumn = targetColumn; coveredColumn < Math.min(width, targetColumn + target.colspan); coveredColumn++) {
+        next.rows[row][coveredColumn] = { ...emptyTableCell(), covered: true };
+      }
+    }
+  } else if (edit.type === "merge-down") {
+    const targetRow = row + cell.rowspan;
+
+    if (targetRow < next.rows.length) {
+      const target = tableCellAt(next, targetRow, column);
+
+      if (target && !target.covered) {
+        cell.text = [cell.text, target.text].filter(Boolean).join(" ");
+        cell.rowspan += target.rowspan;
+
+        for (let coveredRow = targetRow; coveredRow < Math.min(next.rows.length, targetRow + target.rowspan); coveredRow++) {
+          for (let coveredColumn = column; coveredColumn < Math.min(width, column + cell.colspan); coveredColumn++) {
+            next.rows[coveredRow][coveredColumn] = { ...emptyTableCell(), covered: true };
+          }
+        }
+      }
+    }
+  } else if (edit.type === "split-cell") {
+    const { colspan, rowspan } = cell;
+
+    cell.colspan = 1;
+    cell.rowspan = 1;
+
+    for (let splitRow = row; splitRow < Math.min(next.rows.length, row + rowspan); splitRow++) {
+      for (let splitColumn = column; splitColumn < Math.min(width, column + colspan); splitColumn++) {
+        if (splitRow !== row || splitColumn !== column) {
+          next.rows[splitRow][splitColumn] = emptyTableCell();
+        }
+      }
+    }
+  } else if (edit.type === "set-cell-background") {
+    cell.background = edit.background && TABLE_BACKGROUNDS.has(edit.background) ? edit.background : undefined;
+  }
+
+  return normalizeTable(next);
+}
+
+export function editMarkdownTable(text: string, edit: TableEdit) {
+  const table = parseMarkdownTable(text.split("\n"));
+
+  return table ? serializeMarkdownTable(applyTableEdit(table, edit)) : text;
 }
 
 function emptyAnchor() {
@@ -243,6 +475,7 @@ export const SLASH_COMMANDS = [
   { label: "Quote", hint: ">", prefix: "> " },
   { label: "Code", hint: "```", prefix: "```" },
   { label: "Equation", hint: "$$", prefix: "$$" },
+  { label: "Table", hint: "2x2", prefix: DEFAULT_TABLE_MARKDOWN },
   { label: "Divider", hint: "---", prefix: "---" },
   { label: "Text", hint: "plain", prefix: "" },
 ];

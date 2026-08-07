@@ -541,5 +541,7 @@
         </div>
       </div>
     {/if}
+  </div>
+
   <EditorStatusBar {statusMessage} {words} {characters} />
 </main>

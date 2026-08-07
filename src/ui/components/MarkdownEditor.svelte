@@ -17,6 +17,8 @@
   import {
     applyPrefix,
     continueList,
+    DEFAULT_TABLE_MARKDOWN,
+    editMarkdownTable,
     insideFence,
     isMediaLine,
     mathUnclosed,
@@ -89,6 +91,11 @@
     x: number;
     y: number;
     hasSelection: boolean;
+  } | null = null;
+  let selectedTableCell: {
+    group: string;
+    row: number;
+    column: number;
   } | null = null;
 
   $: matches = SLASH_COMMANDS.filter((command) =>
@@ -244,6 +251,11 @@
           (groupName !== null && block.dataset[groupName] === group),
       );
     }
+
+    if (groupName !== "table") {
+      selectedTableCell = null;
+      markSelectedTableCell();
+    }
   }
 
   function blockAtOffset(offset: number) {
@@ -281,6 +293,12 @@
     return (
       node instanceof HTMLElement ? node : node?.parentElement
     )?.closest(".md-preview");
+  }
+
+  function tableCellForNode(node: Node | null) {
+    return (
+      node instanceof HTMLElement ? node : node?.parentElement
+    )?.closest("[data-table-cell]") as HTMLElement | null;
   }
 
   function offsetForPosition(node: Node, nodeOffset: number): number | null {
@@ -399,6 +417,11 @@
     }
 
     const selection = getSelection();
+
+    if (tableCellForNode(selection?.focusNode ?? null)) {
+      return false;
+    }
+
     const preview = previewForNode(selection?.focusNode ?? null);
 
     if (!preview) {
@@ -449,6 +472,14 @@
     }
 
     const selection = getSelection();
+    const tableCell = tableCellForNode(selection?.focusNode ?? null);
+
+    if (tableCell) {
+      setActiveBlock(undefined);
+      selectTableCell(tableCell);
+      return;
+    }
+
     const containing = blocks().find((block) =>
       Boolean(selection?.focusNode && block.contains(selection.focusNode)),
     );
@@ -465,6 +496,13 @@
     }
 
     element.innerHTML = renderDocument(value, resolveAsset ?? undefined);
+    bindTableToolbars();
+
+    if (!editable) {
+      for (const cell of Array.from(element.querySelectorAll("[data-table-cell]"))) {
+        (cell as HTMLElement).contentEditable = "false";
+      }
+    }
 
     if (offset !== null) {
       setActiveBlock(blockAtOffset(offset));
@@ -472,6 +510,7 @@
     }
 
     markActiveBlock();
+    markSelectedTableCell();
   }
 
   function replace(
@@ -519,6 +558,397 @@
     return start === null || !source
       ? null
       : { start, end: start + sourceLength(source) };
+  }
+
+  function tableSourceBlocks(preview: Element) {
+    const group = (preview as HTMLElement).dataset.table;
+
+    return (Array.from(element?.children ?? []) as HTMLElement[]).filter(
+      (block) => block.dataset.table === group && !block.classList.contains("md-preview"),
+    );
+  }
+
+  function tableRangeFor(preview: Element) {
+    const sourceBlocks = tableSourceBlocks(preview);
+    const first = sourceBlocks[0];
+    const last = sourceBlocks[sourceBlocks.length - 1];
+    const start = first ? offsetForPosition(first, 0) : null;
+    const end = last ? offsetForPosition(last, sourceLength(last)) : null;
+
+    return start === null || end === null ? null : { start, end };
+  }
+
+  function tableSourceText(preview: Element) {
+    return tableSourceBlocks(preview).map(sourceText).join("\n");
+  }
+
+  function syncTableSourceBlocks(preview: Element, text: string) {
+    const sourceBlocks = tableSourceBlocks(preview);
+    const lines = text.split("\n");
+
+    if (sourceBlocks.length !== lines.length) {
+      return false;
+    }
+
+    for (const [index, block] of sourceBlocks.entries()) {
+      block.textContent = lines[index];
+    }
+
+    return true;
+  }
+
+  function syncTableToolbarScroll(shell: HTMLElement) {
+    const tools = shell.querySelector(".md-table-tools") as HTMLElement | null;
+
+    if (!tools) {
+      return;
+    }
+
+    const hasOverflow = tools.scrollWidth > tools.clientWidth + 1;
+
+    shell.toggleAttribute("data-scroll-left", hasOverflow && tools.scrollLeft > 1);
+    shell.toggleAttribute(
+      "data-scroll-right",
+      hasOverflow && tools.scrollLeft + tools.clientWidth < tools.scrollWidth - 1,
+    );
+  }
+
+  function syncTableToolbars() {
+    requestAnimationFrame(() => {
+      for (const shell of Array.from(element?.querySelectorAll(".md-table-tools-shell") ?? [])) {
+        syncTableToolbarScroll(shell as HTMLElement);
+      }
+    });
+  }
+
+  function bindTableToolbars() {
+    for (const tools of Array.from(element?.querySelectorAll(".md-table-tools") ?? [])) {
+      const shell = tools.closest(".md-table-tools-shell") as HTMLElement | null;
+
+      if (!shell) {
+        continue;
+      }
+
+      tools.addEventListener("scroll", () => syncTableToolbarScroll(shell), { passive: true });
+    }
+
+    syncTableToolbars();
+  }
+
+  function markSelectedTableCell() {
+    for (const preview of Array.from(element?.querySelectorAll(".md-table-preview") ?? [])) {
+      const htmlPreview = preview as HTMLElement;
+
+      htmlPreview.toggleAttribute(
+        "data-active",
+        Boolean(selectedTableCell && htmlPreview.dataset.table === selectedTableCell.group),
+      );
+    }
+
+    for (const cell of Array.from(element?.querySelectorAll("[data-table-cell]") ?? [])) {
+      const htmlCell = cell as HTMLElement;
+      const preview = htmlCell.closest(".md-table-preview") as HTMLElement | null;
+      const group = preview?.dataset.table;
+      const row = Number(htmlCell.dataset.row);
+      const column = Number(htmlCell.dataset.column);
+
+      htmlCell.classList.toggle(
+        "is-selected",
+        Boolean(
+          selectedTableCell &&
+            group === selectedTableCell.group &&
+            row === selectedTableCell.row &&
+            column === selectedTableCell.column,
+        ),
+      );
+    }
+
+    syncTableToolbars();
+  }
+
+  function selectTableCell(cell: HTMLElement) {
+    const preview = cell.closest(".md-table-preview") as HTMLElement | null;
+
+    if (!preview?.dataset.table) {
+      return;
+    }
+
+    setActiveBlock(undefined);
+
+    selectedTableCell = {
+      group: preview.dataset.table,
+      row: Number(cell.dataset.row),
+      column: Number(cell.dataset.column),
+    };
+    markSelectedTableCell();
+  }
+
+  function selectedCellIn(preview: HTMLElement) {
+    const selected = selectedTableCell;
+
+    if (selected && selected.group === preview.dataset.table) {
+      const cell = preview.querySelector(
+        `[data-table-cell][data-row="${selected.row}"][data-column="${selected.column}"]`,
+      );
+
+      if (cell instanceof HTMLElement) {
+        return cell;
+      }
+    }
+
+    return preview.querySelector("[data-table-cell]") as HTMLElement | null;
+  }
+
+  function selectedTableCellElement() {
+    if (!element || !selectedTableCell) {
+      return null;
+    }
+
+    for (const preview of Array.from(element.querySelectorAll(".md-table-preview")) as HTMLElement[]) {
+      if (preview.dataset.table !== selectedTableCell.group) {
+        continue;
+      }
+
+      const cell = preview.querySelector(
+        `[data-table-cell][data-row="${selectedTableCell.row}"][data-column="${selectedTableCell.column}"]`,
+      );
+
+      return cell instanceof HTMLElement ? cell : null;
+    }
+
+    return null;
+  }
+
+  function tableSelection() {
+    const selection = getSelection();
+    const anchorCell = tableCellForNode(selection?.anchorNode ?? null);
+    const focusCell = tableCellForNode(selection?.focusNode ?? null);
+
+    if (selection && anchorCell && anchorCell === focusCell) {
+      return {
+        cell: anchorCell,
+        text: selection.toString(),
+        hasSelection: !selection.isCollapsed,
+      };
+    }
+
+    const selected = selectedTableCellElement();
+
+    return selected
+      ? {
+          cell: selected,
+          text: selected.innerText,
+          hasSelection: false,
+        }
+      : null;
+  }
+
+  function selectTableCellContents(cell: HTMLElement) {
+    cell.focus();
+    selectTableCell(cell);
+
+    const range = document.createRange();
+    range.selectNodeContents(cell);
+    const selection = getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+    markSelectedTableCell();
+  }
+
+  function replaceTableCellSelection(cell: HTMLElement, text: string) {
+    const selection = getSelection();
+    const anchorCell = tableCellForNode(selection?.anchorNode ?? null);
+    const focusCell = tableCellForNode(selection?.focusNode ?? null);
+
+    if (selection?.rangeCount && anchorCell === cell && focusCell === cell) {
+      const range = selection.getRangeAt(0);
+      const node = document.createTextNode(text);
+
+      range.deleteContents();
+      range.insertNode(node);
+      range.setStartAfter(node);
+      range.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    } else {
+      cell.textContent = text;
+      selectTableCellContents(cell);
+    }
+
+    handleTableCellInput(cell);
+  }
+
+  function replaceTable(preview: HTMLElement, text: string, renderPreview: boolean) {
+    const range = tableRangeFor(preview);
+
+    if (!range) {
+      return;
+    }
+
+    value = value.slice(0, range.start) + text + value.slice(range.end);
+
+    if (renderPreview || !syncTableSourceBlocks(preview, text)) {
+      render(null);
+    }
+
+    onInput();
+  }
+
+  function updateTable(preview: HTMLElement, edit: Parameters<typeof editMarkdownTable>[1], renderPreview = true) {
+    const source = tableSourceText(preview);
+    const next = editMarkdownTable(source, edit);
+
+    if (next !== source) {
+      replaceTable(preview, next, renderPreview);
+    }
+  }
+
+  function handleTableCellInput(cell: HTMLElement) {
+    const preview = cell.closest(".md-table-preview") as HTMLElement | null;
+
+    if (!preview) {
+      return;
+    }
+
+    selectTableCell(cell);
+    updateTable(
+      preview,
+      {
+        type: "set-cell-text",
+        row: Number(cell.dataset.row),
+        column: Number(cell.dataset.column),
+        text: cell.innerText.replace(/\s*\n\s*/g, " ").trim(),
+      },
+      false,
+    );
+  }
+
+  function tableAction(
+    preview: HTMLElement,
+    selected: HTMLElement,
+    actionName: string | undefined,
+    color?: string,
+  ) {
+    const row = Number(selected.dataset.row);
+    const column = Number(selected.dataset.column);
+
+    if (actionName === "insert-row") {
+      updateTable(preview, { type: "insert-row", row });
+    } else if (actionName === "insert-column") {
+      updateTable(preview, { type: "insert-column", column });
+    } else if (actionName === "merge-right") {
+      updateTable(preview, { type: "merge-right", row, column });
+    } else if (actionName === "merge-down") {
+      updateTable(preview, { type: "merge-down", row, column });
+    } else if (actionName === "split-cell") {
+      updateTable(preview, { type: "split-cell", row, column });
+    } else if (actionName === "set-color") {
+      updateTable(preview, {
+        type: "set-cell-background",
+        row,
+        column,
+        background: color,
+      });
+    } else if (actionName === "clear-color") {
+      updateTable(preview, { type: "set-cell-background", row, column });
+    }
+  }
+
+  function focusTableCell(preview: HTMLElement, from: HTMLElement, direction: 1 | -1) {
+    const cells = Array.from(preview.querySelectorAll("[data-table-cell]")) as HTMLElement[];
+    const index = cells.indexOf(from);
+    const target = cells[index + direction];
+
+    if (!target) {
+      return;
+    }
+
+    target.focus();
+    selectTableCell(target);
+
+    const selection = getSelection();
+    const range = document.createRange();
+    range.selectNodeContents(target);
+    range.collapse(false);
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+  }
+
+  function handleTableKeydown(event: KeyboardEvent, cell: HTMLElement) {
+    const isPrimaryShortcut = event.ctrlKey || event.metaKey;
+
+    if (isPrimaryShortcut) {
+      const key = event.key.toLowerCase();
+
+      if (key === "a") {
+        event.preventDefault();
+        selectTableCellContents(cell);
+        return true;
+      }
+
+      if (key === "c") {
+        event.preventDefault();
+        void copySelection();
+        return true;
+      }
+
+      if (key === "x") {
+        event.preventDefault();
+        void cutSelection();
+        return true;
+      }
+
+      if (key === "v") {
+        event.preventDefault();
+        void pasteClipboard();
+        return true;
+      }
+    }
+
+    if (event.key !== "Tab") {
+      return false;
+    }
+
+    const preview = cell.closest(".md-table-preview") as HTMLElement | null;
+
+    if (!preview) {
+      return false;
+    }
+
+    event.preventDefault();
+    handleTableCellInput(cell);
+    focusTableCell(preview, cell, event.shiftKey ? -1 : 1);
+
+    return true;
+  }
+
+  function handleTablePointerDown(event: PointerEvent) {
+    const target = event.target as HTMLElement;
+    const action = target.closest("[data-table-action]") as HTMLElement | null;
+    const cell = tableCellForNode(target);
+
+    if (cell) {
+      selectTableCell(cell);
+      closeMenu();
+    }
+
+    if (!editable || !action) {
+      return false;
+    }
+
+    const preview = action.closest(".md-table-preview") as HTMLElement | null;
+    const selected = preview ? selectedCellIn(preview) : null;
+
+    if (!preview || !selected) {
+      return false;
+    }
+
+    event.preventDefault();
+    selectTableCell(selected);
+
+    tableAction(preview, selected, action.dataset.tableAction, action.dataset.color);
+
+    return true;
   }
 
   function caretLineRange() {
@@ -627,6 +1057,18 @@
   }
 
   async function copySelection() {
+    const table = tableSelection();
+
+    if (table) {
+      const text = table.text || table.cell.innerText;
+
+      if (text) {
+        await navigator.clipboard.writeText(text);
+      }
+
+      return;
+    }
+
     const selection = selectionOffsets();
 
     if (!selection || selection.start === selection.end) {
@@ -639,6 +1081,24 @@
   }
 
   async function cutSelection() {
+    const table = tableSelection();
+
+    if (table) {
+      const text = table.text || table.cell.innerText;
+
+      if (!text) {
+        return;
+      }
+
+      await navigator.clipboard.writeText(text);
+
+      if (editable) {
+        replaceTableCellSelection(table.cell, table.hasSelection ? "" : "");
+      }
+
+      return;
+    }
+
     const selection = selectionOffsets();
 
     if (!selection || selection.start === selection.end) {
@@ -654,12 +1114,26 @@
   async function pasteClipboard() {
     const text = await navigator.clipboard.readText();
 
+    const table = tableSelection();
+
+    if (table && editable) {
+      replaceTableCellSelection(table.cell, text);
+      return;
+    }
+
     if (text) {
       replaceSelection(text);
     }
   }
 
   function selectAll() {
+    const table = tableSelection();
+
+    if (table) {
+      selectTableCellContents(table.cell);
+      return;
+    }
+
     if (!element) {
       return;
     }
@@ -676,14 +1150,36 @@
     event.preventDefault();
     element?.focus();
     closeMenu();
-    placeCaretAtPoint(event);
 
-    const selection = selectionOffsets();
+    const target = event.target as HTMLElement;
+    const tableCell = tableCellForNode(target);
+    const preview = target.closest(".md-table-preview") as HTMLElement | null;
+    const fallbackTableCell = preview ? selectedCellIn(preview) : null;
+    const cell = tableCell ?? fallbackTableCell;
+    const selection = getSelection();
+    const selectionCell =
+      tableCellForNode(selection?.anchorNode ?? null) ??
+      tableCellForNode(selection?.focusNode ?? null);
+    const keepTableSelection =
+      cell && selectionCell === cell && selection && !selection.isCollapsed;
+
+    if (cell) {
+      selectTableCell(cell);
+    }
+
+    if (!keepTableSelection) {
+      placeCaretAtPoint(event);
+    }
+
+    const textSelection = selectionOffsets();
+    const table = tableSelection();
 
     contextMenu = {
       x: event.clientX,
       y: event.clientY,
-      hasSelection: Boolean(selection && selection.start !== selection.end),
+      hasSelection: Boolean(
+        table ? table.text || table.cell.innerText : textSelection && textSelection.start !== textSelection.end,
+      ),
     };
   }
 
@@ -718,9 +1214,63 @@
     ];
   }
 
+  function tableItems(): ContextMenuItem[] {
+    const cell = selectedTableCellElement();
+    const preview = cell?.closest(".md-table-preview") as HTMLElement | null;
+
+    if (!editable || !cell || !preview) {
+      return [];
+    }
+
+    return [
+      {
+        label: "Add row below",
+        onSelect: () => tableAction(preview, cell, "insert-row"),
+      },
+      {
+        label: "Add column right",
+        onSelect: () => tableAction(preview, cell, "insert-column"),
+      },
+      {
+        label: "Merge right",
+        onSelect: () => tableAction(preview, cell, "merge-right"),
+      },
+      {
+        label: "Merge down",
+        onSelect: () => tableAction(preview, cell, "merge-down"),
+      },
+      {
+        label: "Split cell",
+        onSelect: () => tableAction(preview, cell, "split-cell"),
+      },
+      {
+        label: "Color red",
+        onSelect: () => tableAction(preview, cell, "set-color", "#fee2e2"),
+      },
+      {
+        label: "Color yellow",
+        onSelect: () => tableAction(preview, cell, "set-color", "#fef3c7"),
+      },
+      {
+        label: "Color green",
+        onSelect: () => tableAction(preview, cell, "set-color", "#dcfce7"),
+      },
+      {
+        label: "Color blue",
+        onSelect: () => tableAction(preview, cell, "set-color", "#dbeafe"),
+      },
+      {
+        label: "Clear cell color",
+        onSelect: () => tableAction(preview, cell, "clear-color"),
+      },
+      { separator: true },
+    ];
+  }
+
   function contextItems(): ContextMenuItem[] {
     return [
       ...alignItems(),
+      ...tableItems(),
       {
         label: "Cut",
         shortcut: "Ctrl X",
@@ -811,6 +1361,11 @@
 
     closeMenu();
 
+    if (prefix === DEFAULT_TABLE_MARKDOWN) {
+      replace(start, lineEnd, prefix, start + prefix.length);
+      return;
+    }
+
     // A code block needs its closing fence, with the caret waiting on the line between.
     if (prefix.startsWith("```")) {
       const opening = applyPrefix(value.slice(start, slashStart), prefix);
@@ -827,8 +1382,15 @@
     replace(start, lineEnd, nextLine, start + nextLine.length - tail.length);
   }
 
-  function handleInput() {
+  function handleInput(event?: Event) {
     if (composing) {
+      return;
+    }
+
+    const tableCell = tableCellForNode(event?.target as Node | null);
+
+    if (tableCell) {
+      handleTableCellInput(tableCell);
       return;
     }
 
@@ -844,6 +1406,12 @@
   }
 
   function handleKeydown(event: KeyboardEvent) {
+    const tableCell = tableCellForNode(event.target as Node | null);
+
+    if (tableCell && handleTableKeydown(event, tableCell)) {
+      return;
+    }
+
     if (slashCommands && slashStart !== null && matches.length) {
       if (event.key === "ArrowDown" || event.key === "ArrowUp") {
         event.preventDefault();
@@ -944,6 +1512,13 @@
 
     const offset = caretOffset();
     const text = event.clipboardData?.getData("text/plain");
+    const table = tableSelection();
+
+    if (table && text !== undefined) {
+      event.preventDefault();
+      replaceTableCellSelection(table.cell, text);
+      return;
+    }
 
     if (offset === null || !text) {
       return;
@@ -977,7 +1552,11 @@
   oninput={handleInput}
   onkeydown={handleKeydown}
   oncontextmenu={openContextMenu}
-  onpointerdown={handlePointerDown}
+  onpointerdown={(event) => {
+    if (!handleTablePointerDown(event)) {
+      handlePointerDown(event);
+    }
+  }}
   onpaste={handlePaste}
   onblur={closeMenu}
   oncompositionstart={() => (composing = true)}
