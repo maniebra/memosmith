@@ -1,8 +1,11 @@
 <script lang="ts">
-  import { FolderOpen, FolderPlus, Plus, RotateCcw } from "@lucide/svelte";
-  import { basename } from "../../lib/utils/path";
-  import { buildTree } from "../../lib/utils/tree";
-  import ContextMenu, {
+import { FolderOpen, FolderPlus, Plus, RotateCcw, Search } from "@lucide/svelte";
+import { basename } from "../../lib/utils/path";
+import { buildTree } from "../../lib/utils/tree";
+import type { TreeNode } from "../../lib/utils/tree";
+import { searchNotes } from "../../lib/tauri/files";
+import Input from "../components/Input.svelte";
+import ContextMenu, {
     type ContextMenuItem,
   } from "../components/ContextMenu.svelte";
   import SpaceTree from "./SpaceTree.svelte";
@@ -31,7 +34,30 @@
     y: number;
   } | null = null;
 
+  let searchQuery = "";
+  let searchResults: TreeNode[] | null = null;
+
   $: tree = buildTree(notes);
+  $: displayTree = searchQuery ? searchResults : tree;
+
+  let searchTimeout: ReturnType<typeof setTimeout>;
+
+  async function handleSearch() {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(async () => {
+      if (!root || !searchQuery) {
+        searchResults = null;
+        return;
+      }
+      try {
+        const paths = await searchNotes(root, searchQuery);
+        searchResults = buildTree(paths);
+      } catch (e) {
+        console.error("Search failed:", e);
+        searchResults = null;
+      }
+    }, 300);
+  }
 
   function cancelEdit() {
     renaming = null;
@@ -160,8 +186,17 @@
       </button>
     {/if}
   </div>
+<div class="px-2 py-1">
+  <Input
+    type="search"
+    placeholder="Search notes..."
+    bind:value={searchQuery}
+    oninput={handleSearch}
+    class="h-8"
+  />
+</div>
 
-  <div
+<div
     class="min-h-0 flex-1 overflow-y-auto p-1.5"
     role="presentation"
     oncontextmenu={openContextMenu}
@@ -186,8 +221,8 @@
         </p>
       {/if}
 
-      <SpaceTree
-        nodes={tree}
+        <SpaceTree
+        nodes={displayTree}
         {activePath}
         {onSelect}
         {renaming}
