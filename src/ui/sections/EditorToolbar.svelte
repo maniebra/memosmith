@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { PanelLeftClose, PanelLeftOpen, Settings } from "@lucide/svelte";
+  import { Database, PanelLeftClose, PanelLeftOpen, Settings } from "@lucide/svelte";
   import Button from "../components/Button.svelte";
 
   export let title: string;
@@ -8,6 +8,7 @@
   export let spacePaneOpen: boolean;
   export let onToggleSpacePane: () => void;
   export let onToggleSettings: () => void;
+  export let onToggleDatabases: () => void;
 </script>
 
 <header
@@ -51,6 +52,13 @@
   </div>
 
   <div class="ml-auto flex shrink-0 items-center gap-0.5">
+    <Button
+      label="Databases"
+      icon={Database}
+      onClick={onToggleDatabases}
+      variant="ghost"
+      size="sm"
+    />
     <Button
       label="Settings"
       icon={Settings}

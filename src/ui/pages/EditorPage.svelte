@@ -29,6 +29,15 @@
     displayNotePath,
     withNoteExtension,
   } from "../../lib/utils/path";
+  import {
+    createDatabase,
+    deleteDatabase,
+    listDatabases,
+    type DatabaseSummary,
+  } from "../../lib/tauri/databases";
+  import { defaultColumns, defaultViews, slugify } from "../../lib/utils/database";
+  import DatabaseManager from "../sections/DatabaseManager.svelte";
+  import DatabaseView from "../sections/DatabaseView.svelte";
   import NoteEditorForm from "../forms/NoteEditorForm.svelte";
   import EditorStatusBar from "../sections/EditorStatusBar.svelte";
   import EditorToolbar from "../sections/EditorToolbar.svelte";
@@ -47,6 +56,9 @@
   let path: string | null = null;
   let spaceRoot = loadSpaceRoot();
   let spaceNotes: string[] = [];
+  let databases: DatabaseSummary[] = [];
+  let activeDatabaseId: string | null = null;
+  let databasesOpen = false;
   let isDirty = false;
   let contents = "";
   let statusMessage = spaceRoot ? "Select or create a note" : "Choose a space to start";
@@ -229,6 +241,49 @@
 
   async function refreshSpace() {
     spaceNotes = spaceRoot ? await listSpace(spaceRoot) : [];
+    databases = spaceRoot ? await listDatabases(spaceRoot) : [];
+  }
+
+  async function createSpaceDatabase(name: string) {
+    if (!spaceRoot) {
+      return;
+    }
+
+    await flushNoteSave();
+
+    const columns = defaultColumns();
+    const id = slugify(name);
+
+    await createDatabase(spaceRoot, id, name, columns, defaultViews(columns));
+    await refreshSpace();
+    activeDatabaseId = id;
+    databasesOpen = false;
+    statusMessage = `Created database ${name}`;
+  }
+
+  async function selectDatabase(id: string) {
+    await flushNoteSave();
+
+    activeDatabaseId = id;
+    databasesOpen = false;
+    statusMessage = `Opened ${databases.find((entry) => entry.id === id)?.name ?? id}`;
+  }
+
+  async function deleteSpaceDatabase(id: string) {
+    const name = databases.find((entry) => entry.id === id)?.name ?? id;
+
+    if (!spaceRoot || !(await confirmDelete(name))) {
+      return;
+    }
+
+    await deleteDatabase(spaceRoot, id);
+
+    if (activeDatabaseId === id) {
+      activeDatabaseId = null;
+    }
+
+    await refreshSpace();
+    statusMessage = `Deleted database ${name}`;
   }
 
   async function chooseSpace() {
@@ -247,6 +302,8 @@
 
   async function selectSpaceNote(relativePath: string) {
     await flushNoteSave();
+
+    activeDatabaseId = null;
 
     const notePath = spacePath(relativePath);
 
@@ -410,8 +467,9 @@
   function handleShortcut(event: KeyboardEvent) {
     const isPrimaryShortcut = event.ctrlKey || event.metaKey;
 
-    if (event.key === "Escape" && settingsOpen) {
+    if (event.key === "Escape" && (settingsOpen || databasesOpen)) {
       settingsOpen = false;
+      databasesOpen = false;
       return;
     }
 
@@ -473,6 +531,7 @@
     spacePaneOpen={settings.spacePaneOpen}
     onToggleSpacePane={toggleSpacePane}
     onToggleSettings={() => (settingsOpen = !settingsOpen)}
+    onToggleDatabases={() => (databasesOpen = !databasesOpen)}
   />
 
   <div class="flex min-h-0 min-w-0">
@@ -503,6 +562,18 @@
     {/if}
 
     <div class="min-w-0 flex-1">
+      {#if activeDatabaseId && spaceRoot}
+        <DatabaseView
+          root={spaceRoot}
+          databaseId={activeDatabaseId}
+          databaseOptions={databases}
+          onStatus={(message) => (statusMessage = message)}
+          onRenamed={(name) =>
+            (databases = databases.map((entry) =>
+              entry.id === activeDatabaseId ? { ...entry, name } : entry,
+            ))}
+        />
+      {:else}
       <NoteEditorForm
         bind:contents
         bind:editor
@@ -527,7 +598,32 @@
           })}
         {resolveAsset}
       />
+      {/if}
     </div>
+
+    {#if databasesOpen}
+      <div
+        class="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/40 backdrop-blur-sm"
+        role="presentation"
+        onclick={() => (databasesOpen = false)}
+      >
+        <div
+          class="relative z-50 overflow-hidden rounded-xl border border-stone-200/50 shadow-xl dark:border-stone-800/50"
+          role="presentation"
+          transition:scale={{ duration: 150, start: 0.95 }}
+          onclick={(event) => event.stopPropagation()}
+        >
+          <DatabaseManager
+            {databases}
+            {activeDatabaseId}
+            onSelect={(id) => runWithStatus(() => selectDatabase(id))}
+            onCreate={(name) => runWithStatus(() => createSpaceDatabase(name))}
+            onDelete={(id) => runWithStatus(() => deleteSpaceDatabase(id))}
+            onClose={() => (databasesOpen = false)}
+          />
+        </div>
+      </div>
+    {/if}
 
     {#if settingsOpen}
       <div class="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/40 backdrop-blur-sm" onclick={() => (settingsOpen = false)}>

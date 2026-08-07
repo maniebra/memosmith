@@ -82,6 +82,14 @@ cargo check
 - **Optimization**: Images > 1920px or > 512KB are downscaled and re-encoded to `.webp`.
 - **Pruning**: Deleting a note triggers `prune_assets` to remove unused media.
 
+### 🗃️ Databases
+- **Storage**: One SQLite file per database at `<space>/.databases/<id>.db` (`src-tauri/src/databases.rs`).
+- **Schema**: `meta(key, value)` holds `name`, `columns`, and `views` as JSON; `rows(id, position, data)` stores each row's cells as a JSON object keyed by column id, so adding a column needs no migration.
+- **Views**: Table and kanban board, per database, each with its own filter and sorts. Boards group by a select, multi-select, or relation column; dragging a card rewrites that cell.
+- **Relations**: A `relation` column stores linked row ids and names a target database; the target's rows are loaded to label links and to form the board columns.
+- **Access**: Databases open from the toolbar's Databases modal (`DatabaseManager.svelte`), not the note sidebar.
+- **Filtering**: Nested and/or condition groups, evaluated in the frontend (`src/lib/utils/database.ts`, tested by `database.test.ts`).
+
 ## 🐛 Debugging & Platform Notes
 
 - **KDE/KWin**: The `tauri` script forces `GDK_BACKEND=x11` to ensure standard window decorations.

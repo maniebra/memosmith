@@ -6,6 +6,7 @@
 </script>
 
 <script lang="ts">
+  import { onMount } from "svelte";
   import { ChevronDown } from "@lucide/svelte";
   import { cn } from "../../lib/utils/cn";
 
@@ -17,6 +18,27 @@
   let open = false;
   let root: HTMLDivElement;
   let activeIndex = 0;
+  /** Fixed placement, so a scrolling or clipping ancestor cannot cut the list off. */
+  let menu = { left: 0, top: 0, width: 0 };
+
+  onMount(() => {
+    // Capture phase: inner scroll containers do not bubble their scroll events.
+    window.addEventListener("scroll", close, true);
+
+    return () => window.removeEventListener("scroll", close, true);
+  });
+
+  function placeMenu() {
+    const bounds = root.getBoundingClientRect();
+    const height = Math.min(options.length * 32 + 12, 240);
+    const below = window.innerHeight - bounds.bottom - 8;
+
+    menu = {
+      left: bounds.left,
+      top: below < height && bounds.top > height ? bounds.top - height - 4 : bounds.bottom + 4,
+      width: bounds.width,
+    };
+  }
 
   $: selectedIndex = Math.max(
     0,
@@ -32,6 +54,10 @@
   }
 
   function toggle() {
+    if (!open) {
+      placeMenu();
+    }
+
     open = !open;
   }
 
@@ -119,7 +145,8 @@
 
   {#if open}
     <div
-      class="absolute top-[calc(100%+0.25rem)] right-0 left-0 z-50 rounded-xl border border-stone-200/80 bg-stone-50/95 p-1.5 shadow-lg shadow-stone-900/8 dark:border-stone-700/80 dark:bg-stone-900/95 dark:shadow-black/20"
+      class="fixed z-50 max-h-60 overflow-y-auto rounded-xl border border-stone-200/80 bg-stone-50/95 p-1.5 shadow-lg shadow-stone-900/8 dark:border-stone-700/80 dark:bg-stone-900/95 dark:shadow-black/20"
+      style="left: {menu.left}px; top: {menu.top}px; min-width: {menu.width}px;"
       role="listbox"
       tabindex="-1"
     >

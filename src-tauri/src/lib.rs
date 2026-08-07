@@ -1,4 +1,5 @@
 pub mod assets;
+pub mod databases;
 pub mod notes;
 pub mod utils;
 
@@ -16,7 +17,14 @@ pub fn run() {
             notes::search_notes,
             assets::write_asset,
             assets::copy_asset,
-            assets::prune_assets
+            assets::prune_assets,
+            databases::list_databases,
+            databases::create_database,
+            databases::load_database,
+            databases::save_database_meta,
+            databases::save_database_row,
+            databases::delete_database_row,
+            databases::delete_database
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
