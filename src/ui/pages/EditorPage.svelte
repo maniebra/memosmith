@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onDestroy, onMount } from "svelte";
   import { cubicOut } from "svelte/easing";
-  import { slide } from "svelte/transition";
+  import { slide, scale } from "svelte/transition";
   import { defaultSettings, loadSettings, saveSettings } from "../../lib/storage/settings";
   import { loadSpaceRoot, saveSpaceRoot } from "../../lib/storage/space";
   import { convertFileSrc } from "@tauri-apps/api/core";
@@ -530,25 +530,16 @@
     </div>
 
     {#if settingsOpen}
-      <div class="flex min-h-0 shrink-0" transition:slide={paneSlide}>
-        <button
-          type="button"
-          class="z-10 w-1.5 shrink-0 cursor-col-resize bg-transparent transition-colors hover:bg-emerald-600/20 focus-visible:bg-emerald-600/20 focus-visible:outline-none"
-          aria-label="Resize settings panel"
-          title="Resize settings panel"
-          onpointerdown={(event) => startResize(event, "settings")}
-          onkeydown={(event) => resizeWithKeyboard(event, "settings")}
-        ></button>
-        <SettingsPanel
-          width={settings.settingsPaneWidth}
-          {settings}
-          onClose={() => (settingsOpen = false)}
-          onReset={resetSettings}
-          onChange={updateSettings}
-        />
+      <div class="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/40 backdrop-blur-sm" onclick={() => (settingsOpen = false)}>
+        <div class="relative z-50 overflow-hidden rounded-xl border border-stone-200/50 shadow-xl dark:border-stone-800/50" transition:scale={{ duration: 150, start: 0.95 }} onclick={(e) => e.stopPropagation()}>
+          <SettingsPanel
+            {settings}
+            onClose={() => (settingsOpen = false)}
+            onReset={resetSettings}
+            onChange={updateSettings}
+          />
+        </div>
       </div>
     {/if}
-  </div>
-
   <EditorStatusBar {statusMessage} {words} {characters} />
 </main>

@@ -9,12 +9,12 @@
   import Select, { type SelectOption } from "../components/Select.svelte";
   import Slider from "../components/Slider.svelte";
   import Switch from "../components/Switch.svelte";
+  import { cn } from "../../lib/utils/cn";
 
   export let settings: AppSettings;
   export let onClose: () => void;
   export let onReset: () => void;
   export let onChange: (settings: AppSettings) => void;
-  export let width = 320;
 
   const themeOptions: SelectOption[] = [
     { label: "System", value: "system" },
@@ -28,54 +28,71 @@
     { label: "Wide", value: "wide" },
   ];
 
+  let activeTab: "appearance" | "editor" = "appearance";
+
   function updateSettings(nextSettings: Partial<AppSettings>) {
     onChange({ ...settings, ...nextSettings });
   }
 </script>
 
-<aside
-  class="flex shrink-0 flex-col border-l border-stone-200/50 bg-stone-50/90 dark:border-stone-800/80 dark:bg-stone-900/90"
-  style="width: {width}px;"
-  aria-label="Settings"
->
-  <div
-    class="flex h-12 shrink-0 items-center gap-2 border-b border-stone-200/50 px-3 dark:border-stone-800/80"
-  >
-    <h2
-      class="min-w-0 flex-1 truncate text-sm font-semibold text-stone-800 dark:text-stone-100"
-    >
+<div class="flex flex-col h-[85vh] w-[90vw] md:w-[70vw] md:max-w-[1080px] md:max-h-[800px] bg-stone-50 dark:bg-stone-900 rounded-xl overflow-hidden shadow-xl" aria-label="Settings Modal">
+  <!-- Header -->
+  <div class="flex h-12 shrink-0 items-center justify-between border-b border-stone-200/50 px-4 dark:border-stone-800/80">
+    <h2 class="text-sm font-semibold text-stone-800 dark:text-stone-100">
       Settings
     </h2>
-    <Button
-      label="Reset"
-      icon={RotateCcw}
-      onClick={onReset}
-      variant="ghost"
-      size="sm"
-    />
-    <Button
-      label="Close"
-      icon={X}
-      onClick={onClose}
-      variant="ghost"
-      size="sm"
-    />
+    <div class="flex gap-1">
+      <Button
+        label="Reset"
+        icon={RotateCcw}
+        onClick={onReset}
+        variant="ghost"
+        size="sm"
+      />
+      <Button
+        label="Close"
+        icon={X}
+        onClick={onClose}
+        variant="ghost"
+        size="sm"
+      />
+    </div>
   </div>
 
-  <div class="min-h-0 flex-1 overflow-y-auto px-4 py-5">
-    <div class="grid gap-6">
-      <section class="grid gap-3" aria-labelledby="appearance-settings">
-        <h3
-          id="appearance-settings"
-          class="text-xs font-semibold tracking-wide text-stone-500 uppercase"
-        >
-          Appearance
-        </h3>
+  <!-- Tabs -->
+  <div class="flex border-b border-stone-200/50 px-4 dark:border-stone-800/80">
+    <button
+      class={cn(
+        "px-4 py-2 text-sm font-medium transition-colors hover:text-stone-800 dark:hover:text-stone-100",
+        activeTab === "appearance"
+          ? "border-b-2 border-emerald-600 text-emerald-600 dark:text-emerald-400"
+          : "text-stone-500"
+      )}
+      onclick={() => (activeTab = "appearance")}
+    >
+      Appearance
+    </button>
+    <button
+      class={cn(
+        "px-4 py-2 text-sm font-medium transition-colors hover:text-stone-800 dark:hover:text-stone-100",
+        activeTab === "editor"
+          ? "border-b-2 border-emerald-600 text-emerald-600 dark:text-emerald-400"
+          : "text-stone-500"
+      )}
+      onclick={() => (activeTab = "editor")}
+    >
+      Editor
+    </button>
+  </div>
 
-        <div class="grid gap-2">
-          <span class="text-sm font-medium text-stone-800 dark:text-stone-200"
-            >Theme</span
-          >
+  <!-- Content -->
+  <div class="flex-1 overflow-y-auto px-6 py-6">
+    {#if activeTab === "appearance"}
+      <div class="grid gap-6">
+        <section class="grid gap-4">
+          <span class="text-sm font-medium text-stone-800 dark:text-stone-200">
+            Theme
+          </span>
           <Select
             value={settings.theme}
             options={themeOptions}
@@ -83,21 +100,14 @@
             onChange={(theme) =>
               updateSettings({ theme: theme as ThemePreference })}
           />
-        </div>
-      </section>
-
-      <section class="grid gap-4" aria-labelledby="editor-settings">
-        <h3
-          id="editor-settings"
-          class="text-xs font-semibold tracking-wide text-stone-500 uppercase"
-        >
-          Editor
-        </h3>
-
-        <div class="grid gap-2">
-          <span class="text-sm font-medium text-stone-800 dark:text-stone-200"
-            >Page width</span
-          >
+        </section>
+      </div>
+    {:else}
+      <div class="grid gap-6">
+        <section class="grid gap-4">
+          <span class="text-sm font-medium text-stone-800 dark:text-stone-200">
+            Page width
+          </span>
           <Select
             value={settings.editorWidth}
             options={widthOptions}
@@ -105,20 +115,20 @@
             onChange={(editorWidth) =>
               updateSettings({ editorWidth: editorWidth as EditorWidth })}
           />
-        </div>
+        </section>
 
-        <Slider
-          value={settings.textSize}
-          min={15}
-          max={21}
-          step={1}
-          label="Text size"
-          onChange={(textSize) => updateSettings({ textSize })}
-        />
+        <section class="grid gap-4">
+          <Slider
+            value={settings.textSize}
+            min={15}
+            max={21}
+            step={1}
+            label="Text size"
+            onChange={(textSize) => updateSettings({ textSize })}
+          />
+        </section>
 
-        <div
-          class="grid gap-3 border-t border-stone-200/50 pt-4 dark:border-stone-800/80"
-        >
+        <section class="grid gap-3 border-t border-stone-200/50 pt-4 dark:border-stone-800/80">
           <Switch
             checked={settings.showPageTitle}
             label="Page title"
@@ -134,8 +144,8 @@
             label="Slash commands"
             onChange={(slashCommands) => updateSettings({ slashCommands })}
           />
-        </div>
-      </section>
-    </div>
+        </section>
+      </div>
+    {/if}
   </div>
-</aside>
+</div>
