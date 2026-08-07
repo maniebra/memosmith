@@ -640,7 +640,9 @@ export function renderDocument(text: string, resolveAsset?: (source: string) => 
     }
 
     if (language !== null) {
-      output.push(`<div class="md-block md-codeblock" data-code="${codeGroup}">${renderCode(line, language)}</div>`);
+      output.push(
+        `<div class="md-block md-codeblock" data-code="${codeGroup}" data-language="${attribute(language)}">${renderCode(line, language)}</div>`,
+      );
       i++;
       continue;
     }

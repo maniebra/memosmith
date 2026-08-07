@@ -139,7 +139,7 @@ body {
   /* One continuous slab: no vertical padding per line, only on the fences. */
   .md-codeblock,
   .md-fence {
-    @apply bg-stone-500/10 px-4 font-mono text-[0.85em] leading-[1.6];
+    @apply bg-stone-500/10 px-5 font-mono text-[0.9em] leading-[1.75];
   }
 
   .md-fence {
@@ -147,20 +147,25 @@ body {
   }
 
   .md-fence-open {
-    @apply mt-2 rounded-t-md pt-2;
+    @apply mt-3 rounded-t-md pt-3;
   }
 
   .md-fence-close {
-    @apply mb-2 rounded-b-md pb-2;
+    @apply mb-3 rounded-b-md pb-3;
   }
 
   /* With the fences hidden the slab loses its cap, so the edge code lines take it over. */
   .md-fence-open:not([data-active])+.md-codeblock {
-    @apply mt-2 rounded-t-md pt-2;
+    @apply mt-3 rounded-t-md pt-8;
   }
 
   .md-codeblock:has(+ .md-fence-close:not([data-active])) {
-    @apply mb-2 rounded-b-md pb-2;
+    @apply mb-3 rounded-b-md pb-4;
+  }
+
+  .md-fence-open:not([data-active])+.md-codeblock[data-language]:not([data-language=""])::after {
+    content: attr(data-language);
+    @apply pointer-events-none absolute top-2 right-3 rounded border border-stone-500/10 bg-stone-500/10 px-2 py-0.5 text-[0.65rem] leading-none font-medium text-stone-500 uppercase dark:border-stone-100/10 dark:bg-stone-100/8 dark:text-stone-400;
   }
 
   .hljs-comment,
