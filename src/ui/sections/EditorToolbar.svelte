@@ -2,18 +2,27 @@
   import { Database, PanelLeftClose, PanelLeftOpen, Settings, ShieldCheck } from "@lucide/svelte";
   import Button from "../components/Button.svelte";
 
+  type ToolbarBreadcrumb = {
+    label: string;
+    path?: string;
+  };
+
   export let title: string;
   export let fileLabel: string;
+  export let breadcrumbs: ToolbarBreadcrumb[] = [];
   export let isDirty: boolean;
   export let spacePaneOpen: boolean;
+  export let onSelectBreadcrumb: (path: string) => void;
   export let onToggleSpacePane: () => void;
   export let onToggleSettings: () => void;
   export let onToggleDatabases: () => void;
   export let onToggleGrammar: () => void;
+
+  $: visibleBreadcrumbs = breadcrumbs.length ? breadcrumbs : [{ label: fileLabel }];
 </script>
 
 <header
-  class="flex h-12 items-center gap-3 border-b border-stone-200/70 bg-stone-50/80 px-3 backdrop-blur dark:border-stone-800 dark:bg-stone-900/70"
+  class="flex h-12 items-center gap-1.5 border-b border-stone-200/70 bg-stone-50/80 px-3 backdrop-blur dark:border-stone-800 dark:bg-stone-900/70"
   aria-label="Editor toolbar"
 >
   <button
@@ -31,26 +40,37 @@
     {/if}
   </button>
 
-  <span
-    class="shrink-0 text-sm font-semibold tracking-tight text-stone-400 dark:text-stone-500"
-  >
-    {title}
-  </span>
-  <span class="shrink-0 text-stone-300 dark:text-stone-700">/</span>
-
-  <div class="flex min-w-0 items-center gap-2">
-    <span
-      class="truncate text-sm font-medium text-stone-800 dark:text-stone-100"
-      >{fileLabel}</span
-    >
+  <nav class="flex min-w-0 items-center gap-0 text-sm font-medium leading-none" aria-label="Current note">
+    <span class="shrink-0 text-stone-500 dark:text-stone-400">
+      {title}
+    </span>
+    {#each visibleBreadcrumbs as crumb, index}
+      <span class="mx-1.5 shrink-0 text-stone-300 dark:text-stone-600" aria-hidden="true">/</span>
+      {#if crumb.path}
+        <button
+          type="button"
+          class="min-w-0 truncate rounded-sm text-left text-stone-700 transition-colors hover:text-stone-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 dark:text-stone-200 dark:hover:text-white"
+          aria-current={index === visibleBreadcrumbs.length - 1 ? "page" : undefined}
+          onclick={() => onSelectBreadcrumb(crumb.path!)}
+        >
+          {crumb.label}
+        </button>
+      {:else}
+        <span
+          class="min-w-0 truncate text-stone-700 dark:text-stone-200"
+          aria-current={index === visibleBreadcrumbs.length - 1 ? "page" : undefined}
+          >{crumb.label}</span
+        >
+      {/if}
+    {/each}
     {#if isDirty}
       <span
-        class="size-1.5 shrink-0 rounded-full bg-amber-500"
+        class="ml-0.5 size-1.5 shrink-0 rounded-full bg-amber-500"
         title="Unsaved changes"
         aria-label="Unsaved changes"
       ></span>
     {/if}
-  </div>
+  </nav>
 
   <div class="ml-auto flex shrink-0 items-center gap-0.5">
     <Button

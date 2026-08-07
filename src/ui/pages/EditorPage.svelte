@@ -46,6 +46,8 @@
     displayNoteName,
     displayNotePath,
     entryPathFromNote,
+    isDirNotePath,
+    stripNoteExtension,
     withNoteExtension,
   } from "../../lib/utils/path";
   import {
@@ -78,6 +80,7 @@
     easing: cubicOut,
     duration: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 200,
   };
+  type Breadcrumb = { label: string; path?: string };
 
   let path: string | null = null;
   let spaceRoot = loadSpaceRoot();
@@ -118,6 +121,7 @@
   $: activeEntryPath = activeRelativePath ? entryPathFromNote(activeRelativePath) : null;
   $: activePageMeta = activeEntryPath ? (spaceMeta[activeEntryPath] ?? {}) : {};
   $: fileLabel = activeRelativePath ? displayNotePath(activeRelativePath) : spaceRoot ? "No note selected" : "No space";
+  $: breadcrumbs = noteBreadcrumbs(activeRelativePath, spaceNotes, fileLabel);
   $: noteTitle = activeRelativePath ? displayNoteName(activeRelativePath) : "";
   $: dirtyMarker = isDirty ? " *" : "";
   $: displayName = `${fileLabel}${dirtyMarker}`;
@@ -134,6 +138,28 @@
   function syncStats() {
     characters = contents.length;
     words = countWords(contents);
+  }
+
+  function noteBreadcrumbs(relativePath: string | null, notes: string[], fallback: string): Breadcrumb[] {
+    if (!relativePath) {
+      return [{ label: fallback }];
+    }
+
+    const pathSegments = isDirNotePath(relativePath)
+      ? relativePath.split("/").slice(0, -1)
+      : relativePath.split("/");
+
+    return pathSegments.map((segment, index) => {
+      const isLast = index === pathSegments.length - 1;
+      const folderPath = pathSegments.slice(0, index + 1).join("/");
+      const folderNote = dirNotePath(folderPath);
+      const path = isLast ? relativePath : notes.includes(folderNote) ? folderNote : undefined;
+
+      return {
+        label: isLast && !isDirNotePath(relativePath) ? stripNoteExtension(segment) : segment,
+        path,
+      };
+    });
   }
 
   function scheduleStats() {
@@ -764,8 +790,10 @@
   <EditorToolbar
     title={appTitle}
     {fileLabel}
+    {breadcrumbs}
     {isDirty}
     spacePaneOpen={settings.spacePaneOpen}
+    onSelectBreadcrumb={(relativePath) => runWithStatus(() => selectSpaceNote(relativePath))}
     onToggleSpacePane={toggleSpacePane}
     onToggleSettings={() => (settingsOpen = !settingsOpen)}
     onToggleDatabases={() => (databasesOpen = !databasesOpen)}
