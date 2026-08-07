@@ -2353,8 +2353,8 @@
 {/if}
 
 <style>
-  /* Fence lines are scaffolding; the code body is the editable block surface. */
-  [contenteditable] :global(.md-fence) {
+  /* Fence lines are scaffolding until the caret enters that code block. */
+  [contenteditable] :global(.md-fence:not([data-active])) {
     display: none;
   }
 
