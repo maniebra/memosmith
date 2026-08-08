@@ -426,6 +426,8 @@ body {
     @apply absolute top-1/2 right-1 h-10 w-1.5 -translate-y-1/2 cursor-ew-resize rounded-full bg-stone-900/0 transition-colors;
   }
 
+  .md-drawing-open:hover .md-resize,
+  .md-diagram-open:hover .md-resize,
   .md-media-wrap:hover .md-resize,
   .md-resize:active {
     @apply bg-stone-900/40 dark:bg-stone-100/50;
@@ -444,7 +446,7 @@ body {
   }
 
   .md-drawing-open {
-    @apply cursor-pointer rounded-md border border-stone-300 bg-stone-100 px-3 py-2 text-sm text-stone-700 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200;
+    @apply relative cursor-pointer rounded-md border border-stone-300 bg-stone-100 px-3 py-2 text-sm text-stone-700 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200;
   }
 
   /* A thumbnail card is the drawing itself, so it drops the button chrome. */
@@ -469,7 +471,7 @@ body {
   }
 
   .md-diagram-open {
-    @apply cursor-pointer rounded-md border border-stone-300 bg-stone-100 px-3 py-2 text-sm text-stone-700 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200;
+    @apply relative cursor-pointer rounded-md border border-stone-300 bg-stone-100 px-3 py-2 text-sm text-stone-700 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200;
   }
 
   /* draw.io exports theme-adaptive SVG: every colour is a CSS `light-dark()` pair. The export pins

@@ -129,6 +129,7 @@
     y: number;
     hasSelection: boolean;
     textSelection?: { start: number; end: number } | null;
+    embedPreview?: HTMLElement | null;
   } | null = null;
   let generating = false;
   let selectedTableCell: {
@@ -1619,6 +1620,9 @@
     );
   }
 
+  /** Drag target for manual sizing, appended inside every embed card. */
+  const RESIZE_HANDLE = '<span class="md-resize" aria-hidden="true"></span>';
+
   /** Exported thumbnails keyed by their scene JSON, so a re-render repaints without re-exporting. */
   const drawingThumbnails = new Map<string, string>();
   let darkMode = document.documentElement.classList.contains("dark");
@@ -1699,9 +1703,98 @@
         }
 
         button.classList.toggle("md-drawing-thumbnail", Boolean(svg));
-        button.innerHTML = svg || "Edit drawing";
+        button.innerHTML = (svg || "Edit drawing") + RESIZE_HANDLE;
+        applyEmbedLayout(preview as HTMLElement, button);
       });
     }
+  }
+
+  const EMBED_SELECTOR = ".md-drawing-preview, .md-diagram-preview";
+
+  function embedLanguage(preview: Element) {
+    return preview.classList.contains("md-diagram-preview") ? "drawio" : "excalidraw";
+  }
+
+  function embedSource(preview: Element): Record<string, any> {
+    try {
+      const parsed = JSON.parse(sceneOf(preview) || "{}");
+
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+
+  /** Width in pixels and alignment ride along in the block's own JSON. */
+  function applyEmbedLayout(preview: HTMLElement, button: HTMLElement) {
+    const { width, align } = embedSource(preview);
+
+    const svg = button.querySelector("svg") as SVGElement | null;
+
+    preview.style.justifyContent =
+      align === "center" ? "center" : align === "right" ? "flex-end" : "flex-start";
+    button.style.width = typeof width === "number" ? `${width}px` : "";
+    // A sized card scales its thumbnail; an unsized one keeps the export's natural size.
+    svg?.style.setProperty("width", typeof width === "number" ? "100%" : "");
+  }
+
+  function setEmbedOption(preview: HTMLElement, options: { width?: number | null; align?: string | null }) {
+    const source = embedSource(preview);
+
+    for (const [key, option] of Object.entries(options)) {
+      if (option === null) {
+        delete source[key];
+      } else if (option !== undefined) {
+        source[key] = option;
+      }
+    }
+
+    replaceFencedSource(preview, embedLanguage(preview), JSON.stringify(source));
+  }
+
+  /** The modals only know about their own content, so width and align are carried over here. */
+  function withEmbedLayout(preview: HTMLElement, source: string) {
+    const { width, align } = embedSource(preview);
+
+    if (width === undefined && align === undefined) {
+      return source;
+    }
+
+    try {
+      return JSON.stringify({ ...JSON.parse(source), ...(width !== undefined && { width }), ...(align !== undefined && { align }) });
+    } catch {
+      return source;
+    }
+  }
+
+  function startEmbedResize(event: PointerEvent, handle: HTMLElement) {
+    const preview = handle.closest(EMBED_SELECTOR) as HTMLElement | null;
+    const button = handle.parentElement;
+
+    if (!preview || !button) {
+      return;
+    }
+
+    event.preventDefault();
+
+    const startX = event.clientX;
+    const startWidth = button.getBoundingClientRect().width;
+    // A centered card grows from both edges, a right-aligned one grows leftwards.
+    const align = embedSource(preview).align;
+    const factor = align === "center" ? 2 : align === "right" ? -1 : 1;
+
+    const onMove = (moveEvent: PointerEvent) => {
+      button.style.width = `${Math.max(64, Math.round(startWidth + (moveEvent.clientX - startX) * factor))}px`;
+    };
+
+    const onUp = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      setEmbedOption(preview, { width: Math.round(button.getBoundingClientRect().width) });
+    };
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
   }
 
   function paintDiagramPreviews() {
@@ -1721,7 +1814,8 @@
       }
 
       button.classList.toggle("md-diagram-thumbnail", Boolean(svg));
-      button.innerHTML = svg || "Edit diagram";
+      button.innerHTML = (svg || "Edit diagram") + RESIZE_HANDLE;
+      applyEmbedLayout(preview as HTMLElement, button);
     }
   }
 
@@ -1734,7 +1828,7 @@
     editingDiagram = null;
 
     if (preview) {
-      replaceFencedSource(preview, "drawio", diagram);
+      replaceFencedSource(preview, "drawio", withEmbedLayout(preview, diagram));
     }
   }
 
@@ -1749,7 +1843,7 @@
     editingDrawing = null;
 
     if (preview) {
-      replaceFencedSource(preview, "excalidraw", scene);
+      replaceFencedSource(preview, "excalidraw", withEmbedLayout(preview, scene));
     }
   }
 
@@ -1772,6 +1866,16 @@
 
   function handlePointerDown(event: PointerEvent) {
     const handle = event.target as HTMLElement;
+
+    // pointerdown fires for the right button too, and a right click belongs to the context menu.
+    if (event.button !== 0) {
+      return;
+    }
+
+    if (editable && handle.classList?.contains("md-resize") && handle.closest(EMBED_SELECTOR)) {
+      startEmbedResize(event, handle);
+      return;
+    }
 
     if (handle.closest?.(".md-diagram-open")) {
       const preview = handle.closest(".md-diagram-preview") as HTMLElement | null;
@@ -1965,10 +2069,26 @@
 
   function openContextMenu(event: MouseEvent) {
     event.preventDefault();
-    element?.focus();
     closeMenu();
 
     const target = event.target as HTMLElement;
+    const embedPreview = target.closest(EMBED_SELECTOR) as HTMLElement | null;
+
+    // An embed card holds no caret position, so focusing and placing one there would
+    // drop the caret at the top of the note and scroll the whole editor with it.
+    if (embedPreview) {
+      contextMenu = {
+        embedPreview,
+        x: event.clientX,
+        y: event.clientY,
+        hasSelection: false,
+        textSelection: null,
+      };
+
+      return;
+    }
+
+    element?.focus();
     const tableCell = tableCellForNode(target);
     const preview = target.closest(".md-table-preview") as HTMLElement | null;
     const fallbackTableCell = preview ? selectedCellIn(preview) : null;
@@ -1992,6 +2112,7 @@
     const table = tableSelection();
 
     contextMenu = {
+      embedPreview: target.closest(EMBED_SELECTOR) as HTMLElement | null,
       x: event.clientX,
       y: event.clientY,
       hasSelection: Boolean(
@@ -1999,6 +2120,37 @@
       ),
       textSelection,
     };
+  }
+
+  function embedAlignItems(): ContextMenuItem[] {
+    const preview = contextMenu?.embedPreview;
+
+    if (!editable || !preview) {
+      return [];
+    }
+
+    return [
+      {
+        label: "Align left",
+        icon: AlignLeft,
+        onSelect: () => setEmbedOption(preview, { align: null }),
+      },
+      {
+        label: "Align center",
+        icon: AlignCenter,
+        onSelect: () => setEmbedOption(preview, { align: "center" }),
+      },
+      {
+        label: "Align right",
+        icon: AlignRight,
+        onSelect: () => setEmbedOption(preview, { align: "right" }),
+      },
+      {
+        label: "Reset size",
+        onSelect: () => setEmbedOption(preview, { width: null }),
+      },
+      { separator: true },
+    ];
   }
 
   function alignItems(): ContextMenuItem[] {
@@ -2107,6 +2259,7 @@
 
   function contextItems(): ContextMenuItem[] {
     return [
+      ...embedAlignItems(),
       ...alignItems(),
       ...tableItems(),
       {
