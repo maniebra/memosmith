@@ -1124,6 +1124,9 @@
           calloutDefinitions={settings.callouts}
           drawings={settings.features.drawings}
           diagrams={settings.features.diagrams}
+          codeExecution={settings.features.codeExecution}
+          runSession={path ?? ""}
+          runner={settings.runner}
           editable={Boolean(path)}
           {noteTitle}
           pageMeta={activePageMeta}

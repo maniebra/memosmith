@@ -1,6 +1,7 @@
 pub mod assets;
 pub mod databases;
 pub mod notes;
+pub mod runner;
 pub mod utils;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -29,7 +30,10 @@ pub fn run() {
             databases::save_database_meta,
             databases::save_database_row,
             databases::delete_database_row,
-            databases::delete_database
+            databases::delete_database,
+            runner::run_code,
+            runner::reset_session,
+            runner::detect_runtimes
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

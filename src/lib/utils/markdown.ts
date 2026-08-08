@@ -1,5 +1,6 @@
 import hljs from "highlight.js/lib/common";
 import katex from "katex";
+import { isRunnable, kernelFor, KERNEL_LABELS } from "./runner";
 import { defaultCalloutDefinitions, type CalloutDefinition } from "../storage/settings";
 import { assetFolder } from "./assets";
 import { calloutIconSvg } from "./calloutIcons";
@@ -647,6 +648,7 @@ export type RenderDocumentOptions = {
   renderWikilinkEmbed?: (target: string, depth: number) => WikilinkEmbed | null;
   wikilinkEmbedDepth?: number;
   staticDiagramPreviews?: boolean;
+  codeExecution?: boolean;
 };
 
 /** Language of the fenced block that holds an Excalidraw scene as JSON. */
@@ -690,6 +692,22 @@ function diagramPreview(group: number, source = "", staticPreview = false) {
   }
 
   return `<div class="md-preview md-diagram-preview" data-code="${group}" contenteditable="false"><button type="button" class="md-diagram-open">Edit diagram</button></div>`;
+}
+
+const PLAY_ICON =
+  '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.14v13.72a1 1 0 0 0 1.54.84l10.29-6.86a1 1 0 0 0 0-1.68L9.54 4.3A1 1 0 0 0 8 5.14Z"/></svg>';
+const RESTART_ICON =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>';
+
+/** The run bar sits under a runnable fence; its output is painted in by the editor. */
+function runPreview(group: number, language: string) {
+  const kernel = kernelFor(language);
+
+  return `<div class="md-preview md-run-preview" data-code="${group}" data-run-language="${attribute(
+    language,
+  )}" contenteditable="false"><div class="md-run-bar"><button type="button" class="md-run-button" title="Run cell"><span class="md-run-icon">${PLAY_ICON}</span><span class="md-run-label">Run</span></button><span class="md-run-kernel">${
+    kernel ? KERNEL_LABELS[kernel] : ""
+  }</span><span class="md-run-status"></span><button type="button" class="md-run-restart" title="Restart kernel">${RESTART_ICON}</button></div></div>`;
 }
 
 function drawingPreview(group: number) {
@@ -790,6 +808,9 @@ export function renderDocument(
   const calloutDefinitions = options.calloutDefinitions ?? defaultCalloutDefinitions;
   const drawings = options.drawings ?? false;
   const diagrams = options.diagrams ?? false;
+  const codeExecution = options.codeExecution ?? false;
+  /** Language of the open fence when it is runnable, so its close can grow a run bar. */
+  let runLanguage: string | null = null;
   const inlineOptions = { resolveWikilink: options.resolveWikilink };
   let embedGroup: number | null = null;
   /** Non-null while inside a fenced block that renders as a preview card instead of code. */
@@ -856,6 +877,13 @@ export function renderDocument(
       output.push(
         `<div class="md-block ${className}${embedClass}" data-code="${index}">${escapeHtml(line)}</div>`,
       );
+
+      if (isOpening) {
+        runLanguage = codeExecution && !embedded && isRunnable(language ?? "") ? language : null;
+      } else if (runLanguage) {
+        output.push(runPreview(index, runLanguage));
+        runLanguage = null;
+      }
 
       // The source lives behind the preview card, so the raw JSON is only shown while the caret is inside.
       if (embedded && !isOpening) {

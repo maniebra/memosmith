@@ -24,7 +24,9 @@
     GrammarCheckMode,
     ThemePreference,
   } from "../../lib/storage/settings";
-  import { defaultCalloutDefinitions } from "../../lib/storage/settings";
+  import { defaultCalloutDefinitions, type RunnerSettings } from "../../lib/storage/settings";
+  import { detectRuntimes } from "../../lib/tauri/runner";
+  import { KERNEL_LABELS, type Kernel } from "../../lib/utils/runner";
   import {
     CALLOUT_ICON_OPTIONS,
     normalizeCalloutIcon,
@@ -77,6 +79,22 @@
 
   let activeTab: SettingsTab = "appearance";
   let grammarOptionsOpen = false;
+  let codeOptionsOpen = false;
+  /** Resolved interpreter per kernel, refreshed whenever the paths change. */
+  let runtimes: Record<string, string> = {};
+
+  async function refreshRuntimes() {
+    runtimes = await detectRuntimes(settings.runner).catch(() => ({}));
+  }
+
+  function updateRunner(nextRunner: Partial<RunnerSettings>) {
+    updateSettings({ runner: { ...settings.runner, ...nextRunner } });
+  }
+
+  function updateRunnerCommand(kernel: Kernel, command: string) {
+    updateRunner({ commands: { ...settings.runner.commands, [kernel]: command } });
+    void refreshRuntimes();
+  }
   let calloutOptionsOpen = false;
   const tabOptions: { label: string; value: SettingsTab }[] = [
     { label: "Appearance", value: "appearance" },
@@ -607,6 +625,87 @@
             className="h-10 w-full"
             onChange={(diagrams) => updateFeatures({ diagrams })}
           />
+          <div class="grid gap-2">
+            <div class="flex items-center gap-1">
+              <Switch
+                checked={settings.features.codeExecution}
+                label="Code execution (Jupyter-style cells)"
+                className="h-10 w-full"
+                onChange={(codeExecution) => {
+                  updateFeatures({ codeExecution });
+
+                  if (codeExecution) {
+                    void refreshRuntimes();
+                  }
+                }}
+              />
+              <button
+                type="button"
+                class="grid size-10 shrink-0 place-items-center rounded-md text-stone-500 transition-colors hover:bg-stone-500/10 hover:text-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 dark:hover:text-stone-200"
+                aria-expanded={codeOptionsOpen}
+                aria-label="Code execution options"
+                onclick={() => {
+                  codeOptionsOpen = !codeOptionsOpen;
+
+                  if (codeOptionsOpen) {
+                    void refreshRuntimes();
+                  }
+                }}
+              >
+                <ChevronDown
+                  class={cn("size-4 transition-transform", codeOptionsOpen && "rotate-180")}
+                />
+              </button>
+            </div>
+
+            {#if codeOptionsOpen}
+              <div
+                class="grid gap-4 rounded-md border border-stone-200 p-3 dark:border-stone-800"
+                transition:slide={{ duration: 160, easing: cubicOut }}
+              >
+                <span class="text-xs text-stone-500">
+                  Runtimes are found on PATH; fill a box only to point at a different one. Each note
+                  keeps its own kernel, so cells share variables like a notebook.
+                </span>
+
+                {#each Object.keys(KERNEL_LABELS) as kernel (kernel)}
+                  <label class="grid gap-1">
+                    <span class="flex items-center justify-between text-sm text-stone-700 dark:text-stone-200">
+                      {KERNEL_LABELS[kernel as Kernel]}
+                      <span
+                        class={cn(
+                          "font-mono text-xs",
+                          runtimes[kernel] ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400",
+                        )}
+                      >
+                        {runtimes[kernel] || "not found"}
+                      </span>
+                    </span>
+                    <Input
+                      value={settings.runner.commands[kernel as Kernel]}
+                      placeholder={runtimes[kernel] || "path to the interpreter"}
+                      oninput={(event) =>
+                        updateRunnerCommand(kernel as Kernel, (event.target as HTMLInputElement).value)}
+                    />
+                  </label>
+                {/each}
+
+                <label class="grid gap-1">
+                  <span class="text-sm text-stone-700 dark:text-stone-200">Cell timeout (seconds)</span>
+                  <Input
+                    value={String(settings.runner.timeoutMs / 1000)}
+                    oninput={(event) => {
+                      const seconds = Number((event.target as HTMLInputElement).value);
+
+                      if (Number.isFinite(seconds) && seconds > 0) {
+                        updateRunner({ timeoutMs: Math.round(seconds * 1000) });
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+            {/if}
+          </div>
         </section>
       </div>
     {:else if activeTab === "ai"}

@@ -620,4 +620,155 @@ body {
     color-scheme: dark !important;
   }
 
+  /* --- Code execution -------------------------------------------------- */
+
+  /* No entrance animation: the editor re-renders on every keystroke, and a bar that
+     faded in each time would strobe. Only results and the busy state animate. */
+  .md-run-preview {
+    @apply -mt-3 mb-4 flex flex-col;
+  }
+
+  .md-run-bar {
+    @apply relative flex items-center gap-2 overflow-hidden rounded-b-md border-t border-stone-500/10 bg-stone-500/10 px-3 py-1.5;
+  }
+
+  /* A light sweeps the bar while the kernel is busy. */
+  .md-run-bar-busy::after {
+    content: "";
+    @apply pointer-events-none absolute inset-0;
+    background: linear-gradient(
+      100deg,
+      transparent 20%,
+      rgb(var(--ms-accent-soft-rgb) / 0.28) 50%,
+      transparent 80%
+    );
+    animation: md-run-sweep 1.1s linear infinite;
+  }
+
+  .md-run-button {
+    @apply relative z-10 flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-white transition-transform duration-150;
+    background: var(--ms-accent-color);
+  }
+
+  .md-run-button:hover {
+    @apply scale-[1.04];
+    background: var(--ms-accent-strong);
+  }
+
+  .md-run-button:active {
+    @apply scale-95;
+  }
+
+  .md-run-icon svg {
+    @apply size-3;
+  }
+
+  .md-run-busy .md-run-icon {
+    @apply inline-block;
+    animation: md-run-pulse 900ms ease-in-out infinite;
+  }
+
+  .md-run-kernel {
+    @apply relative z-10 text-[0.65rem] font-medium tracking-wide text-stone-500 uppercase dark:text-stone-400;
+  }
+
+  .md-run-status {
+    @apply relative z-10 ml-auto font-mono text-[0.65rem] text-stone-500 dark:text-stone-400;
+  }
+
+  .md-run-busy .md-run-status {
+    animation: md-run-blink 1s ease-in-out infinite;
+  }
+
+  .md-run-restart {
+    @apply relative z-10 cursor-pointer rounded-md p-1 text-stone-500 transition-transform duration-300 hover:bg-stone-500/15 hover:text-stone-800 dark:hover:text-stone-100;
+  }
+
+  .md-run-restart:hover svg {
+    animation: md-run-spin 700ms cubic-bezier(0.3, 0, 0.2, 1);
+  }
+
+  .md-run-restart svg {
+    @apply size-3.5;
+  }
+
+  .md-run-restarted .md-run-bar {
+    animation: md-run-flash 600ms ease-out;
+  }
+
+  .md-run-output {
+    @apply mt-1.5 max-h-80 overflow-auto rounded-md border-l-2 bg-stone-500/8 px-3 py-2 font-mono text-[0.8em] leading-relaxed whitespace-pre-wrap text-stone-700 dark:text-stone-200;
+    animation: md-run-reveal 260ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  }
+
+  .md-run-quiet {
+    animation: none;
+  }
+
+  .md-run-ok {
+    @apply border-l-emerald-500/70;
+  }
+
+  .md-run-error.md-run-quiet {
+    animation: none;
+  }
+
+  .md-run-error {
+    @apply border-l-rose-500/80 text-rose-700 dark:text-rose-300;
+    animation:
+      md-run-reveal 260ms cubic-bezier(0.2, 0.8, 0.3, 1) both,
+      md-run-shake 320ms ease-in-out 200ms;
+  }
+
+  .md-run-timeout {
+    @apply border-l-amber-500/80 text-amber-700 dark:text-amber-300;
+  }
+
+}
+
+@keyframes md-run-reveal {
+  from { opacity: 0; transform: translateY(-4px) scaleY(0.96); transform-origin: top; }
+  to { opacity: 1; transform: translateY(0) scaleY(1); }
+}
+
+@keyframes md-run-sweep {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+
+@keyframes md-run-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.82); }
+}
+
+@keyframes md-run-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+@keyframes md-run-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(-360deg); }
+}
+
+@keyframes md-run-flash {
+  from { background-color: rgb(var(--ms-accent-soft-rgb) / 0.35); }
+  to { background-color: transparent; }
+}
+
+@keyframes md-run-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-3px); }
+  75% { transform: translateX(3px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .md-run-output,
+  .md-run-bar-busy::after,
+  .md-run-busy .md-run-icon,
+  .md-run-busy .md-run-status,
+  .md-run-restart:hover svg,
+  .md-run-restarted .md-run-bar {
+    animation: none;
+  }
 }

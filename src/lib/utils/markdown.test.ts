@@ -162,3 +162,13 @@ assert(
   renderDocument('```drawio\n{}\n```\n\n```js\nlet a\n```', undefined, { diagrams: true }).includes("md-codeblock"),
   "a code block after a diagram block is still code",
 );
+
+// Code execution: only closed, runnable fences grow a run bar, and only when the feature is on.
+const runBars = (text: string, codeExecution: boolean) =>
+  (renderDocument(text, undefined, { codeExecution }).match(/md-run-preview/g) ?? []).length;
+
+assert(runBars("```python\nprint(1)\n```", true) === 1, "runnable fence gets a run bar");
+assert(runBars("```python\nprint(1)\n```", false) === 0, "run bars need the feature on");
+assert(runBars("```rust\nfn main() {}\n```", true) === 0, "unrunnable language gets no run bar");
+assert(runBars("```bash\necho hi\n", true) === 0, "an unclosed fence gets no run bar");
+assert(sourceBlocks("```python\nprint(1)\n```") === 3, "the run bar is not a source block");

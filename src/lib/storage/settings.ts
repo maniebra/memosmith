@@ -1,5 +1,6 @@
 import { GRAMMAR_MODES, isGrammarMode, type GrammarMode } from "../utils/grammar";
 import { normalizeCalloutIcon } from "../utils/calloutIcons";
+import type { Kernel } from "../utils/runner";
 import {
   defaultAppearanceSettings,
   type AccentColor,
@@ -25,6 +26,13 @@ export type FeatureSettings = {
   callouts: boolean;
   drawings: boolean;
   diagrams: boolean;
+  codeExecution: boolean;
+};
+
+/** Interpreter paths, empty meaning "find it on PATH", plus the per-cell time limit. */
+export type RunnerSettings = {
+  commands: Record<Kernel, string>;
+  timeoutMs: number;
 };
 
 export type CalloutDefinition = {
@@ -56,6 +64,7 @@ export type AppSettings = {
   appearance: AppearanceSettings;
   features: FeatureSettings;
   callouts: CalloutDefinition[];
+  runner: RunnerSettings;
   editorWidth: EditorWidth;
   textSize: number;
   spellcheck: boolean;
@@ -129,6 +138,12 @@ export const defaultFeatureSettings: FeatureSettings = {
   callouts: true,
   drawings: false,
   diagrams: false,
+  codeExecution: false,
+};
+
+export const defaultRunnerSettings: RunnerSettings = {
+  commands: { bash: "", python: "", node: "", java: "", kotlin: "", r: "", cpp: "" },
+  timeoutMs: 30000,
 };
 
 export const defaultCalloutDefinitions: CalloutDefinition[] = [
@@ -145,6 +160,7 @@ export const defaultSettings: AppSettings = {
   appearance: { ...defaultAppearanceSettings },
   features: { ...defaultFeatureSettings },
   callouts: defaultCalloutDefinitions.map((callout) => ({ ...callout })),
+  runner: { commands: { ...defaultRunnerSettings.commands }, timeoutMs: defaultRunnerSettings.timeoutMs },
   editorWidth: "comfortable",
   textSize: 17,
   spellcheck: true,
@@ -331,6 +347,28 @@ function readFeatures(value: unknown): FeatureSettings {
       typeof parsed.drawings === "boolean" ? parsed.drawings : defaultFeatureSettings.drawings,
     diagrams:
       typeof parsed.diagrams === "boolean" ? parsed.diagrams : defaultFeatureSettings.diagrams,
+    codeExecution:
+      typeof parsed.codeExecution === "boolean"
+        ? parsed.codeExecution
+        : defaultFeatureSettings.codeExecution,
+  };
+}
+
+function readRunner(value: unknown): RunnerSettings {
+  const parsed = (value ?? {}) as Partial<RunnerSettings>;
+  const stored = (parsed.commands ?? {}) as Partial<Record<Kernel, string>>;
+  const timeout = Number(parsed.timeoutMs);
+
+  return {
+    commands: Object.fromEntries(
+      (Object.keys(defaultRunnerSettings.commands) as Kernel[]).map((kernel) => [
+        kernel,
+        typeof stored[kernel] === "string" ? stored[kernel] : "",
+      ]),
+    ) as Record<Kernel, string>,
+    timeoutMs: Number.isFinite(timeout)
+      ? Math.min(600000, Math.max(1000, timeout))
+      : defaultRunnerSettings.timeoutMs,
   };
 }
 
@@ -349,6 +387,7 @@ export function loadSettings(): AppSettings {
       appearance: readAppearance(parsed.appearance),
       features: readFeatures(parsed.features),
       callouts: readCallouts(parsed.callouts),
+      runner: readRunner(parsed.runner),
       editorWidth: isEditorWidth(parsed.editorWidth) ? parsed.editorWidth : defaultSettings.editorWidth,
       textSize: clampTextSize(parsed.textSize),
       spellcheck: typeof parsed.spellcheck === "boolean" ? parsed.spellcheck : defaultSettings.spellcheck,

@@ -28,7 +28,7 @@
   import { onDestroy, onMount } from "svelte";
   import { cubicOut } from "svelte/easing";
   import { scale } from "svelte/transition";
-  import type { CalloutDefinition } from "../../lib/storage/settings";
+  import { defaultRunnerSettings, type CalloutDefinition, type RunnerSettings } from "../../lib/storage/settings";
   import { cn } from "../../lib/utils/cn";
   import ContextMenu, { type ContextMenuItem } from "./ContextMenu.svelte";
   import {
@@ -49,6 +49,8 @@
     EMPTY_DRAWING,
     EMPTY_DIAGRAM,
   } from "../../lib/utils/markdown";
+  import { runCode, resetSession } from "../../lib/tauri/runner";
+  import { outputKey } from "../../lib/utils/runner";
   import DrawingModal from "./DrawingModal.svelte";
   import DiagramModal from "./DiagramModal.svelte";
 
@@ -63,6 +65,10 @@
   export let calloutDefinitions: CalloutDefinition[] = [];
   export let drawings = false;
   export let diagrams = false;
+  export let codeExecution = false;
+  /** Identifies the kernels a note owns, so its variables survive between cells. */
+  export let runSession = "";
+  export let runner: RunnerSettings = defaultRunnerSettings;
   export let editable = true;
   export let className = "";
   export let onInput: () => void = () => {};
@@ -92,6 +98,16 @@
   let renderedCalloutDefinitions = "";
   let renderedDrawings = drawings;
   let renderedDiagrams = diagrams;
+  let renderedCodeExecution = codeExecution;
+  type CellRun = {
+    state: "running" | "ok" | "error" | "timeout";
+    text: string;
+    seconds?: number;
+    /** Set once the result has been shown, so re-renders do not replay the reveal. */
+    shown?: boolean;
+  };
+  /** Keyed by cell content, so results follow their block instead of its position. */
+  const cellRuns = new Map<string, CellRun>();
   /** The drawing block being edited in the modal, plus the scene JSON it opened with. */
   let editingDrawing: { preview: HTMLElement; scene: string } | null = null;
   /** The diagram block being edited in the modal, plus the JSON it opened with. */
@@ -227,6 +243,11 @@
     renderedDrawings = drawings;
     render(caretOffset());
   }
+  $: if (element && renderedCodeExecution !== codeExecution) {
+    renderedCodeExecution = codeExecution;
+    render(caretOffset());
+  }
+
   $: if (element && renderedDiagrams !== diagrams) {
     renderedDiagrams = diagrams;
     render(caretOffset());
@@ -1007,12 +1028,14 @@
       calloutDefinitions,
       drawings,
       diagrams,
+      codeExecution,
       resolveWikilink,
       renderWikilinkEmbed,
     });
     bindTableToolbars();
     paintDrawingPreviews();
     paintDiagramPreviews();
+    paintRunPreviews();
 
     if (!editable) {
       for (const cell of Array.from(element.querySelectorAll("[data-table-cell]"))) {
@@ -1771,6 +1794,105 @@
     }
   }
 
+  function cellKey(preview: HTMLElement) {
+    return outputKey(preview.dataset.runLanguage ?? "", sceneOf(preview));
+  }
+
+  /** Results live in a map, so every re-render repaints them onto the fresh run bars. */
+  function paintRunPreviews() {
+    for (const preview of Array.from(element?.querySelectorAll(".md-run-preview") ?? [])) {
+      paintRunPreview(preview as HTMLElement);
+    }
+  }
+
+  function paintRunPreview(preview: HTMLElement) {
+    const run = cellRuns.get(cellKey(preview));
+    const bar = preview.querySelector(".md-run-bar");
+    const status = preview.querySelector(".md-run-status");
+    let output = preview.querySelector(".md-run-output") as HTMLElement | null;
+
+    preview.classList.toggle("md-run-busy", run?.state === "running");
+    bar?.classList.toggle("md-run-bar-busy", run?.state === "running");
+
+    if (status) {
+      status.textContent =
+        run?.state === "running"
+          ? "running"
+          : run?.seconds !== undefined
+            ? `${run.seconds.toFixed(run.seconds < 10 ? 2 : 1)}s`
+            : "";
+    }
+
+    if (!run?.text) {
+      output?.remove();
+
+      return;
+    }
+
+    if (!output) {
+      output = document.createElement("div");
+      output.className = "md-run-output";
+      preview.append(output);
+    }
+
+    output.classList.remove("md-run-ok", "md-run-error", "md-run-timeout");
+    output.classList.add(`md-run-${run.state === "running" ? "ok" : run.state}`);
+    output.classList.toggle("md-run-quiet", Boolean(run.shown));
+    output.textContent = run.text;
+    run.shown = true;
+  }
+
+  async function runCell(preview: HTMLElement) {
+    const language = preview.dataset.runLanguage ?? "";
+    const code = sceneOf(preview);
+    const key = outputKey(language, code);
+
+    if (cellRuns.get(key)?.state === "running") {
+      return;
+    }
+
+    cellRuns.set(key, { state: "running", text: "" });
+    paintRunPreviews();
+
+    const started = performance.now();
+
+    try {
+      const result = await runCode(runSession || "scratch", language, code, runner);
+
+      cellRuns.set(key, {
+        state: result.timedOut ? "timeout" : result.status === 0 ? "ok" : "error",
+        text: result.timedOut
+          ? `${result.output}\nCell timed out and the kernel was restarted.`
+          : result.output || (result.status === 0 ? "" : "Cell failed with no output."),
+        seconds: (performance.now() - started) / 1000,
+      });
+    } catch (error) {
+      cellRuns.set(key, {
+        state: "error",
+        text: error instanceof Error ? error.message : String(error),
+        seconds: (performance.now() - started) / 1000,
+      });
+    }
+
+    paintRunPreviews();
+  }
+
+  async function restartCell(preview: HTMLElement) {
+    const language = preview.dataset.runLanguage ?? "";
+
+    await resetSession(runSession || "scratch", language).catch(() => {});
+
+    for (const other of Array.from(element?.querySelectorAll(".md-run-preview") ?? [])) {
+      if ((other as HTMLElement).dataset.runLanguage === language) {
+        cellRuns.delete(cellKey(other as HTMLElement));
+      }
+    }
+
+    preview.classList.add("md-run-restarted");
+    window.setTimeout(() => preview.classList.remove("md-run-restarted"), 600);
+    paintRunPreviews();
+  }
+
   const EMBED_SELECTOR = ".md-drawing-preview, .md-diagram-preview";
 
   function embedLanguage(preview: Element) {
@@ -1955,6 +2077,24 @@
 
     if (editable && handle.classList?.contains("md-resize") && handle.closest(EMBED_SELECTOR)) {
       startEmbedResize(event, handle);
+      return;
+    }
+
+    const runControl = handle.closest?.(".md-run-button, .md-run-restart") as HTMLElement | null;
+
+    if (runControl) {
+      const preview = runControl.closest(".md-run-preview") as HTMLElement | null;
+
+      if (preview) {
+        event.preventDefault();
+
+        if (runControl.classList.contains("md-run-restart")) {
+          void restartCell(preview);
+        } else {
+          void runCell(preview);
+        }
+      }
+
       return;
     }
 
@@ -2533,6 +2673,20 @@
 
       if (event.key === "Escape") {
         closeMenu();
+        return;
+      }
+    }
+
+    // Jupyter muscle memory: Ctrl/Cmd+Enter runs the cell holding the caret.
+    if (codeExecution && event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+      const group = currentBlock()?.dataset.code;
+      const preview = group
+        ? (element?.querySelector(`.md-run-preview[data-code="${group}"]`) as HTMLElement | null)
+        : null;
+
+      if (preview) {
+        event.preventDefault();
+        void runCell(preview);
         return;
       }
     }

@@ -109,6 +109,20 @@ cargo check
 - **Re-checking**: While the panel is open, typing schedules a re-check 2.5s after the last keystroke, skipped when the text has not changed since the last run.
 - **Explain**: Each issue has an "Explain" button that asks the model for a short rationale (`explainIssue`); answers are cached per issue in the panel.
 
+### ▶️ Code Execution
+- **What**: Fenced code blocks become Jupyter-style cells with a run bar (`Settings > Features > Code execution`, off by default). Seven kernels: `bash`/`sh`/`shell`/`zsh`, `python`/`py`, `js`/`javascript`/`ts`/`typescript`, `java`, `kotlin`/`kt`/`kts`, `r`, and `cpp`/`c++`/`cc`/`cxx`.
+- **Kernels**: One long-lived interpreter process per note and per kernel (`src-tauri/src/runner.rs`), so cells share variables like a notebook. The session key is the note path; the Restart button in the run bar drops the process.
+- **Protocol**: Each kernel merges stderr into stdout and prints `__MEMOSMITH_END__<status>` when a cell finishes; Rust reads lines off a channel until that marker or the timeout. Python and Node run small embedded driver scripts, R gets an evaluator function and receives each cell as an escaped string, bash and jshell read their cells straight from stdin, and the Kotlin REPL is drained of its banner at spawn.
+- **Offline**: No network, no extra dependencies. Runtimes are discovered on PATH (`python3`/`python`, `node`, `bash`, `jshell`, `kotlinc`, `R`, `g++`/`clang++`); a path box per kernel in the settings panel overrides that, and the panel shows what was resolved.
+- **TypeScript**: Types are stripped by Node itself (`module.stripTypeScriptTypes`, Node 22.13+). Older Node reports that and the cell should be written as `js`.
+- **Semantics**: Python and Node echo the value of a trailing expression. In Node, unindented `let`/`const` are rewritten to `var` so they survive to the next cell, and a cell containing `await` is wrapped in an async function. A cell that reads stdin will eat the kernel protocol, so cells cannot prompt for input.
+- **Java and Kotlin**: `jshell` runs in script mode, so Java cells print explicitly rather than echoing expression values. Both REPLs report failures in prose and keep going, so `failed()` reads their error lines to set the cell status.
+- **C++**: No REPL exists, so each cell is compiled (`-std=c++20`) and run on its own; cells of a note share a temp working directory but not variables. A snippet without `main` is wrapped in one, with its `#include`/`using` lines lifted above a common standard-library preamble.
+- **Timeout**: Per cell, 30s by default (`settings.runner.timeoutMs`). A timeout kills the kernel and says so in the output.
+- **Outputs**: Held in memory, keyed by cell content (`outputKey` in `src/lib/utils/runner.ts`), so a re-render repaints them and editing a block above does not shuffle results. Nothing is written to the note.
+- **Shortcut**: Ctrl/Cmd+Enter runs the cell holding the caret.
+- **Tests**: `src-tauri/tests/runner_tests.rs` covers kernel reuse, error status, and the timeout; `src/lib/utils/runner.test.ts` covers language mapping and output keys.
+
 ## 🐛 Debugging & Platform Notes
 
 - **KDE/KWin**: The `tauri` script forces `GDK_BACKEND=x11` to ensure standard window decorations.
