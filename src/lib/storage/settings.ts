@@ -1,8 +1,18 @@
 import { GRAMMAR_MODES, isGrammarMode, type GrammarMode } from "../utils/grammar";
+import {
+  defaultAppearanceSettings,
+  type AccentColor,
+  type AppearanceSettings,
+  type ColorMode,
+  type CornerStyle,
+  type Density,
+  type EditorLineHeight,
+  type FontChoice,
+} from "../utils/theme";
 
 const SETTINGS_KEY = "memosmith:settings";
 
-export type ThemePreference = "system" | "light" | "dark";
+export type ThemePreference = ColorMode;
 export type EditorWidth = "focused" | "comfortable" | "wide";
 
 /** Every field is a string so an empty one simply means "leave it out of the request". */
@@ -24,6 +34,7 @@ export type LlmSettings = {
 
 export type AppSettings = {
   theme: ThemePreference;
+  appearance: AppearanceSettings;
   editorWidth: EditorWidth;
   textSize: number;
   spellcheck: boolean;
@@ -91,6 +102,7 @@ function defaultProfiles(): Record<GrammarMode, GrammarProfile> {
 
 export const defaultSettings: AppSettings = {
   theme: "system",
+  appearance: { ...defaultAppearanceSettings },
   editorWidth: "comfortable",
   textSize: 17,
   spellcheck: true,
@@ -138,6 +150,26 @@ function isThemePreference(value: unknown): value is ThemePreference {
   return value === "system" || value === "light" || value === "dark";
 }
 
+function isAccentColor(value: unknown): value is AccentColor {
+  return value === "emerald" || value === "sky" || value === "violet" || value === "rose" || value === "amber";
+}
+
+function isFontChoice(value: unknown): value is FontChoice {
+  return value === "system" || value === "inter" || value === "serif" || value === "mono";
+}
+
+function isCornerStyle(value: unknown): value is CornerStyle {
+  return value === "soft" || value === "rounded" || value === "square";
+}
+
+function isDensity(value: unknown): value is Density {
+  return value === "comfortable" || value === "compact";
+}
+
+function isEditorLineHeight(value: unknown): value is EditorLineHeight {
+  return value === "compact" || value === "comfortable" || value === "loose";
+}
+
 function isEditorWidth(value: unknown): value is EditorWidth {
   return value === "focused" || value === "comfortable" || value === "wide";
 }
@@ -162,6 +194,27 @@ function clampPaneWidth(value: unknown, fallback: number) {
   return Math.min(480, Math.max(180, width));
 }
 
+function readAppearance(value: unknown): AppearanceSettings {
+  const parsed = (value ?? {}) as Partial<AppearanceSettings>;
+
+  return {
+    accentColor: isAccentColor(parsed.accentColor)
+      ? parsed.accentColor
+      : defaultAppearanceSettings.accentColor,
+    uiFont: isFontChoice(parsed.uiFont) ? parsed.uiFont : defaultAppearanceSettings.uiFont,
+    editorFont: isFontChoice(parsed.editorFont)
+      ? parsed.editorFont
+      : defaultAppearanceSettings.editorFont,
+    cornerStyle: isCornerStyle(parsed.cornerStyle)
+      ? parsed.cornerStyle
+      : defaultAppearanceSettings.cornerStyle,
+    density: isDensity(parsed.density) ? parsed.density : defaultAppearanceSettings.density,
+    editorLineHeight: isEditorLineHeight(parsed.editorLineHeight)
+      ? parsed.editorLineHeight
+      : defaultAppearanceSettings.editorLineHeight,
+  };
+}
+
 export function loadSettings(): AppSettings {
   const rawSettings = localStorage.getItem(SETTINGS_KEY);
 
@@ -174,6 +227,7 @@ export function loadSettings(): AppSettings {
 
     return {
       theme: isThemePreference(parsed.theme) ? parsed.theme : defaultSettings.theme,
+      appearance: readAppearance(parsed.appearance),
       editorWidth: isEditorWidth(parsed.editorWidth) ? parsed.editorWidth : defaultSettings.editorWidth,
       textSize: clampTextSize(parsed.textSize),
       spellcheck: typeof parsed.spellcheck === "boolean" ? parsed.spellcheck : defaultSettings.spellcheck,

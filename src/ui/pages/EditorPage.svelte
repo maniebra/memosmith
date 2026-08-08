@@ -72,6 +72,7 @@
     defaultViews,
     slugify,
   } from "../../lib/utils/database";
+  import { applyAppearanceTheme } from "../../lib/utils/theme";
   import DatabaseManager from "../sections/DatabaseManager.svelte";
   import DatabaseView from "../sections/DatabaseView.svelte";
   import NoteEditorForm from "../forms/NoteEditorForm.svelte";
@@ -144,7 +145,7 @@
   $: dirtyMarker = isDirty ? " *" : "";
   $: displayName = `${fileLabel}${dirtyMarker}`;
   $: document.title = `${displayName} - ${appTitle}`;
-  $: applyTheme(settings.theme, prefersDark);
+  $: applyAppearanceTheme(settings.theme, settings.appearance, prefersDark);
   $: saveSettings(settings);
 
   function countWords(text: string) {
@@ -248,17 +249,6 @@
 
   function focusEditor() {
     editor?.focus();
-  }
-
-  function applyTheme(
-    theme: typeof settings.theme,
-    systemPrefersDark: boolean,
-  ) {
-    const useDark =
-      theme === "dark" || (theme === "system" && systemPrefersDark);
-
-    document.documentElement.classList.toggle("dark", useDark);
-    document.documentElement.style.colorScheme = useDark ? "dark" : "light";
   }
 
   function resetSettings() {

@@ -2266,7 +2266,7 @@
   tabindex="0"
   aria-multiline="true"
   aria-label="Markdown editor"
-  style="--md-placeholder: '{placeholder}'; font-size: {textSize}px;"
+  style="--md-placeholder: '{placeholder}'; font-size: {textSize}px; font-family: var(--ms-editor-font); line-height: var(--ms-editor-line-height);"
   class={cn(
     "min-h-[60vh] w-full leading-[1.75] whitespace-pre-wrap caret-emerald-700",
     "md-editor-surface",

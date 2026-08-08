@@ -3,14 +3,23 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  font-family:
+  --ms-ui-font:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
+  --ms-editor-font: var(--ms-ui-font);
+  --ms-editor-line-height: 1.75;
+  --ms-accent-rgb: 5 150 105;
+  --ms-accent-strong-rgb: 4 120 87;
+  --ms-accent-soft-rgb: 16 185 129;
+  --ms-accent-color: rgb(var(--ms-accent-rgb));
+  --ms-accent-strong: rgb(var(--ms-accent-strong-rgb));
+  --ms-accent-soft: rgb(var(--ms-accent-soft-rgb));
+  font-family: var(--ms-ui-font);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  accent-color: var(--color-emerald-700);
+  accent-color: var(--ms-accent-color);
 }
 
 body {
@@ -19,7 +28,11 @@ body {
 }
 
 ::selection {
-  background: --alpha(var(--color-emerald-600) / 22%);
+  background: rgb(var(--ms-accent-rgb) / 0.22);
+}
+
+:root[data-density="compact"] .ms-editor-frame {
+  @apply pt-10 pb-24;
 }
 
 /* Svelte transitions compile to CSS animations, so this covers them too. */
@@ -57,7 +70,8 @@ body {
   }
 
   .md-block-drop-indicator {
-    @apply pointer-events-none absolute left-0 right-0 z-30 h-0.5 rounded-full bg-emerald-500 shadow-[0_0_0_3px_rgb(16_185_129_/_0.14)];
+    @apply pointer-events-none absolute left-0 right-0 z-30 h-0.5 rounded-full bg-emerald-500;
+    box-shadow: 0 0 0 3px rgb(var(--ms-accent-soft-rgb) / 0.14);
   }
 
   @media (max-width: 640px) {
@@ -313,7 +327,8 @@ body {
 
   .md-table-cell:focus,
   .md-table-cell.is-selected {
-    @apply relative z-10 shadow-[inset_0_0_0_2px_var(--color-emerald-500)];
+    @apply relative z-10;
+    box-shadow: inset 0 0 0 2px var(--ms-accent-soft);
   }
 
   /* Collapsed rather than hidden: the caret still needs somewhere to land. */
@@ -376,7 +391,7 @@ body {
     color: transparent;
     text-decoration: none;
     text-shadow: none;
-    caret-color: var(--color-emerald-700);
+    caret-color: var(--ms-accent-strong);
   }
 
   .md-media-line:not([data-active]) * {
@@ -386,7 +401,7 @@ body {
   }
 
   .dark .md-media-line:not([data-active]) {
-    caret-color: var(--color-emerald-400);
+    caret-color: var(--ms-accent-soft);
   }
 
   .md-media-preview {

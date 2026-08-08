@@ -5,6 +5,18 @@
     EditorWidth,
     ThemePreference,
   } from "../../lib/storage/settings";
+  import {
+    accentOptions,
+    cornerOptions,
+    densityOptions,
+    editorLineHeightOptions,
+    fontOptions,
+    type AppearanceSettings,
+    type CornerStyle,
+    type Density,
+    type EditorLineHeight,
+    type FontChoice,
+  } from "../../lib/utils/theme";
   import Button from "../components/Button.svelte";
   import Input from "../components/Input.svelte";
   import TextArea from "../components/TextArea.svelte";
@@ -32,10 +44,23 @@
     { label: "Wide", value: "wide" },
   ];
 
-  let activeTab: "appearance" | "editor" | "ai" = "appearance";
+  type SettingsTab = "appearance" | "editor" | "ai";
+
+  let activeTab: SettingsTab = "appearance";
+  const tabOptions: { label: string; value: SettingsTab }[] = [
+    { label: "Appearance", value: "appearance" },
+    { label: "Editor", value: "editor" },
+    { label: "AI", value: "ai" },
+  ];
 
   function updateSettings(nextSettings: Partial<AppSettings>) {
     onChange({ ...settings, ...nextSettings });
+  }
+
+  function updateAppearance(nextAppearance: Partial<AppearanceSettings>) {
+    updateSettings({
+      appearance: { ...settings.appearance, ...nextAppearance },
+    });
   }
 
   /** "base" edits the shared config; a mode edits only its overrides. */
@@ -88,10 +113,16 @@
     { key: "frequencyPenalty", label: "Frequency penalty", placeholder: "0" },
     { key: "seed", label: "Seed", placeholder: "random" },
   ];
+
+  const compactSelectRoot = "w-full sm:w-56";
+  const shortSelectRoot = "w-full sm:w-44";
+  const profileSelectRoot = "w-full sm:w-80";
 </script>
 
-<div class="flex flex-col h-[85vh] w-[90vw] md:w-[70vw] md:max-w-[1080px] md:max-h-[800px] bg-stone-50 dark:bg-stone-900 rounded-xl overflow-hidden shadow-xl" aria-label="Settings Modal">
-  <!-- Header -->
+<div
+  class="flex h-[min(760px,85vh)] w-[min(920px,92vw)] flex-col overflow-hidden rounded-xl bg-stone-50 shadow-xl dark:bg-stone-900"
+  aria-label="Settings Modal"
+>
   <div class="flex h-12 shrink-0 items-center justify-between border-b border-stone-200/50 px-4 dark:border-stone-800/80">
     <h2 class="text-sm font-semibold text-stone-800 dark:text-stone-100">
       Settings
@@ -114,73 +145,161 @@
     </div>
   </div>
 
-  <!-- Tabs -->
-  <div class="flex border-b border-stone-200/50 px-4 dark:border-stone-800/80">
-    <button
-      class={cn(
-        "px-4 py-2 text-sm font-medium transition-colors hover:text-stone-800 dark:hover:text-stone-100",
-        activeTab === "appearance"
-          ? "border-b-2 border-emerald-600 text-emerald-600 dark:text-emerald-400"
-          : "text-stone-500"
-      )}
-      onclick={() => (activeTab = "appearance")}
+  <div class="grid min-h-0 flex-1 grid-cols-[8rem_minmax(0,1fr)] sm:grid-cols-[11rem_minmax(0,1fr)]">
+    <div
+      class="flex flex-col gap-1 border-r border-stone-200/50 bg-stone-100/50 p-2 dark:border-stone-800/80 dark:bg-stone-950/25"
+      aria-label="Settings sections"
+      aria-orientation="vertical"
+      role="tablist"
     >
-      Appearance
-    </button>
-    <button
-      class={cn(
-        "px-4 py-2 text-sm font-medium transition-colors hover:text-stone-800 dark:hover:text-stone-100",
-        activeTab === "editor"
-          ? "border-b-2 border-emerald-600 text-emerald-600 dark:text-emerald-400"
-          : "text-stone-500"
-      )}
-      onclick={() => (activeTab = "editor")}
-    >
-      Editor
-    </button>
-    <button
-      class={cn(
-        "px-4 py-2 text-sm font-medium transition-colors hover:text-stone-800 dark:hover:text-stone-100",
-        activeTab === "ai"
-          ? "border-b-2 border-emerald-600 text-emerald-600 dark:text-emerald-400"
-          : "text-stone-500"
-      )}
-      onclick={() => (activeTab = "ai")}
-    >
-      AI
-    </button>
-  </div>
+      {#each tabOptions as tab}
+        <button
+          type="button"
+          role="tab"
+          class={cn(
+            "flex h-9 w-full items-center border-l-2 px-3 text-left text-sm font-medium transition-colors",
+            activeTab === tab.value
+              ? "border-emerald-600 bg-emerald-600/12 text-emerald-700 dark:text-emerald-300"
+              : "border-transparent text-stone-600 hover:bg-stone-500/10 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100",
+          )}
+          aria-selected={activeTab === tab.value}
+          onclick={() => (activeTab = tab.value)}
+        >
+          {tab.label}
+        </button>
+      {/each}
+    </div>
 
-  <!-- Content -->
-  <div class="flex-1 overflow-y-auto px-6 py-6">
+    <div class="min-w-0 overflow-y-auto px-4 py-5 sm:px-7 sm:py-6" role="tabpanel">
     {#if activeTab === "appearance"}
-      <div class="grid gap-6">
-        <section class="grid gap-4">
+      <div class="grid max-w-2xl gap-5">
+        <section class="grid gap-2 sm:grid-cols-[8rem_auto] sm:items-center">
           <span class="text-sm font-medium text-stone-800 dark:text-stone-200">
-            Theme
+            Color mode
           </span>
           <Select
             value={settings.theme}
             options={themeOptions}
             className="h-9"
+            rootClassName={compactSelectRoot}
             onChange={(theme) =>
               updateSettings({ theme: theme as ThemePreference })}
           />
         </section>
+
+        <section class="grid gap-3 border-t border-stone-200/50 pt-5 sm:grid-cols-[8rem_minmax(0,1fr)] dark:border-stone-800/80">
+          <span class="text-sm font-medium text-stone-800 sm:pt-2 dark:text-stone-200">
+            Accent color
+          </span>
+          <div class="flex flex-wrap gap-2">
+            {#each accentOptions as accent (accent.value)}
+              <button
+                type="button"
+                class={cn(
+                  "flex h-10 items-center gap-2 rounded-lg border px-2.5 text-left text-sm font-medium transition-colors",
+                  settings.appearance.accentColor === accent.value
+                    ? "border-emerald-600 text-emerald-700 ring-2 ring-emerald-600/20 dark:text-emerald-300"
+                    : "border-stone-200 text-stone-600 hover:bg-stone-100 dark:border-stone-700 dark:text-stone-300 dark:hover:bg-stone-800",
+                )}
+                aria-pressed={settings.appearance.accentColor === accent.value}
+                onclick={() => updateAppearance({ accentColor: accent.value })}
+              >
+                <span
+                  class="size-4 shrink-0 rounded-full shadow-inner ring-1 ring-black/10"
+                  style={`background: ${accent.preview};`}
+                  aria-hidden="true"
+                ></span>
+                <span class="truncate">{accent.label}</span>
+              </button>
+            {/each}
+          </div>
+        </section>
+
+        <section class="grid gap-3 border-t border-stone-200/50 pt-5 sm:grid-cols-[8rem_minmax(0,1fr)] dark:border-stone-800/80">
+          <span class="text-sm font-medium text-stone-800 sm:pt-6 dark:text-stone-200">
+            Fonts
+          </span>
+          <div class="flex flex-wrap gap-3">
+            <label class="grid w-full gap-1.5 text-xs text-stone-500 sm:w-56">
+              Interface
+              <Select
+                value={settings.appearance.uiFont}
+                options={fontOptions}
+                className="h-9"
+                rootClassName={compactSelectRoot}
+                onChange={(uiFont) => updateAppearance({ uiFont: uiFont as FontChoice })}
+              />
+            </label>
+            <label class="grid w-full gap-1.5 text-xs text-stone-500 sm:w-56">
+              Editor
+              <Select
+                value={settings.appearance.editorFont}
+                options={fontOptions}
+                className="h-9"
+                rootClassName={compactSelectRoot}
+                onChange={(editorFont) =>
+                  updateAppearance({ editorFont: editorFont as FontChoice })}
+              />
+            </label>
+          </div>
+        </section>
+
+        <section class="grid gap-3 border-t border-stone-200/50 pt-5 sm:grid-cols-[8rem_minmax(0,1fr)] dark:border-stone-800/80">
+          <span class="text-sm font-medium text-stone-800 sm:pt-6 dark:text-stone-200">
+            Style
+          </span>
+          <div class="flex flex-wrap gap-3">
+            <label class="grid w-full gap-1.5 text-xs text-stone-500 sm:w-44">
+              Corners
+              <Select
+                value={settings.appearance.cornerStyle}
+                options={cornerOptions}
+                className="h-9"
+                rootClassName={shortSelectRoot}
+                onChange={(cornerStyle) =>
+                  updateAppearance({ cornerStyle: cornerStyle as CornerStyle })}
+              />
+            </label>
+            <label class="grid w-full gap-1.5 text-xs text-stone-500 sm:w-44">
+              Density
+              <Select
+                value={settings.appearance.density}
+                options={densityOptions}
+                className="h-9"
+                rootClassName={shortSelectRoot}
+                onChange={(density) => updateAppearance({ density: density as Density })}
+              />
+            </label>
+            <label class="grid w-full gap-1.5 text-xs text-stone-500 sm:w-44">
+              Line spacing
+              <Select
+                value={settings.appearance.editorLineHeight}
+                options={editorLineHeightOptions}
+                className="h-9"
+                rootClassName={shortSelectRoot}
+                onChange={(editorLineHeight) =>
+                  updateAppearance({
+                    editorLineHeight: editorLineHeight as EditorLineHeight,
+                  })}
+              />
+            </label>
+          </div>
+        </section>
       </div>
     {:else if activeTab === "ai"}
-      <div class="grid max-w-xl gap-6">
-        <section class="grid gap-2">
-          <span class="text-sm font-medium text-stone-800 dark:text-stone-200">
+      <div class="grid max-w-2xl gap-6">
+        <section class="grid gap-2 sm:grid-cols-[8rem_auto] sm:items-start">
+          <span class="text-sm font-medium text-stone-800 sm:pt-2 dark:text-stone-200">
             Config
           </span>
           <Select
             value={llmProfile}
             options={profileOptions}
             className="h-9"
+            rootClassName={profileSelectRoot}
             onChange={(next) => (llmProfile = next as "base" | GrammarMode)}
           />
-          <span class="text-xs text-stone-500">
+          <span class="text-xs text-stone-500 sm:col-start-2">
             {isOverride
               ? "Only the fields you fill in here override the base config for this coach."
               : "Used by every feature unless a coach overrides it."}
@@ -241,17 +360,18 @@
           />
         </section>
 
-        <section class="grid gap-2 border-t border-stone-200/50 pt-5 dark:border-stone-800/80">
-          <span class="text-sm font-medium text-stone-800 dark:text-stone-200">
+        <section class="grid gap-2 border-t border-stone-200/50 pt-5 sm:grid-cols-[8rem_auto] sm:items-start dark:border-stone-800/80">
+          <span class="text-sm font-medium text-stone-800 sm:pt-2 dark:text-stone-200">
             Reasoning effort
           </span>
           <Select
             value={activeLlm.reasoningEffort}
             options={reasoningOptions}
             className="h-9"
+            rootClassName={compactSelectRoot}
             onChange={(reasoningEffort) => updateLlm({ reasoningEffort })}
           />
-          <span class="text-xs text-stone-500">
+          <span class="text-xs text-stone-500 sm:col-start-2">
             Sent as <code>reasoning_effort</code>. Only reasoning models accept it; leave it on the
             provider default otherwise.
           </span>
@@ -308,8 +428,8 @@
         </section>
       </div>
     {:else}
-      <div class="grid gap-6">
-        <section class="grid gap-4">
+      <div class="grid max-w-xl gap-6">
+        <section class="grid gap-2 sm:grid-cols-[8rem_auto] sm:items-center">
           <span class="text-sm font-medium text-stone-800 dark:text-stone-200">
             Page width
           </span>
@@ -317,6 +437,7 @@
             value={settings.editorWidth}
             options={widthOptions}
             className="h-9"
+            rootClassName={compactSelectRoot}
             onChange={(editorWidth) =>
               updateSettings({ editorWidth: editorWidth as EditorWidth })}
           />
@@ -352,5 +473,6 @@
         </section>
       </div>
     {/if}
+    </div>
   </div>
 </div>

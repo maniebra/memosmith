@@ -37,7 +37,7 @@
 
 <!-- overflow-x-hidden so a wide equation scrolls inside its own box instead of widening the app. -->
 <section class="h-full min-h-0 overflow-x-hidden overflow-y-auto" aria-label="Markdown editor">
-  <div class={cn("mx-auto w-full px-6 pt-14 pb-32 sm:px-10", editorClass)}>
+  <div class={cn("ms-editor-frame mx-auto w-full px-6 pt-14 pb-32 sm:px-10", editorClass)}>
     <PageIdentity
       title={noteTitle}
       meta={pageMeta}

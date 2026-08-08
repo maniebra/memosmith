@@ -13,8 +13,10 @@
   export let value = "";
   export let options: SelectOption[] = [];
   export let className = "";
+  export let rootClassName = "w-full";
   export let onChange: (value: string) => void = () => {};
 
+  const selectId = Math.random().toString(36).slice(2);
   let open = false;
   let root: HTMLDivElement;
   let activeIndex = 0;
@@ -22,10 +24,20 @@
   let menu = { left: 0, top: 0, width: 0 };
 
   onMount(() => {
+    function handleSelectOpened(event: Event) {
+      if ((event as CustomEvent<string>).detail !== selectId) {
+        close();
+      }
+    }
+
     // Capture phase: inner scroll containers do not bubble their scroll events.
     window.addEventListener("scroll", close, true);
+    window.addEventListener("memosmith:select-opened", handleSelectOpened);
 
-    return () => window.removeEventListener("scroll", close, true);
+    return () => {
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("memosmith:select-opened", handleSelectOpened);
+    };
   });
 
   function placeMenu() {
@@ -53,12 +65,19 @@
     open = false;
   }
 
+  function openMenu() {
+    placeMenu();
+    open = true;
+    window.dispatchEvent(new CustomEvent("memosmith:select-opened", { detail: selectId }));
+  }
+
   function toggle() {
-    if (!open) {
-      placeMenu();
+    if (open) {
+      close();
+      return;
     }
 
-    open = !open;
+    openMenu();
   }
 
   function choose(index: number) {
@@ -76,14 +95,18 @@
   function handleButtonKeydown(event: KeyboardEvent) {
     if (event.key === "ArrowDown") {
       event.preventDefault();
-      open = true;
+      if (!open) {
+        openMenu();
+      }
       activeIndex = Math.min(activeIndex + 1, options.length - 1);
       return;
     }
 
     if (event.key === "ArrowUp") {
       event.preventDefault();
-      open = true;
+      if (!open) {
+        openMenu();
+      }
       activeIndex = Math.max(activeIndex - 1, 0);
       return;
     }
@@ -94,7 +117,7 @@
       if (open) {
         choose(activeIndex);
       } else {
-        open = true;
+        openMenu();
       }
     }
   }
@@ -118,7 +141,7 @@
 
 <svelte:window onclick={handleWindowClick} onkeydown={handleWindowKeydown} />
 
-<div bind:this={root} class="relative">
+<div bind:this={root} class={cn("relative", rootClassName)}>
   <button
     type="button"
     aria-haspopup="listbox"
