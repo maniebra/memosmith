@@ -1120,6 +1120,8 @@
           spellcheck={settings.spellcheck}
           slashCommands={settings.slashCommands}
           fancyTableEditor={settings.features.fancyTableEditor}
+          callouts={settings.features.callouts}
+          calloutDefinitions={settings.callouts}
           drawings={settings.features.drawings}
           diagrams={settings.features.diagrams}
           editable={Boolean(path)}

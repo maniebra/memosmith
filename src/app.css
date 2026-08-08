@@ -127,6 +127,83 @@ body {
     @apply my-1 border-l-[3px] border-stone-300 pl-4 text-stone-600 dark:border-stone-600 dark:text-stone-300;
   }
 
+  .md-callout-line[data-active] {
+    @apply my-0 border-l-[3px] py-0 pl-4 text-stone-700 dark:text-stone-200;
+    background: rgb(var(--md-callout-rgb) / 0.08) !important;
+    border-left-color: rgb(var(--md-callout-rgb) / 0.78);
+  }
+
+  .md-callout-line[data-active].md-callout-start {
+    @apply mt-3 rounded-t-md pt-3;
+  }
+
+  .md-callout-line[data-active].md-callout-end {
+    @apply mb-3 rounded-b-md pb-3;
+  }
+
+  .md-callout-line[data-active] .md-mark {
+    color: rgb(var(--md-callout-rgb) / 0.7);
+  }
+
+  .md-callout-line:not([data-active]) {
+    font-size: 0;
+    line-height: 0;
+    letter-spacing: 0;
+    color: transparent;
+    text-decoration: none;
+    text-shadow: none;
+    caret-color: var(--ms-accent-strong);
+    @apply my-0 overflow-hidden border-0 py-0 pl-0;
+  }
+
+  .md-callout-line:not([data-active]) * {
+    color: inherit !important;
+    text-decoration: inherit !important;
+    text-shadow: inherit !important;
+  }
+
+  .dark .md-callout-line:not([data-active]) {
+    caret-color: var(--ms-accent-soft);
+  }
+
+  .md-callout-preview {
+    @apply my-3 rounded-md border px-4 py-3;
+    background: rgb(var(--md-callout-rgb) / 0.08);
+    border-color: rgb(var(--md-callout-rgb) / 0.32);
+    box-shadow: inset 3px 0 0 rgb(var(--md-callout-rgb) / 0.78);
+    user-select: none;
+  }
+
+  .md-callout-preview[data-active] {
+    @apply hidden;
+  }
+
+  .md-callout-heading {
+    @apply flex items-center gap-2 text-[0.86em] font-semibold;
+    color: rgb(var(--md-callout-rgb));
+  }
+
+  .md-callout-icon {
+    @apply grid size-5 shrink-0 place-items-center rounded text-white;
+    background: rgb(var(--md-callout-rgb));
+  }
+
+  .md-callout-lucide {
+    @apply size-3.5;
+  }
+
+  .md-callout-title {
+    @apply min-w-0;
+  }
+
+  .md-callout-body {
+    @apply mt-2 grid gap-1 text-[0.95em] text-stone-700 dark:text-stone-200;
+  }
+
+  .md-callout-body-line:has(> br:only-child) {
+    min-height: 1.5em;
+  }
+
   .md-bullet::before {
     content: "•  ";
     @apply text-stone-400 dark:text-stone-500;

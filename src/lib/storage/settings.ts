@@ -1,4 +1,5 @@
 import { GRAMMAR_MODES, isGrammarMode, type GrammarMode } from "../utils/grammar";
+import { normalizeCalloutIcon } from "../utils/calloutIcons";
 import {
   defaultAppearanceSettings,
   type AccentColor,
@@ -21,8 +22,16 @@ export type FeatureSettings = {
   grammarCheckMode: GrammarCheckMode;
   databases: boolean;
   fancyTableEditor: boolean;
+  callouts: boolean;
   drawings: boolean;
   diagrams: boolean;
+};
+
+export type CalloutDefinition = {
+  id: string;
+  label: string;
+  color: string;
+  icon: string;
 };
 
 /** Every field is a string so an empty one simply means "leave it out of the request". */
@@ -46,6 +55,7 @@ export type AppSettings = {
   theme: ThemePreference;
   appearance: AppearanceSettings;
   features: FeatureSettings;
+  callouts: CalloutDefinition[];
   editorWidth: EditorWidth;
   textSize: number;
   spellcheck: boolean;
@@ -116,14 +126,25 @@ export const defaultFeatureSettings: FeatureSettings = {
   grammarCheckMode: "auto-full",
   databases: true,
   fancyTableEditor: true,
+  callouts: true,
   drawings: false,
   diagrams: false,
 };
+
+export const defaultCalloutDefinitions: CalloutDefinition[] = [
+  { id: "note", label: "Note", color: "#2563eb", icon: "Info" },
+  { id: "tip", label: "Tip", color: "#059669", icon: "Lightbulb" },
+  { id: "important", label: "Important", color: "#7c3aed", icon: "BadgeAlert" },
+  { id: "warning", label: "Warning", color: "#d97706", icon: "TriangleAlert" },
+  { id: "danger", label: "Danger", color: "#dc2626", icon: "CircleX" },
+  { id: "question", label: "Question", color: "#0891b2", icon: "CircleQuestionMark" },
+];
 
 export const defaultSettings: AppSettings = {
   theme: "system",
   appearance: { ...defaultAppearanceSettings },
   features: { ...defaultFeatureSettings },
+  callouts: defaultCalloutDefinitions.map((callout) => ({ ...callout })),
   editorWidth: "comfortable",
   textSize: 17,
   spellcheck: true,
@@ -199,6 +220,53 @@ function isGrammarCheckMode(value: unknown): value is GrammarCheckMode {
   return value === "auto-diff" || value === "auto-full" || value === "manual";
 }
 
+function normalizedCalloutId(value: unknown) {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "")
+    .slice(0, 32);
+}
+
+function normalizedCalloutColor(value: unknown) {
+  return typeof value === "string" && /^#[\da-f]{6}$/i.test(value)
+    ? value.toLowerCase()
+    : "";
+}
+
+function readCallouts(value: unknown): CalloutDefinition[] {
+  if (!Array.isArray(value)) {
+    return defaultCalloutDefinitions.map((callout) => ({ ...callout }));
+  }
+
+  const seen = new Set<string>();
+  const callouts: CalloutDefinition[] = [];
+
+  for (const entry of value as Partial<CalloutDefinition>[]) {
+    const id = normalizedCalloutId(entry.id);
+    const color = normalizedCalloutColor(entry.color);
+
+    if (!id || !color || seen.has(id)) {
+      continue;
+    }
+
+    seen.add(id);
+    callouts.push({
+      id,
+      label: typeof entry.label === "string" && entry.label.trim() ? entry.label.trim() : id,
+      color,
+      icon: normalizeCalloutIcon(entry.icon),
+    });
+  }
+
+  return callouts;
+}
+
 function clampTextSize(value: unknown) {
   const size = Number(value);
 
@@ -257,6 +325,8 @@ function readFeatures(value: unknown): FeatureSettings {
       typeof parsed.fancyTableEditor === "boolean"
         ? parsed.fancyTableEditor
         : defaultFeatureSettings.fancyTableEditor,
+    callouts:
+      typeof parsed.callouts === "boolean" ? parsed.callouts : defaultFeatureSettings.callouts,
     drawings:
       typeof parsed.drawings === "boolean" ? parsed.drawings : defaultFeatureSettings.drawings,
     diagrams:
@@ -278,6 +348,7 @@ export function loadSettings(): AppSettings {
       theme: isThemePreference(parsed.theme) ? parsed.theme : defaultSettings.theme,
       appearance: readAppearance(parsed.appearance),
       features: readFeatures(parsed.features),
+      callouts: readCallouts(parsed.callouts),
       editorWidth: isEditorWidth(parsed.editorWidth) ? parsed.editorWidth : defaultSettings.editorWidth,
       textSize: clampTextSize(parsed.textSize),
       spellcheck: typeof parsed.spellcheck === "boolean" ? parsed.spellcheck : defaultSettings.spellcheck,

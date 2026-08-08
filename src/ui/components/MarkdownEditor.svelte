@@ -28,11 +28,13 @@
   import { onDestroy, onMount } from "svelte";
   import { cubicOut } from "svelte/easing";
   import { scale } from "svelte/transition";
+  import type { CalloutDefinition } from "../../lib/storage/settings";
   import { cn } from "../../lib/utils/cn";
   import ContextMenu, { type ContextMenuItem } from "./ContextMenu.svelte";
   import {
     applyPrefix,
     continueList,
+    continueQuote,
     DEFAULT_TABLE_MARKDOWN,
     editMarkdownTable,
     insideFence,
@@ -57,6 +59,8 @@
   export let spellcheck = true;
   export let slashCommands = true;
   export let fancyTableEditor = true;
+  export let callouts = true;
+  export let calloutDefinitions: CalloutDefinition[] = [];
   export let drawings = false;
   export let diagrams = false;
   export let editable = true;
@@ -84,6 +88,8 @@
 
   let composing = false;
   let renderedFancyTableEditor = fancyTableEditor;
+  let renderedCallouts = callouts;
+  let renderedCalloutDefinitions = "";
   let renderedDrawings = drawings;
   let renderedDiagrams = diagrams;
   /** The drawing block being edited in the modal, plus the scene JSON it opened with. */
@@ -186,8 +192,13 @@
     { label: "Code", prefix: "```", icon: Code2 },
   ];
 
+  $: calloutDefinitionsKey = JSON.stringify(calloutDefinitions);
+  $: primaryCalloutId = calloutDefinitions.find((callout) => callout.id)?.id ?? "note";
   $: commands = [
     ...SLASH_COMMANDS,
+    ...(callouts
+      ? [{ label: "Callout", hint: primaryCalloutId, prefix: `> [!${primaryCalloutId}] ` }]
+      : []),
     ...(drawings ? [{ label: "Drawing", hint: "excalidraw", prefix: EMPTY_DRAWING }] : []),
     ...(diagrams ? [{ label: "Diagram", hint: "draw.io", prefix: EMPTY_DIAGRAM }] : []),
   ];
@@ -202,6 +213,14 @@
   }
   $: if (element && renderedFancyTableEditor !== fancyTableEditor) {
     renderedFancyTableEditor = fancyTableEditor;
+    render(caretOffset());
+  }
+  $: if (
+    element &&
+    (renderedCallouts !== callouts || renderedCalloutDefinitions !== calloutDefinitionsKey)
+  ) {
+    renderedCallouts = callouts;
+    renderedCalloutDefinitions = calloutDefinitionsKey;
     render(caretOffset());
   }
   $: if (element && renderedDrawings !== drawings) {
@@ -234,6 +253,10 @@
 
     if (block.dataset.table !== undefined) {
       return `table:${block.dataset.table}`;
+    }
+
+    if (block.dataset.callout !== undefined) {
+      return `callout:${block.dataset.callout}`;
     }
 
     return `block:${fallback}`;
@@ -306,7 +329,7 @@
     if (
       element &&
       group !== undefined &&
-      (kind === "code" || kind === "math" || kind === "table")
+      (kind === "code" || kind === "math" || kind === "table" || kind === "callout")
     ) {
       return Array.from(
         element.querySelectorAll(`[data-${kind}="${CSS.escape(group)}"]`),
@@ -628,7 +651,7 @@
 
     activeBlock = active;
     const group =
-      active?.dataset.code ?? active?.dataset.math ?? active?.dataset.table;
+      active?.dataset.code ?? active?.dataset.math ?? active?.dataset.table ?? active?.dataset.callout;
     const groupName =
       active?.dataset.code !== undefined
         ? "code"
@@ -636,7 +659,9 @@
           ? "math"
           : active?.dataset.table !== undefined
             ? "table"
-            : null;
+            : active?.dataset.callout !== undefined
+              ? "callout"
+              : null;
 
     for (const block of Array.from(element?.children ?? []) as HTMLElement[]) {
       block.toggleAttribute(
@@ -978,6 +1003,8 @@
 
     element.innerHTML = renderDocument(value, resolveAsset ?? undefined, {
       fancyTableEditor,
+      callouts,
+      calloutDefinitions,
       drawings,
       diagrams,
       resolveWikilink,
@@ -2564,7 +2591,13 @@
       }
 
       const line = value.slice(start, offset);
-      const prefix = continueList(line);
+      const quotePrefix = continueQuote(line);
+      const prefix = quotePrefix || continueList(line);
+
+      if (!quotePrefix && /^\s*>\s?$/.test(line)) {
+        replace(start, offset, "");
+        return;
+      }
 
       if (!prefix && /^\s*([-*+]|\d+\.)( \[[ x]\])? $/.test(line)) {
         replace(start, offset, "");

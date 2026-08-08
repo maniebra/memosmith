@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { EditorWidth } from "../../lib/storage/settings";
+  import type { CalloutDefinition, EditorWidth } from "../../lib/storage/settings";
   import { cn } from "../../lib/utils/cn";
   import type { PageIcon, PageMeta } from "../../lib/utils/pageMeta";
   import type { WikilinkEmbed } from "../../lib/utils/markdown";
@@ -16,6 +16,8 @@
   export let spellcheck: boolean;
   export let slashCommands: boolean;
   export let fancyTableEditor: boolean;
+  export let callouts: boolean;
+  export let calloutDefinitions: CalloutDefinition[] = [];
   export let drawings: boolean;
   export let diagrams: boolean;
   export let editable: boolean;
@@ -71,6 +73,8 @@
       {spellcheck}
       {slashCommands}
       {fancyTableEditor}
+      {callouts}
+      {calloutDefinitions}
       {drawings}
       {diagrams}
       {editable}

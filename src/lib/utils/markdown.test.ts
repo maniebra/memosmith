@@ -1,5 +1,9 @@
 const assert = (ok: unknown, msg: string) => { if (!ok) throw new Error(msg); };
-import { applyPrefix, continueList, DEFAULT_TABLE_MARKDOWN, editMarkdownTable, insideFence, isMediaLine, lineClass, mathUnclosed, mediaOptions, renderDocument, renderLine, withMediaOptions } from "./markdown";
+import { applyPrefix, continueList, continueQuote, DEFAULT_TABLE_MARKDOWN, editMarkdownTable, insideFence, isMediaLine, lineClass, mathUnclosed, mediaOptions, renderDocument, renderLine, withMediaOptions } from "./markdown";
+
+// The caret maps by counting source blocks, so previews must never be counted as lines.
+const sourceBlocks = (text: string) =>
+  (renderDocument(text).match(/<div class="md-block/g) ?? []).length;
 
 assert(lineClass("# Title") === "md-h1", "h1 class");
 assert(lineClass("#NoSpace") === "", "hash without space is not a heading");
@@ -19,15 +23,27 @@ assert(renderLine("[[Missing]]", { resolveWikilink: () => ({ path: null, exists:
 assert(renderLine("[[Note|Alias]]").includes(">Alias<"), "wikilink alias is visible");
 assert(renderLine("area $a^2$").includes("katex"), "inline math renders with katex");
 assert(renderLine("area $a^2$").includes("md-math-source"), "inline math keeps editable source");
+assert(!renderDocument("> [!note] Heads up").includes("md-callout-preview"), "callouts are feature gated");
+const callout = renderDocument("> [!note] Heads up\n> Body with **bold**", undefined, { callouts: true });
+assert(callout.includes("md-callout-preview"), "callout gets a rendered preview");
+assert(callout.includes("md-callout-start") && callout.includes("md-callout-end"), "callout source lines know their visual edges");
+assert(callout.includes("md-callout-lucide"), "callout preview renders a Lucide icon");
+assert(callout.includes("Heads up"), "callout title renders");
+assert(callout.includes("md-bold"), "callout body renders inline markdown");
+assert((callout.match(/<div class="md-block/g) ?? []).length === 2, "callout preview does not add a source block");
+assert(
+  renderDocument("> [!custom] Mine", undefined, {
+    callouts: true,
+    calloutDefinitions: [{ id: "custom", label: "Custom", color: "#123456", icon: "C" }],
+  }).includes("--md-callout-rgb:18 52 86"),
+  "custom callout color renders",
+);
 assert(renderDocument("$$E=mc^2$$").includes("md-math-preview"), "equation block gets a preview");
 assert(renderDocument("$$\nE=mc^2\n$$").includes('data-math="0"'), "multiline equation block is grouped");
 assert(!renderDocument("$$").includes("md-preview"), "bare equation opener has nothing to preview");
 assert(!renderDocument("$$\nx").includes("data-closed"), "unclosed math keeps its source visible");
 assert(!renderDocument("$$E=mc^2$$").includes("<img"), "math does not render as images");
 
-// The caret maps by counting source blocks, so previews must never be counted as lines.
-const sourceBlocks = (text: string) =>
-  (renderDocument(text).match(/<div class="md-block/g) ?? []).length;
 assert(sourceBlocks("$$\nE=mc^2\n$$") === 3, "closed math is exactly its three source lines");
 assert(sourceBlocks("a\n$$\nx\n\ny\n$$\nb") === 7, "preview does not add a line");
 assert(mathUnclosed("$$\nx"), "lone opener is unclosed");
@@ -74,6 +90,10 @@ assert(continueList("  3. item") === "  4. ", "ordinal increments");
 assert(continueList("- [x] done") === "- [ ] ", "task resets");
 assert(continueList("- ") === "", "empty bullet stops");
 assert(continueList("plain") === "", "plain line");
+assert(continueQuote("> [!question]") === "> ", "callout opener continues as a quote");
+assert(continueQuote("> What?") === "> ", "blockquote continues");
+assert(continueQuote("> ") === "", "empty blockquote exits");
+assert(continueQuote("plain") === "", "plain line is not a quote");
 assert(applyPrefix("- old", "## ") === "## old", "prefix replaces prefix");
 assert(applyPrefix("plain", "> ") === "> plain", "prefix on plain line");
 assert(applyPrefix("# h", "") === "h", "Text command clears prefix");

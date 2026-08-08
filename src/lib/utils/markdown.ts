@@ -1,6 +1,8 @@
 import hljs from "highlight.js/lib/common";
 import katex from "katex";
+import { defaultCalloutDefinitions, type CalloutDefinition } from "../storage/settings";
 import { assetFolder } from "./assets";
+import { calloutIconSvg } from "./calloutIcons";
 import { parseWikilink, type WikilinkResolution } from "./wikilinks";
 
 type BlockRule = {
@@ -526,6 +528,8 @@ export const SLASH_COMMANDS = [
 
 const MEDIA_LINE = /^(\s*)!\[([^\]\n]*)\]\(([^)\n]+)\)\s*$/;
 const WIKILINK_EMBED_LINE = /^(\s*)!\[\[([^\]\n]+)\]\]\s*$/;
+const CALLOUT_START = /^\s*>\s*\[!([a-z][\w-]*)\]\s*(.*)$/i;
+const CALLOUT_LINE = /^\s*>\s?(.*)$/;
 
 export type MediaOptions = { width?: number; align?: "left" | "center" | "right" };
 
@@ -635,6 +639,8 @@ export function insideFence(text: string) {
 
 export type RenderDocumentOptions = {
   fancyTableEditor?: boolean;
+  callouts?: boolean;
+  calloutDefinitions?: CalloutDefinition[];
   drawings?: boolean;
   diagrams?: boolean;
   resolveWikilink?: WikilinkResolver;
@@ -703,12 +709,85 @@ function wikilinkEmbedPreview(rawTarget: string, options: RenderDocumentOptions)
   )}" contenteditable="false"><div class="md-wikilink-embed-body">${body}</div></div>`;
 }
 
+function calloutDefinition(type: string, definitions: CalloutDefinition[]) {
+  const normalizedType = type.toLowerCase();
+
+  return (
+    definitions.find((definition) => definition.id.toLowerCase() === normalizedType) ?? {
+      id: normalizedType,
+      label: normalizedType,
+      color: "#78716c",
+      icon: "i",
+    }
+  );
+}
+
+function calloutRgb(color: string) {
+  const sanitized = /^#[\da-f]{6}$/i.test(color) ? color : "#78716c";
+  const red = Number.parseInt(sanitized.slice(1, 3), 16);
+  const green = Number.parseInt(sanitized.slice(3, 5), 16);
+  const blue = Number.parseInt(sanitized.slice(5, 7), 16);
+
+  return `${red} ${green} ${blue}`;
+}
+
+function calloutLine(
+  line: string,
+  group: number,
+  definition: CalloutDefinition,
+  index: number,
+  count: number,
+  options: RenderInlineOptions,
+) {
+  const position = [
+    index === 0 ? "md-callout-start" : "",
+    index === count - 1 ? "md-callout-end" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return `<div class="md-block md-quote md-callout-line ${position}" data-callout="${group}" style="--md-callout-rgb:${calloutRgb(
+    definition.color,
+  )};">${renderLine(line, options)}</div>`;
+}
+
+function calloutPreview(
+  lines: string[],
+  group: number,
+  definitions: CalloutDefinition[],
+  options: RenderInlineOptions,
+) {
+  const start = CALLOUT_START.exec(lines[0]);
+  const type = start?.[1] ?? "note";
+  const definition = calloutDefinition(type, definitions);
+  const title = start?.[2]?.trim() || definition.label;
+  const body = lines.slice(1).map((line) => CALLOUT_LINE.exec(line)?.[1] ?? "");
+  const bodyHtml = body
+    .map((line) => {
+      const indent = / */.exec(line)![0].length;
+      const style = indent ? ` style="padding-left:${indent * 0.75}rem"` : "";
+
+      return `<div class="md-callout-body-line ${lineClass(line)}"${style}>${renderLine(line, options)}</div>`;
+    })
+    .join("");
+
+  return `<div class="md-preview md-callout-preview" data-callout="${group}" style="--md-callout-rgb:${calloutRgb(
+    definition.color,
+  )};" contenteditable="false"><div class="md-callout-heading"><span class="md-callout-icon">${calloutIconSvg(
+    definition.icon,
+  )}</span><span class="md-callout-title">${renderInline(escapeHtml(title), options)}</span></div>${
+    bodyHtml ? `<div class="md-callout-body">${bodyHtml}</div>` : ""
+  }</div>`;
+}
+
 export function renderDocument(
   text: string,
   resolveAsset?: (source: string) => string,
   options: RenderDocumentOptions = {},
 ) {
   const fancyTableEditor = options.fancyTableEditor ?? true;
+  const callouts = options.callouts ?? false;
+  const calloutDefinitions = options.calloutDefinitions ?? defaultCalloutDefinitions;
   const drawings = options.drawings ?? false;
   const diagrams = options.diagrams ?? false;
   const inlineOptions = { resolveWikilink: options.resolveWikilink };
@@ -720,6 +799,7 @@ export function renderDocument(
   let codeGroup = 0;
   let mathGroup = 0;
   let tableGroup = 0;
+  let calloutGroup = 0;
   let mathLines: string[] | null = null;
   const output: string[] = [];
 
@@ -839,6 +919,28 @@ export function renderDocument(
       continue;
     }
 
+    if (callouts && CALLOUT_START.test(line)) {
+      const calloutLines = [line];
+      let j = i + 1;
+
+      while (j < lines.length && CALLOUT_LINE.test(lines[j]) && !CALLOUT_START.test(lines[j])) {
+        calloutLines.push(lines[j]);
+        j++;
+      }
+
+      const group = calloutGroup++;
+      const start = CALLOUT_START.exec(calloutLines[0]);
+      const definition = calloutDefinition(start?.[1] ?? "note", calloutDefinitions);
+
+      for (const [index, calloutSourceLine] of calloutLines.entries()) {
+        output.push(calloutLine(calloutSourceLine, group, definition, index, calloutLines.length, inlineOptions));
+      }
+
+      output.push(calloutPreview(calloutLines, group, calloutDefinitions, inlineOptions));
+      i = j;
+      continue;
+    }
+
     const media = resolveAsset ? MEDIA_LINE.exec(line) : null;
 
     if (media) {
@@ -901,6 +1003,17 @@ export function continueList(line: string): string {
   const nextBullet = ordinal ? `${Number(ordinal) + 1}.` : bullet;
 
   return `${indent}${nextBullet}${task ? " [ ]" : ""} `;
+}
+
+/** Prefix to start the next line with when Enter is pressed inside a blockquote/callout. */
+export function continueQuote(line: string): string {
+  const match = /^(\s*>\s?)/.exec(line);
+
+  if (!match || line.length === match[0].length) {
+    return "";
+  }
+
+  return match[0].endsWith(" ") ? match[0] : `${match[0]} `;
 }
 
 export function stripPrefix(line: string) {
