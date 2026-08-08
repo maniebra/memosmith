@@ -55,6 +55,11 @@
     withNoteExtension,
   } from "../../lib/utils/path";
   import {
+    backlinksForNote,
+    resolveWikilinkTarget,
+    wikilinkCreatePath,
+  } from "../../lib/utils/wikilinks";
+  import {
     cleanPageMeta,
     hasPageMeta,
     type PageIcon,
@@ -96,6 +101,7 @@
   let path: string | null = null;
   let spaceRoot = loadSpaceRoot();
   let spaceNotes: string[] = [];
+  let noteContents: Record<string, string> = {};
   let spaceMeta: SpaceMeta = {};
   let databases: DatabaseSummary[] = [];
   let activeDatabaseId: string | null = null;
@@ -142,6 +148,11 @@
       : "No space";
   $: breadcrumbs = noteBreadcrumbs(activeRelativePath, spaceNotes, fileLabel);
   $: noteTitle = activeRelativePath ? displayNoteName(activeRelativePath) : "";
+  $: wikilinkKey = `${activeRelativePath ?? ""}\n${spaceNotes.join("\n")}`;
+  $: backlinks = backlinksForNote(activeRelativePath, spaceNotes, {
+    ...noteContents,
+    ...(activeRelativePath ? { [activeRelativePath]: contents } : {}),
+  });
   $: dirtyMarker = isDirty ? " *" : "";
   $: displayName = `${fileLabel}${dirtyMarker}`;
   $: document.title = `${displayName} - ${appTitle}`;
@@ -341,10 +352,35 @@
     syncStats();
   }
 
+  async function loadNoteContents(root: string, notes: string[]) {
+    const entries = await Promise.all(
+      notes.map(async (note) => [note, await readNote(`${root}/${note}`)] as const),
+    );
+
+    noteContents = Object.fromEntries(entries);
+  }
+
   async function refreshSpace() {
-    spaceNotes = spaceRoot ? await listSpace(spaceRoot) : [];
-    spaceMeta = spaceRoot ? await loadSpaceMeta(spaceRoot) : {};
-    databases = spaceRoot ? await listDatabases(spaceRoot) : [];
+    if (!spaceRoot) {
+      spaceNotes = [];
+      spaceMeta = {};
+      databases = [];
+      noteContents = {};
+      return;
+    }
+
+    const root = spaceRoot;
+    const notes = await listSpace(root);
+    const [meta, databaseSummaries] = await Promise.all([
+      loadSpaceMeta(root),
+      listDatabases(root),
+    ]);
+
+    await loadNoteContents(root, notes);
+
+    spaceNotes = notes;
+    spaceMeta = meta;
+    databases = databaseSummaries;
   }
 
   async function createSpaceDatabase(name: string) {
@@ -410,7 +446,10 @@
 
     const notePath = spacePath(relativePath);
 
-    setEditorText(await readNote(notePath), notePath);
+    const text = await readNote(notePath);
+
+    noteContents = { ...noteContents, [relativePath]: text };
+    setEditorText(text, notePath);
     statusMessage = `Selected ${displayNotePath(relativePath)}`;
     focusEditor();
   }
@@ -443,8 +482,42 @@
     await createNote(spacePath(relativePath));
     await refreshSpace();
     setEditorText("", spacePath(relativePath));
+    noteContents = { ...noteContents, [relativePath]: "" };
     statusMessage = `Created ${displayNotePath(relativePath)}`;
     focusEditor();
+  }
+
+  async function openWikilink(rawTarget: string) {
+    if (!spaceRoot) {
+      return;
+    }
+
+    await flushNoteSave();
+
+    const resolved = resolveWikilinkTarget(rawTarget, spaceNotes, activeRelativePath);
+
+    if (resolved.path) {
+      await selectSpaceNote(resolved.path);
+      return;
+    }
+
+    const relativePath = wikilinkCreatePath(rawTarget, activeRelativePath);
+
+    if (!relativePath) {
+      statusMessage = "That wikilink target is not a valid note path";
+      return;
+    }
+
+    await createNote(spacePath(relativePath));
+    await refreshSpace();
+    setEditorText("", spacePath(relativePath));
+    noteContents = { ...noteContents, [relativePath]: "" };
+    statusMessage = `Created ${displayNotePath(relativePath)}`;
+    focusEditor();
+  }
+
+  function resolveActiveWikilink(rawTarget: string) {
+    return resolveWikilinkTarget(rawTarget, spaceNotes, activeRelativePath);
   }
 
   async function renameSpaceEntry(relativePath: string, name: string) {
@@ -485,6 +558,12 @@
       nextRelativePath,
       isFolder,
     );
+    noteContents = renamedNoteContents(
+      noteContents,
+      relativePath,
+      nextRelativePath,
+      isFolder,
+    );
     await refreshSpace();
     statusMessage = `Renamed to ${displayNotePath(nextRelativePath)}`;
   }
@@ -506,6 +585,7 @@
 
     await deletePageMeta(spaceRoot!, relativePath, isFolder);
     spaceMeta = deletedMeta(spaceMeta, relativePath, isFolder);
+    noteContents = deletedNoteContents(noteContents, relativePath, isFolder);
 
     // The deleted note's media is now unreferenced, so its folder loses the orphans.
     const parent = relativePath.includes("/")
@@ -582,6 +662,28 @@
     return next;
   }
 
+  function renamedNoteContents(
+    contentsByPath: Record<string, string>,
+    from: string,
+    to: string,
+    folder: boolean,
+  ) {
+    const next: Record<string, string> = {};
+    const prefix = `${from}/`;
+
+    for (const [key, value] of Object.entries(contentsByPath)) {
+      if (key === from) {
+        next[to] = value;
+      } else if (folder && key.startsWith(prefix)) {
+        next[`${to}/${key.slice(prefix.length)}`] = value;
+      } else {
+        next[key] = value;
+      }
+    }
+
+    return next;
+  }
+
   function deletedMeta(
     meta: SpaceMeta,
     path: string,
@@ -591,6 +693,23 @@
     const prefix = `${path}/`;
 
     for (const [key, value] of Object.entries(meta)) {
+      if (key !== path && !(folder && key.startsWith(prefix))) {
+        next[key] = value;
+      }
+    }
+
+    return next;
+  }
+
+  function deletedNoteContents(
+    contentsByPath: Record<string, string>,
+    path: string,
+    folder: boolean,
+  ) {
+    const next: Record<string, string> = {};
+    const prefix = `${path}/`;
+
+    for (const [key, value] of Object.entries(contentsByPath)) {
       if (key !== path && !(folder && key.startsWith(prefix))) {
         next[key] = value;
       }
@@ -614,6 +733,10 @@
 
     if (!isDirty) {
       isDirty = true;
+    }
+
+    if (activeRelativePath) {
+      noteContents = { ...noteContents, [activeRelativePath]: contents };
     }
 
     scheduleStats();
@@ -982,6 +1105,12 @@
               return "";
             })}
           onGenerate={generateFromPrompt}
+          onWikilink={(target) => runWithStatus(() => openWikilink(target))}
+          resolveWikilink={resolveActiveWikilink}
+          {wikilinkKey}
+          {backlinks}
+          onSelectBacklink={(relativePath) =>
+            runWithStatus(() => selectSpaceNote(relativePath))}
           decorations={settings.features.grammarPolice && grammarOpen ? grammarDecorations : []}
           {resolveAsset}
         />

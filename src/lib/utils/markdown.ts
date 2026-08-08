@@ -1,6 +1,7 @@
 import hljs from "highlight.js/lib/common";
 import katex from "katex";
 import { assetFolder } from "./assets";
+import { parseWikilink, type WikilinkResolution } from "./wikilinks";
 
 type BlockRule = {
   match: RegExp;
@@ -23,7 +24,7 @@ const BLOCK_RULES: BlockRule[] = [
 ];
 
 /** One pass so replacements are never rescanned as markdown. */
-const INLINE = /`([^`\n]+)`|\$([^$\n]+)\$|\*\*([^*\n]+)\*\*|(?<![*\w])\*(\S|\S[^*\n]*\S)\*(?!\*)|\[([^\]\n]*)\]\(([^)\n]*)\)/g;
+const INLINE = /`([^`\n]+)`|\$([^$\n]+)\$|\[\[([^\]\n]+)\]\]|\*\*([^*\n]+)\*\*|(?<![*\w])\*(\S|\S[^*\n]*\S)\*(?!\*)|\[([^\]\n]*)\]\(([^)\n]*)\)/g;
 const EQUATION_BLOCK = /^\s*\$\$\s*(\S.*?)\s*\$\$\s*$/;
 
 function mark(text: string) {
@@ -61,14 +62,38 @@ function mathPreview(source: string, group: number) {
   return `<div class="md-preview md-math-preview" data-math="${group}" contenteditable="false">${renderKatex(source, true)}</div>`;
 }
 
-function renderInline(escaped: string) {
-  return escaped.replace(INLINE, (all, code, math, bold, italic, linkText, href) => {
+export type WikilinkResolver = (target: string) => WikilinkResolution;
+
+type RenderInlineOptions = {
+  resolveWikilink?: WikilinkResolver;
+};
+
+function renderWikilink(raw: string, options: RenderInlineOptions) {
+  const rawText = unescapeHtml(raw);
+  const link = parseWikilink(rawText);
+  const aliasIndex = rawText.indexOf("|");
+  const sourceStart = aliasIndex === -1 ? "[[" : `[[${rawText.slice(0, aliasIndex + 1)}`;
+  const label = aliasIndex === -1 ? rawText : rawText.slice(aliasIndex + 1);
+  const resolution = options.resolveWikilink?.(link.raw);
+  const missing = resolution && !resolution.exists ? " md-wikilink-missing" : "";
+
+  return `<span class="md-wikilink${missing}" data-wikilink-target="${attribute(link.raw)}">${mark(
+    escapeHtml(sourceStart),
+  )}${escapeHtml(label)}${mark("]]")}</span>`;
+}
+
+function renderInline(escaped: string, options: RenderInlineOptions = {}) {
+  return escaped.replace(INLINE, (all, code, math, wiki, bold, italic, linkText, href) => {
     if (code) {
       return `<span class="md-code">${mark("`")}${code}${mark("`")}</span>`;
     }
 
     if (math) {
       return renderInlineMath(math);
+    }
+
+    if (wiki) {
+      return renderWikilink(wiki, options);
     }
 
     if (bold) {
@@ -299,7 +324,12 @@ export function serializeMarkdownTable(table: MarkdownTable) {
   return [rows[0], separator, ...rows.slice(1)].join("\n");
 }
 
-function tableCell(content: string, tag: "td" | "th", alignment: TableAlignment) {
+function tableCell(
+  content: string,
+  tag: "td" | "th",
+  alignment: TableAlignment,
+  options: RenderInlineOptions,
+) {
   const align = alignment ? `text-align:${alignment};` : "";
   const cell = parseTableCell(content);
   const colspan = cell.colspan > 1 ? ` colspan="${cell.colspan}"` : "";
@@ -307,7 +337,7 @@ function tableCell(content: string, tag: "td" | "th", alignment: TableAlignment)
   const background =
     cell.background && TABLE_BACKGROUNDS.has(cell.background) ? `background-color:${cell.background};` : "";
   const style = align || background ? ` style="${align}${background}"` : "";
-  const body = renderInline(escapeHtml(cell.text));
+  const body = renderInline(escapeHtml(cell.text), options);
 
   if (cell.covered) {
     return "";
@@ -316,7 +346,7 @@ function tableCell(content: string, tag: "td" | "th", alignment: TableAlignment)
   return `<${tag} class="md-table-cell" data-table-cell data-row="" data-column="" contenteditable="true" spellcheck="true"${colspan}${rowspan}${style}>${body || emptyAnchor()}</${tag}>`;
 }
 
-function renderTable(lines: string[]) {
+function renderTable(lines: string[], options: RenderInlineOptions) {
   const table = parseMarkdownTable(lines);
 
   if (!table) {
@@ -326,7 +356,7 @@ function renderTable(lines: string[]) {
   const rowHtml = (row: TableCell[], rowIndex: number, tag: "td" | "th") =>
     `<tr>${row
       .map((cell, columnIndex) =>
-        tableCell(serializedTableCell(cell), tag, table.alignments[columnIndex] ?? null)
+        tableCell(serializedTableCell(cell), tag, table.alignments[columnIndex] ?? null, options)
           .replace('data-row=""', `data-row="${rowIndex}"`)
           .replace('data-column=""', `data-column="${columnIndex}"`),
       )
@@ -346,11 +376,16 @@ function isTableRow(line: string) {
   return splitTableRow(line).length > 1 || line.trim().startsWith("|");
 }
 
-function tableLine(line: string, group: number) {
-  return `<div class="md-block md-table-line" data-table="${group}">${renderLine(line)}</div>`;
+function tableLine(line: string, group: number, options: RenderInlineOptions) {
+  return `<div class="md-block md-table-line" data-table="${group}">${renderLine(line, options)}</div>`;
 }
 
-function tablePreview(lines: string[], group: number, showToolbar = true) {
+function tablePreview(
+  lines: string[],
+  group: number,
+  showToolbar = true,
+  options: RenderInlineOptions = {},
+) {
   const divider = '<span class="md-table-tool-divider" aria-hidden="true">|</span>';
   const toolbar = showToolbar
     ? `<div class="md-table-tools-shell" contenteditable="false"><div class="md-table-tools"><button type="button" data-table-action="insert-row" title="Add row">Row +</button>${divider}<button type="button" data-table-action="insert-column" title="Add column">Col +</button>${divider}<button type="button" data-table-action="merge-right" title="Merge with cell on the right">Merge H</button>${divider}<button type="button" data-table-action="merge-down" title="Merge with cell below">Merge V</button>${divider}<button type="button" data-table-action="split-cell" title="Split cell">Split</button>${divider}${Array.from(
@@ -365,6 +400,7 @@ function tablePreview(lines: string[], group: number, showToolbar = true) {
 
   return `<div class="md-preview md-table-preview" data-table="${group}" contenteditable="false">${toolbar}<div class="md-table-scroll">${renderTable(
       lines,
+      options,
     )}</div></div>`;
 }
 
@@ -554,14 +590,14 @@ export function lineClass(line: string) {
   return blockRule(line)?.className ?? "";
 }
 
-export function renderLine(line: string) {
+export function renderLine(line: string, options: RenderInlineOptions = {}) {
   if (!line) {
     return emptyAnchor();
   }
 
   const rule = blockRule(line);
   const prefix = rule?.hideMark ? rule.match.exec(line)![0] : "";
-  const body = renderInline(escapeHtml(line.slice(prefix.length)));
+  const body = renderInline(escapeHtml(line.slice(prefix.length)), options);
 
   return `${prefix ? mark(escapeHtml(prefix)) : ""}${body || emptyAnchor()}`;
 }
@@ -595,6 +631,7 @@ export type RenderDocumentOptions = {
   fancyTableEditor?: boolean;
   drawings?: boolean;
   diagrams?: boolean;
+  resolveWikilink?: WikilinkResolver;
 };
 
 /** Language of the fenced block that holds an Excalidraw scene as JSON. */
@@ -623,6 +660,7 @@ export function renderDocument(
   const fancyTableEditor = options.fancyTableEditor ?? true;
   const drawings = options.drawings ?? false;
   const diagrams = options.diagrams ?? false;
+  const inlineOptions = { resolveWikilink: options.resolveWikilink };
   let embedGroup: number | null = null;
   /** Non-null while inside a fenced block that renders as a preview card instead of code. */
   let embedLanguage: string | null = null;
@@ -734,7 +772,7 @@ export function renderDocument(
 
     if (media) {
       output.push(
-        `<div class="md-block md-media-line">${renderLine(line)}</div>`,
+        `<div class="md-block md-media-line">${renderLine(line, inlineOptions)}</div>`,
         mediaPreview(line, media[2], media[3], resolveAsset!),
       );
       i++;
@@ -753,10 +791,10 @@ export function renderDocument(
       const group = tableGroup++;
 
       for (const tableSourceLine of tableLines) {
-        output.push(tableLine(tableSourceLine, group));
+        output.push(tableLine(tableSourceLine, group, inlineOptions));
       }
 
-      output.push(tablePreview(tableLines, group, fancyTableEditor));
+      output.push(tablePreview(tableLines, group, fancyTableEditor, inlineOptions));
       i = j;
       continue;
     }
@@ -764,7 +802,7 @@ export function renderDocument(
     const indent = / */.exec(line)![0].length;
     const style = indent ? ` style="padding-left:${indent * 0.75}rem"` : "";
 
-    output.push(`<div class="md-block ${lineClass(line)}"${style}>${renderLine(line)}</div>`);
+    output.push(`<div class="md-block ${lineClass(line)}"${style}>${renderLine(line, inlineOptions)}</div>`);
     i++;
   }
 

@@ -40,6 +40,7 @@
     mathUnclosed,
     mediaOptions,
     renderDocument,
+    type WikilinkResolver,
     SLASH_COMMANDS,
     withMediaOptions,
     EMPTY_DRAWING,
@@ -68,6 +69,9 @@
   export let onPickAssets: (() => Promise<string>) | null = null;
   /** Takes the selected text as a prompt and returns generated markdown. */
   export let onGenerate: ((prompt: string) => Promise<string>) | null = null;
+  export let onWikilink: ((target: string) => void | Promise<void>) | null = null;
+  export let resolveWikilink: WikilinkResolver | undefined = undefined;
+  export let wikilinkKey = "";
   /** Source ranges to underline, drawn in an overlay so the editable DOM stays untouched. */
   export let decorations: Decoration[] = [];
   export let resolveAsset: ((source: string) => string) | null = null;
@@ -202,6 +206,9 @@
   }
   $: if (element && renderedDiagrams !== diagrams) {
     renderedDiagrams = diagrams;
+    render(caretOffset());
+  }
+  $: if (element && resolveWikilink && wikilinkKey) {
     render(caretOffset());
   }
 
@@ -965,7 +972,12 @@
       return;
     }
 
-    element.innerHTML = renderDocument(value, resolveAsset ?? undefined, { fancyTableEditor, drawings, diagrams });
+    element.innerHTML = renderDocument(value, resolveAsset ?? undefined, {
+      fancyTableEditor,
+      drawings,
+      diagrams,
+      resolveWikilink,
+    });
     bindTableToolbars();
     paintDrawingPreviews();
     paintDiagramPreviews();
@@ -1869,6 +1881,14 @@
 
     // pointerdown fires for the right button too, and a right click belongs to the context menu.
     if (event.button !== 0) {
+      return;
+    }
+
+    const wikilink = handle.closest?.(".md-wikilink") as HTMLElement | null;
+
+    if (wikilink?.dataset.wikilinkTarget && onWikilink && (!editable || event.ctrlKey || event.metaKey)) {
+      event.preventDefault();
+      void onWikilink(wikilink.dataset.wikilinkTarget);
       return;
     }
 

@@ -2,8 +2,10 @@
   import type { EditorWidth } from "../../lib/storage/settings";
   import { cn } from "../../lib/utils/cn";
   import type { PageIcon, PageMeta } from "../../lib/utils/pageMeta";
+  import type { Backlink, WikilinkResolution } from "../../lib/utils/wikilinks";
   import MarkdownEditor from "../components/MarkdownEditor.svelte";
   import PageIdentity from "../components/PageIdentity.svelte";
+  import BacklinksPanel from "../sections/BacklinksPanel.svelte";
 
   export let contents: string;
   export let editor: HTMLElement | undefined = undefined;
@@ -23,6 +25,11 @@
   export let onAssets: (source: { files?: File[]; paths?: string[] }) => Promise<string>;
   export let onPickAssets: () => Promise<string>;
   export let onGenerate: ((prompt: string) => Promise<string>) | null = null;
+  export let onWikilink: ((target: string) => void | Promise<void>) | null = null;
+  export let resolveWikilink: ((target: string) => WikilinkResolution) | undefined = undefined;
+  export let wikilinkKey = "";
+  export let backlinks: Backlink[] = [];
+  export let onSelectBacklink: (relativePath: string) => void | Promise<void>;
   export let decorations: { start: number; end: number; tone: "mistake" | "suggestion" }[] = [];
   export let onIconChange: (icon: PageIcon | null) => void | Promise<void>;
   export let onCoverChange: (cover: string | null) => void | Promise<void>;
@@ -67,8 +74,15 @@
       {onAssets}
       {onPickAssets}
       {onGenerate}
+      {onWikilink}
+      {resolveWikilink}
+      {wikilinkKey}
       {decorations}
       {resolveAsset}
     />
+
+    {#if editable}
+      <BacklinksPanel {backlinks} onSelect={onSelectBacklink} />
+    {/if}
   </div>
 </section>

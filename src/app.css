@@ -232,6 +232,14 @@ body {
     @apply text-emerald-700 underline decoration-emerald-700/30 underline-offset-2 dark:text-emerald-400 dark:decoration-emerald-400/30;
   }
 
+  .md-wikilink {
+    @apply cursor-pointer rounded bg-emerald-500/10 px-1 text-emerald-800 no-underline ring-1 ring-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-400/10;
+  }
+
+  .md-wikilink-missing {
+    @apply bg-amber-500/10 text-amber-800 ring-amber-500/15 dark:text-amber-300 dark:ring-amber-400/15;
+  }
+
   .md-table-line {
     @apply font-mono text-[0.85em] text-stone-500 dark:text-stone-400;
   }
