@@ -38,6 +38,8 @@ export type PlantumlSettings = {
   command: string;
   server: string;
   format: PlantumlFormat;
+  /** PlantUML theme name, injected as `!theme <name>`; empty leaves the diagram unthemed. */
+  theme: string;
 };
 
 /** Interpreter paths, empty meaning "find it on PATH", plus the per-cell time limit. */
@@ -167,6 +169,7 @@ export const defaultPlantumlSettings: PlantumlSettings = {
   command: "",
   server: "",
   format: "svg",
+  theme: "",
 };
 
 export const defaultRunnerSettings: RunnerSettings = {
@@ -435,6 +438,7 @@ function readPlantuml(value: unknown): PlantumlSettings {
       parsed.format === "png" || parsed.format === "txt" || parsed.format === "svg"
         ? parsed.format
         : defaultPlantumlSettings.format,
+    theme: typeof parsed.theme === "string" ? parsed.theme : "",
   };
 }
 

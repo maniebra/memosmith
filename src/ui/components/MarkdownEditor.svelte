@@ -314,7 +314,7 @@
   }
 
   /** Switching binary, server, or output format invalidates every painted diagram. */
-  $: plantumlKeyPrefix = `${plantumlSettings.format}|${plantumlSettings.server}|${plantumlSettings.command}`;
+  $: plantumlKeyPrefix = `${plantumlSettings.format}|${plantumlSettings.theme}|${plantumlSettings.server}|${plantumlSettings.command}`;
   $: if (element && plantuml && plantumlKeyPrefix) {
     paintPlantumlPreviews();
   }
@@ -2062,7 +2062,7 @@
   const PLANTUML_CACHE_LIMIT = 60;
 
   function plantumlKey(source: string) {
-    return `${plantumlSettings.format}\u0000${plantumlSettings.server.trim() || plantumlSettings.command}\u0000${source}`;
+    return `${plantumlSettings.format}\u0000${plantumlSettings.theme}\u0000${plantumlSettings.server.trim() || plantumlSettings.command}\u0000${source}`;
   }
 
   function cachePlantuml(key: string, render: PlantumlRender) {

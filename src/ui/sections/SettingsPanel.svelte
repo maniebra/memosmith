@@ -796,6 +796,20 @@
                 </label>
 
                 <label class="grid gap-1">
+                  <span class="text-sm text-stone-700 dark:text-stone-200">Theme</span>
+                  <Input
+                    value={settings.plantuml.theme}
+                    placeholder="none (try: carbon-gray, cyborg, hacker, sketchy)"
+                    oninput={(event) =>
+                      updatePlantuml({ theme: (event.target as HTMLInputElement).value })}
+                  />
+                  <span class="text-xs text-stone-500">
+                    Added as <code>!theme</code> to every diagram that does not set one itself. A
+                    dark theme is what makes diagrams sit well next to a dark editor.
+                  </span>
+                </label>
+
+                <label class="grid gap-1">
                   <span class="text-sm text-stone-700 dark:text-stone-200">Output</span>
                   <Select
                     value={settings.plantuml.format}

@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { fetch } from "@tauri-apps/plugin-http";
 import type { PlantumlFormat, PlantumlSettings } from "../storage/settings";
+import { themedSource } from "../utils/plantuml";
 
 /** SVG and ASCII come back as text, PNG as a `data:` URL, so the caller can paint either. */
 export type PlantumlOutput = { format: PlantumlFormat; content: string };
@@ -70,14 +71,16 @@ export async function renderPlantuml(
   source: string,
   settings: PlantumlSettings,
 ): Promise<PlantumlOutput> {
+  const themed = themedSource(source, settings.theme);
+
   if (settings.server.trim()) {
-    return renderOnServer(settings.server, source, settings.format);
+    return renderOnServer(settings.server, themed, settings.format);
   }
 
   return {
     format: settings.format,
     content: await invoke<string>("render_plantuml", {
-      source,
+      source: themed,
       command: settings.command,
       format: settings.format,
     }),
