@@ -12,7 +12,11 @@
   import { convertFileSrc } from "@tauri-apps/api/core";
   import { assetFolder, assetMarkdown } from "../../lib/utils/assets";
   import { compressImage } from "../../lib/utils/image";
-  import { checkGrammar, explainIssue, generateContent } from "../../lib/tauri/llm";
+  import {
+    checkGrammar,
+    explainIssue,
+    generateContent,
+  } from "../../lib/tauri/llm";
   import {
     applyIssue,
     issueRange,
@@ -63,7 +67,11 @@
     listDatabases,
     type DatabaseSummary,
   } from "../../lib/tauri/databases";
-  import { defaultColumns, defaultViews, slugify } from "../../lib/utils/database";
+  import {
+    defaultColumns,
+    defaultViews,
+    slugify,
+  } from "../../lib/utils/database";
   import DatabaseManager from "../sections/DatabaseManager.svelte";
   import DatabaseView from "../sections/DatabaseView.svelte";
   import NoteEditorForm from "../forms/NoteEditorForm.svelte";
@@ -78,7 +86,9 @@
   const paneSlide = {
     axis: "x" as const,
     easing: cubicOut,
-    duration: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 200,
+    duration: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      ? 0
+      : 200,
   };
   type Breadcrumb = { label: string; path?: string };
 
@@ -91,7 +101,9 @@
   let databasesOpen = false;
   let isDirty = false;
   let contents = "";
-  let statusMessage = spaceRoot ? "Select or create a note" : "Choose a space to start";
+  let statusMessage = spaceRoot
+    ? "Select or create a note"
+    : "Choose a space to start";
   let editor: HTMLElement | undefined;
   let words = countWords(contents);
   let characters = contents.length;
@@ -106,21 +118,27 @@
   let prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
   let noteSaveTimer: ReturnType<typeof setTimeout> | undefined;
   let statsTimer: ReturnType<typeof setTimeout> | undefined;
-  let resizing:
-    | {
-        pane: "space" | "settings";
-        startX: number;
-        startWidth: number;
-      }
-    | null = null;
+  let resizing: {
+    pane: "space" | "settings";
+    startX: number;
+    startWidth: number;
+  } | null = null;
 
   $: noteDir = path ? path.slice(0, path.lastIndexOf("/")) : null;
   $: spacePrefix = spaceRoot ? `${spaceRoot}/` : null;
   $: activeRelativePath =
-    path && spacePrefix && path.startsWith(spacePrefix) ? path.slice(spacePrefix.length) : null;
-  $: activeEntryPath = activeRelativePath ? entryPathFromNote(activeRelativePath) : null;
+    path && spacePrefix && path.startsWith(spacePrefix)
+      ? path.slice(spacePrefix.length)
+      : null;
+  $: activeEntryPath = activeRelativePath
+    ? entryPathFromNote(activeRelativePath)
+    : null;
   $: activePageMeta = activeEntryPath ? (spaceMeta[activeEntryPath] ?? {}) : {};
-  $: fileLabel = activeRelativePath ? displayNotePath(activeRelativePath) : spaceRoot ? "No note selected" : "No space";
+  $: fileLabel = activeRelativePath
+    ? displayNotePath(activeRelativePath)
+    : spaceRoot
+      ? "No note selected"
+      : "No space";
   $: breadcrumbs = noteBreadcrumbs(activeRelativePath, spaceNotes, fileLabel);
   $: noteTitle = activeRelativePath ? displayNoteName(activeRelativePath) : "";
   $: dirtyMarker = isDirty ? " *" : "";
@@ -140,7 +158,11 @@
     words = countWords(contents);
   }
 
-  function noteBreadcrumbs(relativePath: string | null, notes: string[], fallback: string): Breadcrumb[] {
+  function noteBreadcrumbs(
+    relativePath: string | null,
+    notes: string[],
+    fallback: string,
+  ): Breadcrumb[] {
     if (!relativePath) {
       return [{ label: fallback }];
     }
@@ -153,10 +175,17 @@
       const isLast = index === pathSegments.length - 1;
       const folderPath = pathSegments.slice(0, index + 1).join("/");
       const folderNote = dirNotePath(folderPath);
-      const path = isLast ? relativePath : notes.includes(folderNote) ? folderNote : undefined;
+      const path = isLast
+        ? relativePath
+        : notes.includes(folderNote)
+          ? folderNote
+          : undefined;
 
       return {
-        label: isLast && !isDirNotePath(relativePath) ? stripNoteExtension(segment) : segment,
+        label:
+          isLast && !isDirNotePath(relativePath)
+            ? stripNoteExtension(segment)
+            : segment,
         path,
       };
     });
@@ -221,8 +250,12 @@
     editor?.focus();
   }
 
-  function applyTheme(theme: typeof settings.theme, systemPrefersDark: boolean) {
-    const useDark = theme === "dark" || (theme === "system" && systemPrefersDark);
+  function applyTheme(
+    theme: typeof settings.theme,
+    systemPrefersDark: boolean,
+  ) {
+    const useDark =
+      theme === "dark" || (theme === "system" && systemPrefersDark);
 
     document.documentElement.classList.toggle("dark", useDark);
     document.documentElement.style.colorScheme = useDark ? "dark" : "light";
@@ -258,7 +291,8 @@
     resizing = {
       pane,
       startX: event.clientX,
-      startWidth: pane === "space" ? settings.spacePaneWidth : settings.settingsPaneWidth,
+      startWidth:
+        pane === "space" ? settings.spacePaneWidth : settings.settingsPaneWidth,
     };
   }
 
@@ -269,7 +303,9 @@
 
     const delta = event.clientX - resizing.startX;
     const nextWidth =
-      resizing.pane === "space" ? resizing.startWidth + delta : resizing.startWidth - delta;
+      resizing.pane === "space"
+        ? resizing.startWidth + delta
+        : resizing.startWidth - delta;
 
     updatePaneWidth(resizing.pane, nextWidth);
   }
@@ -278,7 +314,10 @@
     resizing = null;
   }
 
-  function resizeWithKeyboard(event: KeyboardEvent, pane: "space" | "settings") {
+  function resizeWithKeyboard(
+    event: KeyboardEvent,
+    pane: "space" | "settings",
+  ) {
     if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
       return;
     }
@@ -287,8 +326,10 @@
 
     const direction = event.key === "ArrowRight" ? 1 : -1;
     const step = event.shiftKey ? 40 : 12;
-    const currentWidth = pane === "space" ? settings.spacePaneWidth : settings.settingsPaneWidth;
-    const nextWidth = currentWidth + (pane === "space" ? direction : -direction) * step;
+    const currentWidth =
+      pane === "space" ? settings.spacePaneWidth : settings.settingsPaneWidth;
+    const nextWidth =
+      currentWidth + (pane === "space" ? direction : -direction) * step;
 
     updatePaneWidth(pane, nextWidth);
   }
@@ -390,7 +431,11 @@
     return name;
   }
 
-  async function createSpaceNote(parentPath: string, name: string, folder = false) {
+  async function createSpaceNote(
+    parentPath: string,
+    name: string,
+    folder = false,
+  ) {
     await flushNoteSave();
 
     const parent = parentPath ? `${parentPath}/` : "";
@@ -408,7 +453,9 @@
   async function renameSpaceEntry(relativePath: string, name: string) {
     await flushNoteSave();
 
-    const parent = relativePath.includes("/") ? `${relativePath.slice(0, relativePath.lastIndexOf("/"))}/` : "";
+    const parent = relativePath.includes("/")
+      ? `${relativePath.slice(0, relativePath.lastIndexOf("/"))}/`
+      : "";
     const isFolder = !spaceNotes.includes(relativePath);
     const nextRelativePath = `${parent}${isFolder ? safeName(name) : withNoteExtension(safeName(name))}`;
 
@@ -428,11 +475,19 @@
     if (path === spacePath(relativePath)) {
       path = spacePath(nextRelativePath);
     } else if (isFolder && path?.startsWith(`${spacePath(relativePath)}/`)) {
-      path = path === spacePath(dirNote) ? spacePath(nextDirNote) : path.replace(spacePath(relativePath), spacePath(nextRelativePath));
+      path =
+        path === spacePath(dirNote)
+          ? spacePath(nextDirNote)
+          : path.replace(spacePath(relativePath), spacePath(nextRelativePath));
     }
 
     await renamePageMeta(spaceRoot!, relativePath, nextRelativePath, isFolder);
-    spaceMeta = renamedMeta(spaceMeta, relativePath, nextRelativePath, isFolder);
+    spaceMeta = renamedMeta(
+      spaceMeta,
+      relativePath,
+      nextRelativePath,
+      isFolder,
+    );
     await refreshSpace();
     statusMessage = `Renamed to ${displayNotePath(nextRelativePath)}`;
   }
@@ -456,7 +511,9 @@
     spaceMeta = deletedMeta(spaceMeta, relativePath, isFolder);
 
     // The deleted note's media is now unreferenced, so its folder loses the orphans.
-    const parent = relativePath.includes("/") ? relativePath.slice(0, relativePath.lastIndexOf("/")) : "";
+    const parent = relativePath.includes("/")
+      ? relativePath.slice(0, relativePath.lastIndexOf("/"))
+      : "";
 
     await pruneAssets(parent ? spacePath(parent) : spaceRoot!);
     await refreshSpace();
@@ -506,7 +563,12 @@
     statusMessage = "Updated cover";
   }
 
-  function renamedMeta(meta: SpaceMeta, from: string, to: string, folder: boolean): SpaceMeta {
+  function renamedMeta(
+    meta: SpaceMeta,
+    from: string,
+    to: string,
+    folder: boolean,
+  ): SpaceMeta {
     const next: SpaceMeta = {};
     const prefix = `${from}/`;
 
@@ -523,7 +585,11 @@
     return next;
   }
 
-  function deletedMeta(meta: SpaceMeta, path: string, folder: boolean): SpaceMeta {
+  function deletedMeta(
+    meta: SpaceMeta,
+    path: string,
+    folder: boolean,
+  ): SpaceMeta {
     const next: SpaceMeta = {};
     const prefix = `${path}/`;
 
@@ -567,7 +633,9 @@
   }
 
   function relativeToNote(assetPath: string) {
-    return assetPath.startsWith(`${noteDir}/`) ? assetPath.slice(noteDir!.length + 1) : assetPath;
+    return assetPath.startsWith(`${noteDir}/`)
+      ? assetPath.slice(noteDir!.length + 1)
+      : assetPath;
   }
 
   /** Markdown for every stored file, one per line. */
@@ -580,11 +648,16 @@
 
     for (const file of source.files ?? []) {
       const compressed = await compressImage(file);
-      const name = compressed.name || `pasted-${Date.now()}.${compressed.blob.type.split("/")[1] || "bin"}`;
-      // ponytail: bytes cross as a JSON number array; move to a raw request if large files drag.
-      const bytes = Array.from(new Uint8Array(await compressed.blob.arrayBuffer()));
+      const name =
+        compressed.name ||
+        `pasted-${Date.now()}.${compressed.blob.type.split("/")[1] || "bin"}`;
+      const bytes = Array.from(
+        new Uint8Array(await compressed.blob.arrayBuffer()),
+      );
 
-      stored.push(await writeAsset(assetDir(name, compressed.blob.type), name, bytes));
+      stored.push(
+        await writeAsset(assetDir(name, compressed.blob.type), name, bytes),
+      );
     }
 
     for (const filePath of source.paths ?? []) {
@@ -593,7 +666,9 @@
 
     statusMessage = `Added ${stored.length} file${stored.length === 1 ? "" : "s"}`;
 
-    return stored.map((assetPath) => assetMarkdown(relativeToNote(assetPath))).join("\n");
+    return stored
+      .map((assetPath) => assetMarkdown(relativeToNote(assetPath)))
+      .join("\n");
   }
 
   async function pickAssets() {
@@ -635,7 +710,12 @@
     statusMessage = "Grammar Police is reading...";
 
     try {
-      grammarReport = await checkGrammar(settings.llm, contents, settings.grammarMode, grammarProfile);
+      grammarReport = await checkGrammar(
+        settings.llm,
+        contents,
+        settings.grammarMode,
+        grammarProfile,
+      );
       statusMessage = `Writing score ${grammarReport.score}`;
     } catch (error) {
       grammarError = error instanceof Error ? error.message : String(error);
@@ -667,7 +747,10 @@
   function updateGrammarProfile(profile: GrammarProfile) {
     settings = {
       ...settings,
-      grammarProfiles: { ...settings.grammarProfiles, [settings.grammarMode]: profile },
+      grammarProfiles: {
+        ...settings.grammarProfiles,
+        [settings.grammarMode]: profile,
+      },
     };
   }
 
@@ -793,7 +876,8 @@
     {breadcrumbs}
     {isDirty}
     spacePaneOpen={settings.spacePaneOpen}
-    onSelectBreadcrumb={(relativePath) => runWithStatus(() => selectSpaceNote(relativePath))}
+    onSelectBreadcrumb={(relativePath) =>
+      runWithStatus(() => selectSpaceNote(relativePath))}
     onToggleSpacePane={toggleSpacePane}
     onToggleSettings={() => (settingsOpen = !settingsOpen)}
     onToggleDatabases={() => (databasesOpen = !databasesOpen)}
@@ -811,10 +895,14 @@
           activePath={activeRelativePath}
           onChooseSpace={() => runWithStatus(chooseSpace)}
           onRefresh={() => runWithStatus(refreshSpace)}
-          onSelect={(relativePath) => runWithStatus(() => selectSpaceNote(relativePath))}
-          onCreate={(parentPath, name, folder) => runWithStatus(() => createSpaceNote(parentPath, name, folder))}
-          onRename={(relativePath, name) => runWithStatus(() => renameSpaceEntry(relativePath, name))}
-          onDelete={(relativePath) => runWithStatus(() => deleteSpaceEntry(relativePath))}
+          onSelect={(relativePath) =>
+            runWithStatus(() => selectSpaceNote(relativePath))}
+          onCreate={(parentPath, name, folder) =>
+            runWithStatus(() => createSpaceNote(parentPath, name, folder))}
+          onRename={(relativePath, name) =>
+            runWithStatus(() => renameSpaceEntry(relativePath, name))}
+          onDelete={(relativePath) =>
+            runWithStatus(() => deleteSpaceEntry(relativePath))}
         />
 
         <button
@@ -841,36 +929,41 @@
             ))}
         />
       {:else}
-      <NoteEditorForm
-        bind:contents
-        bind:editor
-        editorWidth={settings.editorWidth}
-        textSize={settings.textSize}
-        spellcheck={settings.spellcheck}
-        slashCommands={settings.slashCommands}
-        editable={Boolean(path)}
-        {noteTitle}
-        pageMeta={activePageMeta}
-        showPageTitle={settings.showPageTitle}
-        placeholder={spaceRoot ? "Select or create a note" : "Choose a space from the sidebar"}
-        onInput={updateNote}
-        onIconChange={(icon) => runWithStatus(() => updateActiveIcon(icon))}
-        onCoverChange={(cover) => runWithStatus(() => updateActiveCover(cover))}
-        onPickCover={() => runWithStatus(pickActiveCover)}
-        onAssets={(source) =>
-          storeAssets(source).catch((error) => {
-            statusMessage = error instanceof Error ? error.message : String(error);
-            return "";
-          })}
-        onPickAssets={() =>
-          pickAssets().catch((error) => {
-            statusMessage = error instanceof Error ? error.message : String(error);
-            return "";
-          })}
-        onGenerate={generateFromPrompt}
-        decorations={grammarOpen ? grammarDecorations : []}
-        {resolveAsset}
-      />
+        <NoteEditorForm
+          bind:contents
+          bind:editor
+          editorWidth={settings.editorWidth}
+          textSize={settings.textSize}
+          spellcheck={settings.spellcheck}
+          slashCommands={settings.slashCommands}
+          editable={Boolean(path)}
+          {noteTitle}
+          pageMeta={activePageMeta}
+          showPageTitle={settings.showPageTitle}
+          placeholder={spaceRoot
+            ? "Select or create a note"
+            : "Choose a space from the sidebar"}
+          onInput={updateNote}
+          onIconChange={(icon) => runWithStatus(() => updateActiveIcon(icon))}
+          onCoverChange={(cover) =>
+            runWithStatus(() => updateActiveCover(cover))}
+          onPickCover={() => runWithStatus(pickActiveCover)}
+          onAssets={(source) =>
+            storeAssets(source).catch((error) => {
+              statusMessage =
+                error instanceof Error ? error.message : String(error);
+              return "";
+            })}
+          onPickAssets={() =>
+            pickAssets().catch((error) => {
+              statusMessage =
+                error instanceof Error ? error.message : String(error);
+              return "";
+            })}
+          onGenerate={generateFromPrompt}
+          decorations={grammarOpen ? grammarDecorations : []}
+          {resolveAsset}
+        />
       {/if}
     </div>
 
@@ -886,7 +979,8 @@
           onCheck={runGrammarCheck}
           onApply={applyGrammarIssue}
           onDismiss={dismissGrammarIssue}
-          onExplain={(issue) => explainIssue(settings.llm, issue, grammarProfile)}
+          onExplain={(issue) =>
+            explainIssue(settings.llm, issue, grammarProfile)}
           profile={grammarProfile}
           onProfileChange={updateGrammarProfile}
           {words}
