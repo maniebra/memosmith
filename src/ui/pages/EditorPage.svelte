@@ -1127,6 +1127,8 @@
           codeExecution={settings.features.codeExecution}
           runSession={path ?? ""}
           runner={settings.runner}
+          lsp={settings.features.lsp}
+          lspSettings={settings.lsp}
           editable={Boolean(path)}
           {noteTitle}
           pageMeta={activePageMeta}

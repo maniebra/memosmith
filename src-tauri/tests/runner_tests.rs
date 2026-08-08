@@ -17,7 +17,8 @@ fn languages_map_to_kernels() {
     assert_eq!(kernel_for("PYTHON"), Some("python"));
     assert_eq!(kernel_for("ts"), Some("node"));
     assert_eq!(kernel_for("sh"), Some("bash"));
-    assert_eq!(kernel_for("rust"), None);
+    assert_eq!(kernel_for("rust"), Some("rust"));
+    assert_eq!(kernel_for("haskell"), None);
 }
 
 #[test]
@@ -125,6 +126,27 @@ fn kotlin_keeps_variables_between_cells() {
     run("kotlin-note", "kotlin", "val total = 40");
 
     assert!(run("kotlin-note", "kotlin", "println(total + 2)").contains("42"));
+}
+
+#[test]
+fn rust_wraps_a_snippet_in_a_program() {
+    if !available("rustc") {
+        return;
+    }
+
+    assert_eq!(run("rust-note", "rust", "println!(\"{}\", 6 * 7);"), "42\n");
+
+    let failed = run_code(
+        "rust-note".into(),
+        "rust".into(),
+        "println!(\"{}\", nope);".into(),
+        None,
+        Some(60_000),
+    )
+    .expect("cell ran");
+
+    assert_eq!(failed.status, 1, "compile errors are reported");
+    assert!(!failed.output.is_empty(), "the compiler explains itself");
 }
 
 #[test]

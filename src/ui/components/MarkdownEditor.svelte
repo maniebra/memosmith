@@ -28,7 +28,13 @@
   import { onDestroy, onMount } from "svelte";
   import { cubicOut } from "svelte/easing";
   import { scale } from "svelte/transition";
-  import { defaultRunnerSettings, type CalloutDefinition, type RunnerSettings } from "../../lib/storage/settings";
+  import {
+    defaultLspSettings,
+    defaultRunnerSettings,
+    type CalloutDefinition,
+    type LspSettings,
+    type RunnerSettings,
+  } from "../../lib/storage/settings";
   import { cn } from "../../lib/utils/cn";
   import ContextMenu, { type ContextMenuItem } from "./ContextMenu.svelte";
   import {
@@ -51,6 +57,15 @@
   } from "../../lib/utils/markdown";
   import { runCode, resetSession } from "../../lib/tauri/runner";
   import { outputKey } from "../../lib/utils/runner";
+  import { completeCode } from "../../lib/tauri/lsp";
+  import {
+    fenceContext,
+    hasLanguageServer,
+    rankCompletions,
+    shouldComplete,
+    wordPrefix,
+    type Completion,
+  } from "../../lib/utils/lsp";
   import DrawingModal from "./DrawingModal.svelte";
   import DiagramModal from "./DiagramModal.svelte";
 
@@ -69,6 +84,8 @@
   /** Identifies the kernels a note owns, so its variables survive between cells. */
   export let runSession = "";
   export let runner: RunnerSettings = defaultRunnerSettings;
+  export let lsp = false;
+  export let lspSettings: LspSettings = defaultLspSettings;
   export let editable = true;
   export let className = "";
   export let onInput: () => void = () => {};
@@ -154,6 +171,17 @@
   let slashQuery = "";
   let slashIndex = 0;
   let menuPosition = { top: 0, left: 0 };
+  let completions: Completion[] = [];
+  let completionIndex = 0;
+  let completionStart: number | null = null;
+  let completionPosition = { top: 0, left: 0 };
+  let completionTimer: ReturnType<typeof setTimeout> | undefined;
+  /** Only the newest request may paint; a slower earlier one is stale by the time it lands. */
+  let completionRequest = 0;
+  /** A server answers one request at a time, so asking twice at once only builds a queue. */
+  let completionBusy = false;
+  /** Long enough that a burst of typing costs one request rather than one per character. */
+  const COMPLETION_DELAY = 300;
   let contextMenu: {
     x: number;
     y: number;
@@ -223,6 +251,9 @@
   );
   $: if (!slashCommands && slashStart !== null) {
     closeMenu();
+  }
+  $: if (!lsp && completions.length) {
+    closeCompletions();
   }
   $: if (element && !composing && getText() !== value) {
     render(caretOffset());
@@ -2588,6 +2619,101 @@
     }
   }
 
+
+  function closeCompletions() {
+    clearTimeout(completionTimer);
+    completionRequest += 1;
+    completions = [];
+    completionIndex = 0;
+    completionStart = null;
+  }
+
+  /** Completions come from a language server, so they are asked for after the typing pauses. */
+  function syncCompletions(offset: number) {
+    clearTimeout(completionTimer);
+
+    if (!lsp || slashStart !== null) {
+      closeCompletions();
+      return;
+    }
+
+    const context = fenceContext(value, offset);
+
+    if (!context || !hasLanguageServer(context.language)) {
+      closeCompletions();
+      return;
+    }
+
+    const line = context.code.split("\n")[context.line] ?? "";
+
+    if (!shouldComplete(line, context.character)) {
+      closeCompletions();
+      return;
+    }
+
+    const prefix = wordPrefix(line, context.character);
+    const request = ++completionRequest;
+
+    completionTimer = setTimeout(async () => {
+      if (completionBusy) {
+        const current = caretOffset();
+
+        if (current !== null) {
+          syncCompletions(current);
+        }
+
+        return;
+      }
+
+      let items: Completion[] = [];
+
+      completionBusy = true;
+
+      try {
+        items = await completeCode(
+          runSession || "scratch",
+          context.language,
+          context.code,
+          context.line,
+          context.character,
+          lspSettings,
+        );
+      } catch (error) {
+        console.warn("completions failed", error);
+        items = [];
+      } finally {
+        completionBusy = false;
+      }
+
+      if (request !== completionRequest || caretOffset() !== offset) {
+        return;
+      }
+
+      completions = rankCompletions(items, prefix);
+      completionIndex = 0;
+      completionStart = completions.length ? offset - prefix.length : null;
+
+      const rect = getSelection()?.getRangeAt(0).getBoundingClientRect();
+
+      if (rect) {
+        completionPosition = { top: rect.bottom + 4, left: rect.left };
+      }
+    }, COMPLETION_DELAY);
+  }
+
+  function applyCompletion(item: Completion) {
+    const offset = caretOffset();
+    const start = completionStart;
+
+    closeCompletions();
+
+    if (offset === null || start === null) {
+      return;
+    }
+
+    replace(start, offset, item.insert);
+  }
+
   function runCommand(prefix: string) {
     const offset = caretOffset();
 
@@ -2644,6 +2770,7 @@
 
     if (offset !== null) {
       syncMenu(offset);
+      syncCompletions(offset);
     }
 
     onInput();
@@ -2654,6 +2781,27 @@
 
     if (tableCell && handleTableKeydown(event, tableCell)) {
       return;
+    }
+
+    if (completions.length) {
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        event.preventDefault();
+        completionIndex =
+          (completionIndex + (event.key === "ArrowDown" ? 1 : completions.length - 1)) %
+          completions.length;
+        return;
+      }
+
+      if (event.key === "Enter" || event.key === "Tab") {
+        event.preventDefault();
+        applyCompletion(completions[completionIndex]);
+        return;
+      }
+
+      if (event.key === "Escape") {
+        closeCompletions();
+        return;
+      }
     }
 
     if (slashCommands && slashStart !== null && matches.length) {
@@ -2895,7 +3043,10 @@
     }
   }}
   onpaste={handlePaste}
-  onblur={closeMenu}
+  onblur={() => {
+    closeMenu();
+    closeCompletions();
+  }}
   oncompositionstart={() => (composing = true)}
   oncompositionend={() => {
     composing = false;
@@ -2985,6 +3136,40 @@
             class="rounded border border-stone-200 px-1.5 py-px font-mono text-[0.7rem] text-stone-400 dark:border-stone-700 dark:text-stone-500"
             >{command.hint}</span
           >
+        </button>
+      </li>
+    {/each}
+  </ul>
+{/if}
+
+{#if completions.length}
+  <ul
+    class="fixed z-50 max-h-72 w-72 overflow-y-auto rounded-xl border border-stone-200 bg-white/95 p-1 shadow-xl shadow-stone-900/10 backdrop-blur dark:border-stone-700 dark:bg-stone-900/95 dark:shadow-black/40"
+    style="top: {completionPosition.top}px; left: {completionPosition.left}px; transform-origin: top left;"
+    in:scale={{ start: 0.96, duration: 110, easing: cubicOut }}
+    role="listbox"
+    aria-label="Code completions"
+  >
+    {#each completions as item, index}
+      <li>
+        <button
+          type="button"
+          role="option"
+          aria-selected={index === completionIndex}
+          class={cn(
+            "flex w-full items-center justify-between gap-3 rounded-lg px-2.5 py-1.5 text-left text-sm transition-colors",
+            index === completionIndex
+              ? "bg-emerald-600/10 text-emerald-800 dark:text-emerald-300"
+              : "text-stone-700 dark:text-stone-200",
+          )}
+          onmousedown={(event) => {
+            event.preventDefault();
+            applyCompletion(item);
+          }}
+          onmouseenter={() => (completionIndex = index)}
+        >
+          <span class="truncate font-mono text-[0.8rem]">{item.label}</span>
+          <span class="truncate text-[0.7rem] text-stone-400 dark:text-stone-500">{item.detail}</span>
         </button>
       </li>
     {/each}

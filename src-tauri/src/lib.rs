@@ -1,5 +1,6 @@
 pub mod assets;
 pub mod databases;
+pub mod lsp;
 pub mod notes;
 pub mod runner;
 pub mod utils;
@@ -33,7 +34,10 @@ pub fn run() {
             databases::delete_database,
             runner::run_code,
             runner::reset_session,
-            runner::detect_runtimes
+            runner::detect_runtimes,
+            lsp::lsp_complete,
+            lsp::reset_language_servers,
+            lsp::detect_language_servers
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

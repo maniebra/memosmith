@@ -27,12 +27,18 @@ export type FeatureSettings = {
   drawings: boolean;
   diagrams: boolean;
   codeExecution: boolean;
+  lsp: boolean;
 };
 
 /** Interpreter paths, empty meaning "find it on PATH", plus the per-cell time limit. */
 export type RunnerSettings = {
   commands: Record<Kernel, string>;
   timeoutMs: number;
+};
+
+/** Language server paths, empty meaning "find it on PATH". */
+export type LspSettings = {
+  commands: Record<Kernel, string>;
 };
 
 export type CalloutDefinition = {
@@ -65,6 +71,7 @@ export type AppSettings = {
   features: FeatureSettings;
   callouts: CalloutDefinition[];
   runner: RunnerSettings;
+  lsp: LspSettings;
   editorWidth: EditorWidth;
   textSize: number;
   spellcheck: boolean;
@@ -139,11 +146,16 @@ export const defaultFeatureSettings: FeatureSettings = {
   drawings: false,
   diagrams: false,
   codeExecution: false,
+  lsp: false,
 };
 
 export const defaultRunnerSettings: RunnerSettings = {
-  commands: { bash: "", python: "", node: "", java: "", kotlin: "", r: "", cpp: "" },
+  commands: { bash: "", python: "", node: "", java: "", kotlin: "", r: "", cpp: "", rust: "" },
   timeoutMs: 30000,
+};
+
+export const defaultLspSettings: LspSettings = {
+  commands: { bash: "", python: "", node: "", java: "", kotlin: "", r: "", cpp: "", rust: "" },
 };
 
 export const defaultCalloutDefinitions: CalloutDefinition[] = [
@@ -161,6 +173,7 @@ export const defaultSettings: AppSettings = {
   features: { ...defaultFeatureSettings },
   callouts: defaultCalloutDefinitions.map((callout) => ({ ...callout })),
   runner: { commands: { ...defaultRunnerSettings.commands }, timeoutMs: defaultRunnerSettings.timeoutMs },
+  lsp: { commands: { ...defaultLspSettings.commands } },
   editorWidth: "comfortable",
   textSize: 17,
   spellcheck: true,
@@ -351,6 +364,7 @@ function readFeatures(value: unknown): FeatureSettings {
       typeof parsed.codeExecution === "boolean"
         ? parsed.codeExecution
         : defaultFeatureSettings.codeExecution,
+    lsp: typeof parsed.lsp === "boolean" ? parsed.lsp : defaultFeatureSettings.lsp,
   };
 }
 
@@ -372,6 +386,20 @@ function readRunner(value: unknown): RunnerSettings {
   };
 }
 
+function readLsp(value: unknown): LspSettings {
+  const stored = (((value ?? {}) as Partial<LspSettings>).commands ??
+    {}) as Partial<Record<Kernel, string>>;
+
+  return {
+    commands: Object.fromEntries(
+      (Object.keys(defaultLspSettings.commands) as Kernel[]).map((kernel) => [
+        kernel,
+        typeof stored[kernel] === "string" ? stored[kernel] : "",
+      ]),
+    ) as Record<Kernel, string>,
+  };
+}
+
 export function loadSettings(): AppSettings {
   const rawSettings = localStorage.getItem(SETTINGS_KEY);
 
@@ -388,6 +416,7 @@ export function loadSettings(): AppSettings {
       features: readFeatures(parsed.features),
       callouts: readCallouts(parsed.callouts),
       runner: readRunner(parsed.runner),
+      lsp: readLsp(parsed.lsp),
       editorWidth: isEditorWidth(parsed.editorWidth) ? parsed.editorWidth : defaultSettings.editorWidth,
       textSize: clampTextSize(parsed.textSize),
       spellcheck: typeof parsed.spellcheck === "boolean" ? parsed.spellcheck : defaultSettings.spellcheck,

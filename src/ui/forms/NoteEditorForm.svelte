@@ -1,5 +1,10 @@
 <script lang="ts">
-  import type { CalloutDefinition, EditorWidth, RunnerSettings } from "../../lib/storage/settings";
+  import type {
+    CalloutDefinition,
+    EditorWidth,
+    LspSettings,
+    RunnerSettings,
+  } from "../../lib/storage/settings";
   import { cn } from "../../lib/utils/cn";
   import type { PageIcon, PageMeta } from "../../lib/utils/pageMeta";
   import type { WikilinkEmbed } from "../../lib/utils/markdown";
@@ -23,6 +28,8 @@
   export let codeExecution: boolean;
   export let runSession = "";
   export let runner: RunnerSettings;
+  export let lsp: boolean;
+  export let lspSettings: LspSettings;
   export let editable: boolean;
   export let noteTitle: string;
   export let showPageTitle: boolean;
@@ -83,6 +90,8 @@
       {codeExecution}
       {runSession}
       {runner}
+      {lsp}
+      {lspSettings}
       {editable}
       {onInput}
       {onAssets}

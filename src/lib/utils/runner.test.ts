@@ -9,7 +9,8 @@ assert(kernelFor("kt") === "kotlin", "kt is a kotlin cell");
 assert(kernelFor("c++") === "cpp", "c++ spells the same kernel as cpp");
 assert(kernelFor("R") === "r", "R is its own kernel");
 assert(kernelFor("java") === "java", "java runs on jshell");
-assert(kernelFor("rust") === null, "unknown languages are not runnable");
+assert(kernelFor("rs") === "rust", "rs is a rust cell");
+assert(kernelFor("haskell") === null, "unknown languages are not runnable");
 assert(isRunnable(" bash ") === true, "padding does not hide a runnable language");
 
 assert(outputKey("python", "x = 1") === outputKey("python", "x = 1"), "same cell, same key");

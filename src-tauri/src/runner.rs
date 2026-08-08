@@ -151,12 +151,14 @@ pub fn kernel_for(language: &str) -> Option<&'static str> {
         "java" => Some("java"),
         "kotlin" | "kt" | "kts" => Some("kotlin"),
         "r" => Some("r"),
+        "rust" | "rs" => Some("rust"),
         "cpp" | "c++" | "cc" | "cxx" => Some("cpp"),
         _ => None,
     }
 }
 
-pub const KERNELS: [&str; 7] = ["bash", "python", "node", "java", "kotlin", "r", "cpp"];
+pub const KERNELS: [&str; 8] =
+    ["bash", "python", "node", "java", "kotlin", "r", "cpp", "rust"];
 
 fn candidates(kernel: &str) -> &'static [&'static str] {
     match kernel {
@@ -166,6 +168,7 @@ fn candidates(kernel: &str) -> &'static [&'static str] {
         "kotlin" => &["kotlinc"],
         "r" => &["R"],
         "cpp" => &["g++", "clang++"],
+        "rust" => &["rustc"],
         _ => &["bash", "sh"],
     }
 }
@@ -353,28 +356,57 @@ fn cpp_program(code: &str) -> String {
     )
 }
 
-/// ponytail: every C++ cell is its own program, since a compiler has no REPL to keep state in.
+/// Same deal as C++: a bare snippet becomes the body of `main`, with its items hoisted above it.
+fn rust_program(code: &str) -> String {
+    if code.contains("fn main") {
+        return code.to_string();
+    }
+
+    let (items, body): (Vec<&str>, Vec<&str>) = code.lines().partition(|line| {
+        let line = line.trim_start();
+
+        line.starts_with("use ")
+            || line.starts_with("#[")
+            || line.starts_with("mod ")
+            || line.starts_with("extern ")
+    });
+
+    format!(
+        "#![allow(unused)]\n{}\nfn main() {{\n{}\n}}\n",
+        items.join("\n"),
+        body.join("\n"),
+    )
+}
+
+/// ponytail: every C++ and Rust cell is its own program, since a compiler has no REPL to keep state in.
 /// The cells of one note do share a working directory, so files written by an earlier cell stay put.
-fn run_cpp(
+fn run_compiled(
+    kernel: &str,
     session: &str,
     code: &str,
     command: Option<&str>,
     timeout: Duration,
 ) -> Result<RunOutput, String> {
-    let compiler = resolve("cpp", command)?;
-    let directory = std::env::temp_dir().join(format!("memosmith-cpp-{:x}", fingerprint(session)));
+    let compiler = resolve(kernel, command)?;
+    let directory =
+        std::env::temp_dir().join(format!("memosmith-{kernel}-{:x}", fingerprint(session)));
 
     std::fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
 
-    let source = directory.join("cell.cpp");
+    let rust = kernel == "rust";
+    let source = directory.join(if rust { "cell.rs" } else { "cell.cpp" });
     let binary = directory.join(if cfg!(windows) { "cell.exe" } else { "cell" });
+    let program = if rust { rust_program(code) } else { cpp_program(code) };
 
-    std::fs::write(&source, cpp_program(code)).map_err(|error| error.to_string())?;
+    std::fs::write(&source, program).map_err(|error| error.to_string())?;
 
     // ponytail: the compile itself is not on the clock, only the program it produces.
     let build = Command::new(&compiler)
-        .arg("-std=c++20")
-        .arg("-O0")
+        .args(if rust {
+            ["--edition", "2021"]
+        } else {
+            ["-std=c++20", "-O0"]
+        })
         .arg("-o")
         .arg(&binary)
         .arg(&source)
@@ -428,7 +460,7 @@ fn run_cpp(
     }
 }
 
-fn fingerprint(value: &str) -> u64 {
+pub fn fingerprint(value: &str) -> u64 {
     value.bytes().fold(0xcbf2_9ce4_8422_2325, |hash, byte| {
         (hash ^ u64::from(byte)).wrapping_mul(0x0000_0100_0000_01b3)
     })
@@ -458,8 +490,8 @@ pub fn run_code(
 
     let timeout = Duration::from_millis(timeout_ms.unwrap_or(DEFAULT_TIMEOUT_MS));
 
-    if kernel == "cpp" {
-        return run_cpp(&session, &code, command.as_deref(), timeout);
+    if matches!(kernel, "cpp" | "rust") {
+        return run_compiled(kernel, &session, &code, command.as_deref(), timeout);
     }
 
     let key = format!("{session}::{kernel}");
