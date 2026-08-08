@@ -3,6 +3,7 @@
     CalloutDefinition,
     EditorWidth,
     LspSettings,
+    PlantumlSettings,
     RunnerSettings,
   } from "../../lib/storage/settings";
   import { cn } from "../../lib/utils/cn";
@@ -25,6 +26,8 @@
   export let drawings: boolean;
   export let diagrams: boolean;
   export let codeExecution: boolean;
+  export let plantuml: boolean;
+  export let plantumlSettings: PlantumlSettings;
   export let runSession = "";
   export let runner: RunnerSettings;
   export let lsp: boolean;
@@ -90,6 +93,8 @@
       {drawings}
       {diagrams}
       {codeExecution}
+      {plantuml}
+      {plantumlSettings}
       {runSession}
       {runner}
       {lsp}

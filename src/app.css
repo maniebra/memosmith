@@ -238,20 +238,20 @@ body {
   }
 
   .md-fence-open {
-    @apply mt-3 rounded-t-md pt-3;
+    @apply mt-6 rounded-t-md pt-3;
   }
 
   .md-fence-close {
-    @apply mb-3 rounded-b-md pb-3;
+    @apply mb-6 rounded-b-md pb-3;
   }
 
   /* With the fences hidden the slab loses its cap, so the edge code lines take it over. */
   .md-fence-open:not([data-active])+.md-codeblock {
-    @apply mt-3 rounded-t-md pt-8;
+    @apply mt-6 rounded-t-md pt-8;
   }
 
   .md-codeblock:has(+ .md-fence-close:not([data-active])) {
-    @apply mb-3 rounded-b-md pb-4;
+    @apply mb-6 rounded-b-md pb-4;
   }
 
   .md-codeblock:has(+ .md-fence-close:not([data-active]) + .md-run-preview) {
@@ -566,6 +566,7 @@ body {
 
   .md-drawing-open:hover .md-resize,
   .md-diagram-open:hover .md-resize,
+  .md-plantuml-figure:hover .md-resize,
   .md-media-wrap:hover .md-resize,
   .md-resize:active {
     @apply bg-stone-900/40 dark:bg-stone-100/50;
@@ -727,6 +728,55 @@ body {
 
   .md-run-restarted .md-run-bar {
     animation: md-run-flash 600ms ease-out;
+  }
+
+  /* Same collapse trick as drawings: never `display: none`, or the caret jumps. The code slab
+     is dropped too, so a folded diagram leaves no empty strip behind. */
+  .md-plantuml-line:not([data-active]),
+  .md-fence-open:not([data-active]) + .md-codeblock.md-plantuml-line:not([data-active]),
+  .md-codeblock.md-plantuml-line:not([data-active]):has(+ .md-fence-close:not([data-active])) {
+    font-size: 0;
+    line-height: 0;
+    letter-spacing: 0;
+    @apply my-0 overflow-hidden rounded-none bg-transparent px-0 py-0;
+  }
+
+  /* No slab, no language badge either. */
+  .md-fence-open:not([data-active])
+    + .md-codeblock.md-plantuml-line[data-language]:not([data-language=""])::after {
+    content: none;
+  }
+
+  .md-plantuml-preview {
+    @apply my-3 flex;
+  }
+
+  /* Shrink-wrapped: a full-width box would park the resize handle far from the diagram.
+     PlantUML bakes black-on-white art, so the card owns the white and frames it on purpose. */
+  .md-plantuml-figure {
+    @apply relative w-fit max-w-full rounded-md border border-stone-200 bg-white p-3 dark:border-stone-700;
+  }
+
+  .md-plantuml-preview svg,
+  .md-plantuml-preview img {
+    @apply h-auto max-w-full;
+  }
+
+  .md-plantuml-ascii {
+    @apply font-mono text-[0.8em] leading-tight whitespace-pre text-stone-700 dark:text-stone-200;
+  }
+
+  .md-plantuml-busy,
+  .md-plantuml-error {
+    @apply font-mono text-[0.8em] whitespace-pre-wrap;
+  }
+
+  .md-plantuml-busy {
+    @apply text-stone-500;
+  }
+
+  .md-plantuml-error {
+    @apply border-l-2 border-l-rose-500/70 text-rose-600 dark:text-rose-400;
   }
 
   .md-run-output {

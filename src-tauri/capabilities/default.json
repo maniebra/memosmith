@@ -8,7 +8,7 @@
     "dialog:default",
     {
       "identifier": "http:default",
-      "allow": [{ "url": "https://*" }, { "url": "http://localhost:*" }]
+      "allow": [{ "url": "https://*" }, { "url": "http://*" }]
     }
   ]
 }

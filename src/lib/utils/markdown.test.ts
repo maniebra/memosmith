@@ -1,5 +1,5 @@
 const assert = (ok: unknown, msg: string) => { if (!ok) throw new Error(msg); };
-import { applyPrefix, continueList, continueQuote, DEFAULT_TABLE_MARKDOWN, editMarkdownTable, insideFence, isMediaLine, lineClass, mathUnclosed, mediaOptions, renderDocument, renderLine, withMediaOptions } from "./markdown";
+import { plantumlFenceLine, applyPrefix, continueList, continueQuote, DEFAULT_TABLE_MARKDOWN, editMarkdownTable, insideFence, isMediaLine, lineClass, mathUnclosed, mediaOptions, renderDocument, renderLine, withMediaOptions } from "./markdown";
 
 // The caret maps by counting source blocks, so previews must never be counted as lines.
 const sourceBlocks = (text: string) =>
@@ -184,3 +184,23 @@ assert(runBars("```python\nprint(1)\n```", false) === 0, "run bars need the feat
 assert(runBars("```rust\nfn main() {}\n```", true) === 0, "unrunnable language gets no run bar");
 assert(runBars("```bash\necho hi\n", true) === 0, "an unclosed fence gets no run bar");
 assert(sourceBlocks("```python\nprint(1)\n```") === 3, "the run bar is not a source block");
+
+const plantumlSource = "```plantuml\n@startuml\nA -> B\n@enduml\n```";
+const plantuml = renderDocument(plantumlSource, undefined, { plantuml: true });
+assert(plantuml.includes("md-plantuml-preview"), "plantuml fences get a preview");
+assert(plantuml.includes("@startuml"), "plantuml source stays visible as code");
+assert(plantuml.includes('data-plantuml="@startuml\nA -&gt; B\n@enduml"'), "preview carries the source");
+assert(!renderDocument(plantumlSource).includes("md-plantuml"), "plantuml stays off by default");
+assert(
+  renderDocument("```plantuml\n@startuml\n@enduml\n```\n```js\nlet a\n```", undefined, { plantuml: true })
+    .match(/md-plantuml-preview/g)?.length === 1,
+  "only plantuml fences get a diagram preview",
+);
+const alignedPlantuml = renderDocument("```plantuml|center|420\n@startuml\n@enduml\n```", undefined, {
+  plantuml: true,
+});
+assert(alignedPlantuml.includes("justify-content:center"), "fence options align the diagram");
+assert(alignedPlantuml.includes('data-plantuml-width="420"'), "fence options size the diagram");
+assert(alignedPlantuml.includes("md-plantuml-line"), "plantuml source collapses when not focused");
+assert(plantumlFenceLine("plantuml", "right", 300) === "```plantuml|right|300", "options round-trip");
+assert(plantumlFenceLine("puml") === "```puml", "a plain diagram keeps a plain fence");

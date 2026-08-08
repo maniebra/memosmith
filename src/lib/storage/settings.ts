@@ -28,6 +28,16 @@ export type FeatureSettings = {
   diagrams: boolean;
   codeExecution: boolean;
   lsp: boolean;
+  plantuml: boolean;
+};
+
+export type PlantumlFormat = "svg" | "png" | "txt";
+
+/** Either a local binary/command or a PlantUML server URL; the server wins when both are set. */
+export type PlantumlSettings = {
+  command: string;
+  server: string;
+  format: PlantumlFormat;
 };
 
 /** Interpreter paths, empty meaning "find it on PATH", plus the per-cell time limit. */
@@ -72,6 +82,7 @@ export type AppSettings = {
   callouts: CalloutDefinition[];
   runner: RunnerSettings;
   lsp: LspSettings;
+  plantuml: PlantumlSettings;
   editorWidth: EditorWidth;
   textSize: number;
   spellcheck: boolean;
@@ -149,6 +160,13 @@ export const defaultFeatureSettings: FeatureSettings = {
   diagrams: false,
   codeExecution: false,
   lsp: false,
+  plantuml: false,
+};
+
+export const defaultPlantumlSettings: PlantumlSettings = {
+  command: "",
+  server: "",
+  format: "svg",
 };
 
 export const defaultRunnerSettings: RunnerSettings = {
@@ -176,6 +194,7 @@ export const defaultSettings: AppSettings = {
   callouts: defaultCalloutDefinitions.map((callout) => ({ ...callout })),
   runner: { commands: { ...defaultRunnerSettings.commands }, timeoutMs: defaultRunnerSettings.timeoutMs },
   lsp: { commands: { ...defaultLspSettings.commands } },
+  plantuml: { ...defaultPlantumlSettings },
   editorWidth: "comfortable",
   textSize: 17,
   spellcheck: true,
@@ -369,6 +388,8 @@ function readFeatures(value: unknown): FeatureSettings {
         ? parsed.codeExecution
         : defaultFeatureSettings.codeExecution,
     lsp: typeof parsed.lsp === "boolean" ? parsed.lsp : defaultFeatureSettings.lsp,
+    plantuml:
+      typeof parsed.plantuml === "boolean" ? parsed.plantuml : defaultFeatureSettings.plantuml,
   };
 }
 
@@ -404,6 +425,19 @@ function readLsp(value: unknown): LspSettings {
   };
 }
 
+function readPlantuml(value: unknown): PlantumlSettings {
+  const parsed = (value ?? {}) as Partial<PlantumlSettings>;
+
+  return {
+    command: typeof parsed.command === "string" ? parsed.command : "",
+    server: typeof parsed.server === "string" ? parsed.server : "",
+    format:
+      parsed.format === "png" || parsed.format === "txt" || parsed.format === "svg"
+        ? parsed.format
+        : defaultPlantumlSettings.format,
+  };
+}
+
 export function loadSettings(): AppSettings {
   const rawSettings = localStorage.getItem(SETTINGS_KEY);
 
@@ -421,6 +455,7 @@ export function loadSettings(): AppSettings {
       callouts: readCallouts(parsed.callouts),
       runner: readRunner(parsed.runner),
       lsp: readLsp(parsed.lsp),
+      plantuml: readPlantuml(parsed.plantuml),
       editorWidth: isEditorWidth(parsed.editorWidth) ? parsed.editorWidth : defaultSettings.editorWidth,
       textSize: clampTextSize(parsed.textSize),
       spellcheck: typeof parsed.spellcheck === "boolean" ? parsed.spellcheck : defaultSettings.spellcheck,

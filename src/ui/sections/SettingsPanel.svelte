@@ -24,7 +24,13 @@
     GrammarCheckMode,
     ThemePreference,
   } from "../../lib/storage/settings";
-  import { defaultCalloutDefinitions, type LspSettings, type RunnerSettings } from "../../lib/storage/settings";
+  import {
+    defaultCalloutDefinitions,
+    type LspSettings,
+    type PlantumlFormat,
+    type PlantumlSettings,
+    type RunnerSettings,
+  } from "../../lib/storage/settings";
   import { detectRuntimes } from "../../lib/tauri/runner";
   import { detectLanguageServers, resetLanguageServers } from "../../lib/tauri/lsp";
   import { KERNEL_LABELS, type Kernel } from "../../lib/utils/runner";
@@ -82,6 +88,7 @@
   let activeTab: SettingsTab = "appearance";
   let grammarOptionsOpen = false;
   let codeOptionsOpen = false;
+  let plantumlOptionsOpen = false;
   let lspOptionsOpen = false;
   /** Resolved language server per kernel, refreshed whenever the paths change. */
   let languageServers: Record<string, string> = {};
@@ -108,6 +115,16 @@
 
   function updateRunner(nextRunner: Partial<RunnerSettings>) {
     updateSettings({ runner: { ...settings.runner, ...nextRunner } });
+  }
+
+  const plantumlFormatOptions = [
+    { label: "SVG", value: "svg" },
+    { label: "PNG", value: "png" },
+    { label: "ASCII art", value: "txt" },
+  ];
+
+  function updatePlantuml(next: Partial<PlantumlSettings>) {
+    updateSettings({ plantuml: { ...settings.plantuml, ...next } });
   }
 
   function updateRunnerCommand(kernel: Kernel, command: string) {
@@ -720,6 +737,72 @@
                         updateRunner({ timeoutMs: Math.round(seconds * 1000) });
                       }
                     }}
+                  />
+                </label>
+              </div>
+            {/if}
+          </div>
+
+          <div class="grid gap-2">
+            <div class="flex items-center gap-1">
+              <Switch
+                checked={settings.features.plantuml}
+                label="PlantUML blocks (live render)"
+                className="h-10 w-full"
+                onChange={(plantuml) => updateFeatures({ plantuml })}
+              />
+              <button
+                type="button"
+                class="grid size-10 shrink-0 place-items-center rounded-md text-stone-500 transition-colors hover:bg-stone-500/10 hover:text-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 dark:hover:text-stone-200"
+                aria-expanded={plantumlOptionsOpen}
+                aria-label="PlantUML options"
+                onclick={() => (plantumlOptionsOpen = !plantumlOptionsOpen)}
+              >
+                <ChevronDown
+                  class={cn("size-4 transition-transform", plantumlOptionsOpen && "rotate-180")}
+                />
+              </button>
+            </div>
+
+            {#if plantumlOptionsOpen}
+              <div
+                class="grid gap-4 rounded-md border border-stone-200 p-3 dark:border-stone-800"
+                transition:slide={{ duration: 160, easing: cubicOut }}
+              >
+                <span class="text-xs text-stone-500">
+                  Point at a local PlantUML binary, or at a PlantUML server. The server is used when
+                  both are filled in. Diagrams render in the background, so a slow one never blocks
+                  typing.
+                </span>
+
+                <label class="grid gap-1">
+                  <span class="text-sm text-stone-700 dark:text-stone-200">Binary or command</span>
+                  <Input
+                    value={settings.plantuml.command}
+                    placeholder="plantuml (or: java -jar /path/plantuml.jar)"
+                    oninput={(event) =>
+                      updatePlantuml({ command: (event.target as HTMLInputElement).value })}
+                  />
+                </label>
+
+                <label class="grid gap-1">
+                  <span class="text-sm text-stone-700 dark:text-stone-200">Server URL</span>
+                  <Input
+                    value={settings.plantuml.server}
+                    placeholder="http://localhost:8080"
+                    oninput={(event) =>
+                      updatePlantuml({ server: (event.target as HTMLInputElement).value })}
+                  />
+                </label>
+
+                <label class="grid gap-1">
+                  <span class="text-sm text-stone-700 dark:text-stone-200">Output</span>
+                  <Select
+                    value={settings.plantuml.format}
+                    options={plantumlFormatOptions}
+                    className="h-9"
+                    rootClassName={compactSelectRoot}
+                    onChange={(format) => updatePlantuml({ format: format as PlantumlFormat })}
                   />
                 </label>
               </div>

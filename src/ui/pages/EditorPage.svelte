@@ -556,6 +556,7 @@
         calloutDefinitions: settings.callouts,
         drawings: settings.features.drawings,
         diagrams: settings.features.diagrams,
+        plantuml: settings.features.plantuml,
         staticDiagramPreviews: true,
         resolveWikilink: (target) =>
           resolveWikilinkTarget(target, spaceNotes, resolved.path),
@@ -1138,6 +1139,8 @@
           drawings={settings.features.drawings}
           diagrams={settings.features.diagrams}
           codeExecution={settings.features.codeExecution}
+          plantuml={settings.features.plantuml}
+          plantumlSettings={settings.plantuml}
           runSession={path ?? ""}
           runner={settings.runner}
           lsp={settings.features.lsp}

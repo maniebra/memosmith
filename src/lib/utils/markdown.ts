@@ -613,7 +613,7 @@ export function renderLine(line: string, options: RenderInlineOptions = {}) {
   return `${prefix ? mark(escapeHtml(prefix)) : ""}${body || emptyAnchor()}`;
 }
 
-const FENCE = /^\s*```(\w*)/;
+const FENCE = /^\s*```(\w*)([^\n]*)/;
 
 /** Highlighting is per line so each line stays one block the caret can map onto. */
 function renderCode(line: string, language: string) {
@@ -650,6 +650,7 @@ export type RenderDocumentOptions = {
   staticDiagramPreviews?: boolean;
   codeExecution?: boolean;
   databaseEmbeds?: boolean;
+  plantuml?: boolean;
 };
 
 /** Language of the fenced block that holds an Excalidraw scene as JSON. */
@@ -709,6 +710,38 @@ function runPreview(group: number, language: string) {
   )}" contenteditable="false"><div class="md-run-bar"><button type="button" class="md-run-button" title="Run cell"><span class="md-run-icon">${PLAY_ICON}</span><span class="md-run-label">Run</span></button><span class="md-run-kernel">${
     kernel ? KERNEL_LABELS[kernel] : ""
   }</span><span class="md-run-status"></span><button type="button" class="md-run-restart" title="Restart kernel">${RESTART_ICON}</button></div></div>`;
+}
+
+/** Fence languages that render as a PlantUML diagram under their source. */
+export const PLANTUML_LANGUAGES = ["plantuml", "puml", "uml"];
+
+export const EMPTY_PLANTUML = "```plantuml\n@startuml\nAlice -> Bob: Hello\n@enduml\n```";
+
+/** Width in pixels and alignment ride along on the opening fence: ```plantuml|center|420 */
+export function plantumlLayout(info: string) {
+  const parts = info.split("|").map((part) => part.trim());
+  const align = parts.find((part) => part === "center" || part === "right");
+  const width = parts.map(Number).find((part) => Number.isFinite(part) && part > 0);
+
+  return { align, width };
+}
+
+export function plantumlFenceLine(language: string, align?: string, width?: number) {
+  return ["```" + language, align, width ? String(Math.round(width)) : ""]
+    .filter(Boolean)
+    .join("|");
+}
+
+/** An empty frame: the editor paints the rendered diagram in once it lands. */
+function plantumlPreview(group: number, source: string, info: string) {
+  const { align, width } = plantumlLayout(info);
+  const justify = align === "center" ? "center" : align === "right" ? "flex-end" : "flex-start";
+
+  return `<div class="md-preview md-plantuml-preview" data-code="${group}" data-plantuml="${attribute(
+    source,
+  )}"${align ? ` data-plantuml-align="${attribute(align)}"` : ""}${
+    width ? ` data-plantuml-width="${width}"` : ""
+  } style="justify-content:${justify}" contenteditable="false"></div>`;
 }
 
 /** Language of the fenced block that names a database view to embed, as JSON. */
@@ -835,6 +868,10 @@ export function renderDocument(
   const codeExecution = options.codeExecution ?? false;
   /** Language of the open fence when it is runnable, so its close can grow a run bar. */
   let runLanguage: string | null = null;
+  /** Source of the open PlantUML fence, so its close can grow a diagram preview. */
+  let plantumlLines: string[] | null = null;
+  /** Layout options from the opening fence, kept until its close builds the preview. */
+  let plantumlInfo = "";
   const inlineOptions = { resolveWikilink: options.resolveWikilink };
   let embedGroup: number | null = null;
   /** Non-null while inside a fenced block that renders as a preview card instead of code. */
@@ -899,9 +936,17 @@ export function renderDocument(
       embedGroup = embedded && isOpening ? index : null;
       embedSourceLines = embedded && isOpening ? [line] : embedSourceLines;
       const embedClass = embedded ? ` ${embedLineClass(embedded)}` : "";
+      const startsPlantuml = Boolean(
+        isOpening &&
+          options.plantuml &&
+          !embedded &&
+          PLANTUML_LANGUAGES.includes(fence[1].toLowerCase()),
+      );
+      // Source collapses behind the diagram unless the caret is inside the fence.
+      const plantumlClass = startsPlantuml || (!isOpening && plantumlLines) ? " md-plantuml-line" : "";
 
       output.push(
-        `<div class="md-block ${className}${embedClass}"${
+        `<div class="md-block ${className}${embedClass}${plantumlClass}"${
           embedded === DATABASE_LANGUAGE || (embedLanguage === DATABASE_LANGUAGE && !isOpening)
             ? ' contenteditable="false"'
             : ""
@@ -910,9 +955,18 @@ export function renderDocument(
 
       if (isOpening) {
         runLanguage = codeExecution && !embedded && isRunnable(language ?? "") ? language : null;
-      } else if (runLanguage) {
-        output.push(runPreview(index, runLanguage));
-        runLanguage = null;
+        plantumlLines = startsPlantuml ? [] : null;
+        plantumlInfo = startsPlantuml ? fence[2] : "";
+      } else {
+        if (runLanguage) {
+          output.push(runPreview(index, runLanguage));
+          runLanguage = null;
+        }
+
+        if (plantumlLines) {
+          output.push(plantumlPreview(index, plantumlLines.join("\n"), plantumlInfo));
+          plantumlLines = null;
+        }
       }
 
       // The source lives behind the preview card, so the raw JSON is only shown while the caret is inside.
@@ -949,8 +1003,9 @@ export function renderDocument(
         continue;
       }
 
+      plantumlLines?.push(line);
       output.push(
-        `<div class="md-block md-codeblock" data-code="${codeGroup}" data-language="${attribute(language)}">${renderCode(line, language)}</div>`,
+        `<div class="md-block md-codeblock${plantumlLines ? " md-plantuml-line" : ""}" data-code="${codeGroup}" data-language="${attribute(language)}">${renderCode(line, language)}</div>`,
       );
       i++;
       continue;
