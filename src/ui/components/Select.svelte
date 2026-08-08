@@ -30,11 +30,23 @@
       }
     }
 
+    function handleWindowPointerDown(event: PointerEvent) {
+      if (!open) {
+        return;
+      }
+
+      if (!(event.target instanceof Node) || !root.contains(event.target)) {
+        close();
+      }
+    }
+
     // Capture phase: inner scroll containers do not bubble their scroll events.
+    window.addEventListener("pointerdown", handleWindowPointerDown, true);
     window.addEventListener("scroll", close, true);
     window.addEventListener("memosmith:select-opened", handleSelectOpened);
 
     return () => {
+      window.removeEventListener("pointerdown", handleWindowPointerDown, true);
       window.removeEventListener("scroll", close, true);
       window.removeEventListener("memosmith:select-opened", handleSelectOpened);
     };
@@ -122,12 +134,6 @@
     }
   }
 
-  function handleWindowClick(event: MouseEvent) {
-    if (root && !root.contains(event.target as Node)) {
-      close();
-    }
-  }
-
   function handleWindowKeydown(event: KeyboardEvent) {
     if (!open) {
       return;
@@ -139,7 +145,7 @@
   }
 </script>
 
-<svelte:window onclick={handleWindowClick} onkeydown={handleWindowKeydown} />
+<svelte:window onkeydown={handleWindowKeydown} />
 
 <div bind:this={root} class={cn("relative", rootClassName)}>
   <button
@@ -168,7 +174,7 @@
 
   {#if open}
     <div
-      class="fixed z-50 max-h-60 overflow-y-auto rounded-xl border border-stone-200/80 bg-stone-50/95 p-1.5 shadow-lg shadow-stone-900/8 dark:border-stone-700/80 dark:bg-stone-900/95 dark:shadow-black/20"
+      class="fixed z-50 max-h-60 overflow-y-auto rounded-xl border border-stone-200/80 bg-stone-50/90 p-1.5 shadow-lg shadow-stone-900/8 backdrop-blur-2xl dark:border-stone-700/80 dark:bg-stone-800/85 dark:shadow-black/20"
       style="left: {menu.left}px; top: {menu.top}px; min-width: {menu.width}px;"
       role="listbox"
       tabindex="-1"
@@ -180,7 +186,7 @@
           aria-selected={option.value === value}
           class={cn(
             "flex h-8 w-full items-center rounded-lg px-2.5 text-left text-sm transition-colors",
-            index === activeIndex && "bg-stone-200/45 dark:bg-stone-800/70",
+            index === activeIndex && "bg-stone-200/55 dark:bg-stone-700/60",
             option.value === value
               ? "font-medium text-emerald-700 dark:text-emerald-300"
               : "text-stone-600 dark:text-stone-300",
