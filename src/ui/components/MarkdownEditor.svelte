@@ -198,6 +198,7 @@
   let shell: HTMLElement | undefined;
   let hoveredBlock: HTMLElement | undefined;
   let blockToolbar = { top: 0, visible: false };
+  let tailAddTop = 0;
   let blockMenu: { x: number; y: number } | null = null;
   let draggingUnit:
     | {
@@ -426,12 +427,31 @@
     });
   }
 
+  function syncTailAdd() {
+    requestAnimationFrame(() => {
+      if (!shell || !element || !editable) {
+        tailAddTop = 0;
+        return;
+      }
+
+      const units = sourceUnits();
+      const lastUnit = units[units.length - 1];
+      const lastRect = lastUnit ? unitVisualRect(lastUnit) : null;
+      const shellRect = shell.getBoundingClientRect();
+      const fallback = element.getBoundingClientRect();
+
+      tailAddTop = Math.max(0, (lastRect?.bottom ?? fallback.top) - shellRect.top + 2);
+    });
+  }
+
   function trackHoveredBlock(event: PointerEvent) {
     if (draggingUnit) {
       return;
     }
 
-    if ((event.target as HTMLElement | null)?.closest(".md-block-toolbar")) {
+    const target = event.target as HTMLElement | null;
+
+    if (target?.closest(".md-block-toolbar")) {
       clearBlockToolbarHide();
       return;
     }
@@ -1081,6 +1101,7 @@
 
     markActiveBlock();
     markSelectedTableCell();
+    syncTailAdd();
   }
 
   function replace(
@@ -1103,6 +1124,100 @@
     }
 
     replace(start, selection?.end ?? start, text);
+  }
+
+  function scrollSnapshot() {
+    const containers: { node: HTMLElement; top: number; left: number }[] = [];
+    let node = element?.parentElement;
+
+    while (node) {
+      const style = getComputedStyle(node);
+
+      if (
+        /(auto|scroll|overlay)/.test(style.overflowY) &&
+        node.scrollHeight > node.clientHeight
+      ) {
+        containers.push({
+          node,
+          top: node.scrollTop,
+          left: node.scrollLeft,
+        });
+      }
+
+      node = node.parentElement;
+    }
+
+    return containers;
+  }
+
+  function restoreScrollSnapshot(snapshot: ReturnType<typeof scrollSnapshot>) {
+    for (const entry of snapshot) {
+      entry.node.scrollTop = entry.top;
+      entry.node.scrollLeft = entry.left;
+    }
+  }
+
+  function caretRectForOffset(offset: number) {
+    const position = positionAtOffset(offset);
+
+    if (!position) {
+      return null;
+    }
+
+    const range = document.createRange();
+
+    try {
+      range.setStart(position.node, position.offset);
+      range.collapse(true);
+    } catch {
+      return null;
+    }
+
+    const rect = range.getBoundingClientRect();
+
+    if (rect.height > 0) {
+      return rect;
+    }
+
+    return blockAtOffset(offset)?.getBoundingClientRect() ?? null;
+  }
+
+  function revealCaretIfNeeded(offset: number) {
+    const caret = caretRectForOffset(offset);
+
+    if (!caret) {
+      return;
+    }
+
+    for (const { node } of scrollSnapshot()) {
+      const viewport = node.getBoundingClientRect();
+      const padding = 12;
+
+      if (caret.top < viewport.top + padding) {
+        node.scrollTop -= viewport.top + padding - caret.top;
+      } else if (caret.bottom > viewport.bottom - padding) {
+        node.scrollTop += caret.bottom - (viewport.bottom - padding);
+      }
+    }
+  }
+
+  function renderPreservingScroll(offset: number | null, revealOffset = offset) {
+    const snapshot = scrollSnapshot();
+
+    render(offset);
+    restoreScrollSnapshot(snapshot);
+
+    if (revealOffset !== null) {
+      revealCaretIfNeeded(revealOffset);
+    }
+
+    requestAnimationFrame(() => {
+      restoreScrollSnapshot(snapshot);
+
+      if (revealOffset !== null) {
+        revealCaretIfNeeded(revealOffset);
+      }
+    });
   }
 
   function unitContext() {
@@ -1145,6 +1260,41 @@
 
     chunks.splice(insertionIndex, 0, "");
     commitChunks(chunks, insertionIndex);
+  }
+
+  function openTailBlock() {
+    const snapshot = scrollSnapshot();
+
+    closeMenu();
+    closeCompletions();
+
+    if (!value || value.endsWith("\n")) {
+      render(value.length);
+    } else {
+      replace(value.length, value.length, "\n");
+    }
+
+    element?.focus({ preventScroll: true });
+    restoreScrollSnapshot(snapshot);
+    requestAnimationFrame(() => restoreScrollSnapshot(snapshot));
+  }
+
+  function handleTailPointerDown(event: PointerEvent) {
+    if (!editable || !element || event.target !== element) {
+      return false;
+    }
+
+    const units = sourceUnits();
+    const lastUnit = units[units.length - 1];
+    const lastRect = lastUnit ? unitVisualRect(lastUnit) : null;
+
+    if (lastRect && event.clientY < lastRect.bottom) {
+      return false;
+    }
+
+    event.preventDefault();
+    openTailBlock();
+    return true;
   }
 
   function duplicateBlock() {
@@ -1834,6 +1984,8 @@
     for (const preview of Array.from(element?.querySelectorAll(".md-run-preview") ?? [])) {
       paintRunPreview(preview as HTMLElement);
     }
+
+    syncTailAdd();
   }
 
   function paintRunPreview(preview: HTMLElement) {
@@ -2561,32 +2713,6 @@
     return value.lastIndexOf("\n", offset - 1) + 1;
   }
 
-  function lineEndAt(offset: number) {
-    const end = value.indexOf("\n", offset);
-
-    return end === -1 ? value.length : end;
-  }
-
-  function codeFenceExitOffset(start: number, offset: number) {
-    const end = lineEndAt(offset);
-
-    if (value.slice(start, end).trim()) {
-      return null;
-    }
-
-    const block = blockAtOffset(offset);
-
-    if (!block?.classList.contains("md-codeblock") || !insideFence(value.slice(0, start))) {
-      return null;
-    }
-
-    const closingStart = end + 1;
-    const closingEnd = lineEndAt(closingStart);
-    const closingLine = value.slice(closingStart, closingEnd);
-
-    return /^[ \t]*```/.test(closingLine) ? closingEnd : null;
-  }
-
   function closeMenu() {
     slashStart = null;
     slashQuery = "";
@@ -2766,7 +2892,7 @@
 
     value = getText();
     const offset = caretOffset();
-    render(offset);
+    renderPreservingScroll(offset);
 
     if (offset !== null) {
       syncMenu(offset);
@@ -2880,15 +3006,8 @@
       event.preventDefault();
       closeMenu();
 
-      const codeExit = codeFenceExitOffset(start, offset);
-
-      if (codeExit !== null) {
-        if (codeExit === value.length) {
-          replace(codeExit, codeExit, "\n", codeExit + 1);
-        } else {
-          setCaret(codeExit + 1);
-        }
-
+      if (blockAtOffset(offset)?.classList.contains("md-codeblock") && insideFence(value.slice(0, start))) {
+        replace(offset, offset, "\n");
         return;
       }
 
@@ -3038,7 +3157,7 @@
   onkeydown={handleKeydown}
   oncontextmenu={openContextMenu}
   onpointerdown={(event) => {
-    if (!handleTablePointerDown(event)) {
+    if (!handleTailPointerDown(event) && !handleTablePointerDown(event)) {
       handlePointerDown(event);
     }
   }}
@@ -3053,6 +3172,34 @@
     handleInput();
   }}
 ></div>
+
+{#if editable}
+  <div
+    class="group absolute right-0 bottom-0 left-0 z-20 flex min-h-7 items-start"
+    style={`top: ${tailAddTop}px;`}
+    role="presentation"
+    onpointerdown={(event) => {
+      if (event.target === event.currentTarget) {
+        event.preventDefault();
+        openTailBlock();
+      }
+    }}
+  >
+    <button
+      type="button"
+      class="flex h-7 w-full items-center justify-center rounded-md border border-dashed border-stone-300 bg-[#fffdfa]/90 text-stone-400 opacity-0 shadow-sm backdrop-blur transition-[border-color,background-color,color,opacity] group-hover:opacity-100 hover:border-emerald-600/40 hover:bg-emerald-50/80 hover:text-emerald-700 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 dark:border-stone-700 dark:bg-[#1a1917]/90 dark:text-stone-500 dark:hover:border-emerald-400/40 dark:hover:bg-emerald-950/30 dark:hover:text-emerald-300"
+      title="Add block"
+      aria-label="Add block"
+      onmousedown={(event) => event.preventDefault()}
+      onclick={(event) => {
+        event.stopPropagation();
+        openTailBlock();
+      }}
+    >
+      <Plus class="size-4" strokeWidth={1.8} aria-hidden="true" />
+    </button>
+  </div>
+{/if}
 
 {#if decorationBoxes.length}
   <div class="pointer-events-none absolute inset-0" aria-hidden="true">

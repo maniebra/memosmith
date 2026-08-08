@@ -1,21 +1,48 @@
 <script lang="ts">
-  import { Link2 } from "@lucide/svelte";
+  import { ChevronDown, Link2, X } from "@lucide/svelte";
+  import { cn } from "../../lib/utils/cn";
   import type { Backlink } from "../../lib/utils/wikilinks";
 
   export let backlinks: Backlink[] = [];
   export let onSelect: (relativePath: string) => void | Promise<void>;
+  export let onClose: (() => void) | null = null;
+  export let className = "";
+
+  let open = false;
 </script>
 
-<section class="mt-14 border-t border-stone-200/70 pt-5 dark:border-stone-800">
-  <div class="mb-3 flex items-center gap-2 text-xs font-semibold tracking-wide text-stone-500 uppercase dark:text-stone-400">
+<section class={cn("relative text-stone-700 dark:text-stone-200", className)}>
+  <button
+    type="button"
+    class="mb-3 flex w-full items-center gap-2 rounded-md py-1 pr-8 text-left text-xs font-semibold tracking-wide text-stone-500 uppercase transition-colors hover:text-stone-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 dark:text-stone-400 dark:hover:text-stone-200"
+    aria-expanded={open}
+    onclick={() => (open = !open)}
+  >
+    <ChevronDown
+      class={cn("size-3.5 transition-transform", !open && "-rotate-90")}
+      strokeWidth={1.8}
+      aria-hidden="true"
+    />
     <Link2 class="size-3.5" strokeWidth={1.8} aria-hidden="true" />
     <span>Backlinks</span>
-    <span class="rounded bg-stone-500/10 px-1.5 py-0.5 text-[0.65rem] leading-none">
+    <span class="ml-auto rounded bg-stone-500/10 px-1.5 py-0.5 text-[0.65rem] leading-none">
       {backlinks.length}
     </span>
-  </div>
+  </button>
 
-  {#if backlinks.length}
+  {#if onClose}
+    <button
+      type="button"
+      class="absolute top-5 right-4 grid size-7 place-items-center rounded text-stone-400 transition-colors hover:bg-stone-200/70 hover:text-stone-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 dark:text-stone-500 dark:hover:bg-stone-800 dark:hover:text-stone-100"
+      title="Hide backlinks"
+      aria-label="Hide backlinks"
+      onclick={onClose}
+    >
+      <X class="size-4" strokeWidth={1.8} aria-hidden="true" />
+    </button>
+  {/if}
+
+  {#if open}
     <ul class="grid gap-2">
       {#each backlinks as backlink (backlink.path)}
         <li>
@@ -43,7 +70,5 @@
         </li>
       {/each}
     </ul>
-  {:else}
-    <p class="text-sm text-stone-400">No backlinks yet.</p>
   {/if}
 </section>

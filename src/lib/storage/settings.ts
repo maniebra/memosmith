@@ -79,7 +79,9 @@ export type AppSettings = {
   showPageTitle: boolean;
   spacePaneWidth: number;
   settingsPaneWidth: number;
+  backlinksPaneWidth: number;
   spacePaneOpen: boolean;
+  backlinksPaneOpen: boolean;
   grammarMode: GrammarMode;
   grammarProfiles: Record<GrammarMode, GrammarProfile>;
   llm: LlmSettings;
@@ -181,7 +183,9 @@ export const defaultSettings: AppSettings = {
   showPageTitle: true,
   spacePaneWidth: 240,
   settingsPaneWidth: 320,
+  backlinksPaneWidth: 288,
   spacePaneOpen: true,
+  backlinksPaneOpen: true,
   grammarMode: "normal",
   grammarProfiles: defaultProfiles(),
   llm: defaultLlmSettings,
@@ -426,8 +430,11 @@ export function loadSettings(): AppSettings {
         typeof parsed.showPageTitle === "boolean" ? parsed.showPageTitle : defaultSettings.showPageTitle,
       spacePaneWidth: clampPaneWidth(parsed.spacePaneWidth, defaultSettings.spacePaneWidth),
       settingsPaneWidth: clampPaneWidth(parsed.settingsPaneWidth, defaultSettings.settingsPaneWidth),
+      backlinksPaneWidth: clampPaneWidth(parsed.backlinksPaneWidth, defaultSettings.backlinksPaneWidth),
       spacePaneOpen:
         typeof parsed.spacePaneOpen === "boolean" ? parsed.spacePaneOpen : defaultSettings.spacePaneOpen,
+      backlinksPaneOpen:
+        typeof parsed.backlinksPaneOpen === "boolean" ? parsed.backlinksPaneOpen : defaultSettings.backlinksPaneOpen,
       grammarMode: isGrammarMode(parsed.grammarMode) ? parsed.grammarMode : defaultSettings.grammarMode,
       grammarProfiles: readProfiles(parsed.grammarProfiles),
       llm: readLlm(parsed.llm),

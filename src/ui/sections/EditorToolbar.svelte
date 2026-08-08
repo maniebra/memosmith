@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { Database, PanelLeftClose, PanelLeftOpen, Settings, ShieldCheck } from "@lucide/svelte";
+  import { Database, Link2, PanelLeftClose, PanelLeftOpen, Settings, ShieldCheck } from "@lucide/svelte";
+  import { cn } from "../../lib/utils/cn";
   import Button from "../components/Button.svelte";
 
   type ToolbarBreadcrumb = {
@@ -14,8 +15,12 @@
   export let spacePaneOpen: boolean;
   export let grammarEnabled = true;
   export let databasesEnabled = true;
+  export let backlinksAvailable = false;
+  export let backlinksOpen = true;
+  export let backlinksCount = 0;
   export let onSelectBreadcrumb: (path: string) => void;
   export let onToggleSpacePane: () => void;
+  export let onToggleBacklinks: () => void;
   export let onToggleSettings: () => void;
   export let onToggleDatabases: () => void;
   export let onToggleGrammar: () => void;
@@ -75,6 +80,24 @@
   </nav>
 
   <div class="ml-auto flex shrink-0 items-center gap-0.5">
+    {#if backlinksAvailable}
+      <button
+        type="button"
+        class={cn(
+          "relative inline-flex size-8 items-center justify-center rounded-lg border border-transparent text-stone-500 transition-colors hover:bg-stone-500/10 hover:text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/40 dark:text-stone-400 dark:hover:text-stone-100",
+          backlinksOpen && "bg-emerald-600/10 text-emerald-700 dark:text-emerald-300",
+        )}
+        aria-label={backlinksOpen ? "Hide backlinks" : "Show backlinks"}
+        aria-pressed={backlinksOpen}
+        title={backlinksOpen ? "Hide backlinks" : "Show backlinks"}
+        onclick={onToggleBacklinks}
+      >
+        <Link2 class="size-4 shrink-0" strokeWidth={1.8} aria-hidden="true" />
+        <span class="absolute -top-0.5 -right-0.5 min-w-4 rounded bg-stone-500/10 px-1 text-[0.6rem] leading-4 text-stone-500 dark:text-stone-300">
+          {backlinksCount}
+        </span>
+      </button>
+    {/if}
     {#if grammarEnabled}
       <Button
         label="Grammar Police"

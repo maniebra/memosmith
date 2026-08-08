@@ -8,10 +8,9 @@
   import { cn } from "../../lib/utils/cn";
   import type { PageIcon, PageMeta } from "../../lib/utils/pageMeta";
   import type { WikilinkEmbed } from "../../lib/utils/markdown";
-  import type { Backlink, WikilinkResolution } from "../../lib/utils/wikilinks";
+  import type { WikilinkResolution } from "../../lib/utils/wikilinks";
   import MarkdownEditor from "../components/MarkdownEditor.svelte";
   import PageIdentity from "../components/PageIdentity.svelte";
-  import BacklinksPanel from "../sections/BacklinksPanel.svelte";
 
   export let contents: string;
   export let editor: HTMLElement | undefined = undefined;
@@ -44,8 +43,6 @@
     | ((target: string, depth: number) => WikilinkEmbed | null)
     | undefined = undefined;
   export let wikilinkKey = "";
-  export let backlinks: Backlink[] = [];
-  export let onSelectBacklink: (relativePath: string) => void | Promise<void>;
   export let decorations: { start: number; end: number; tone: "mistake" | "suggestion" }[] = [];
   export let onIconChange: (icon: PageIcon | null) => void | Promise<void>;
   export let onCoverChange: (cover: string | null) => void | Promise<void>;
@@ -104,9 +101,5 @@
       {decorations}
       {resolveAsset}
     />
-
-    {#if editable}
-      <BacklinksPanel {backlinks} onSelect={onSelectBacklink} />
-    {/if}
   </div>
 </section>

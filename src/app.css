@@ -254,6 +254,14 @@ body {
     @apply mb-3 rounded-b-md pb-4;
   }
 
+  .md-codeblock:has(+ .md-fence-close:not([data-active]) + .md-run-preview) {
+    @apply mb-0 rounded-b-none pb-3;
+  }
+
+  .md-fence-close:has(+ .md-run-preview) {
+    @apply mb-0 rounded-b-none;
+  }
+
   .md-fence-open:not([data-active])+.md-codeblock[data-language]:not([data-language=""])::after {
     content: attr(data-language);
     @apply pointer-events-none absolute top-2 right-3 rounded border border-stone-500/10 bg-stone-500/10 px-2 py-0.5 text-[0.65rem] leading-none font-medium text-stone-500 uppercase dark:border-stone-100/10 dark:bg-stone-100/8 dark:text-stone-400;
@@ -625,7 +633,7 @@ body {
   /* No entrance animation: the editor re-renders on every keystroke, and a bar that
      faded in each time would strobe. Only results and the busy state animate. */
   .md-run-preview {
-    @apply -mt-3 mb-4 flex flex-col;
+    @apply mb-4 flex flex-col;
   }
 
   .md-run-bar {

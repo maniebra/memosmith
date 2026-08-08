@@ -79,6 +79,7 @@
   } from "../../lib/utils/database";
   import { applyAppearanceTheme } from "../../lib/utils/theme";
   import { renderDocument, type WikilinkEmbed } from "../../lib/utils/markdown";
+  import BacklinksPanel from "../sections/BacklinksPanel.svelte";
   import DatabaseManager from "../sections/DatabaseManager.svelte";
   import DatabaseView from "../sections/DatabaseView.svelte";
   import NoteEditorForm from "../forms/NoteEditorForm.svelte";
@@ -127,7 +128,7 @@
   let noteSaveTimer: ReturnType<typeof setTimeout> | undefined;
   let statsTimer: ReturnType<typeof setTimeout> | undefined;
   let resizing: {
-    pane: "space" | "settings";
+    pane: "space" | "settings" | "backlinks";
     startX: number;
     startWidth: number;
   } | null = null;
@@ -286,22 +287,28 @@
     return Math.min(paneMaxWidth, Math.max(paneMinWidth, width));
   }
 
-  function updatePaneWidth(pane: "space" | "settings", width: number) {
+  function updatePaneWidth(pane: "space" | "settings" | "backlinks", width: number) {
     const clampedWidth = clampPaneWidth(width);
 
     settings =
       pane === "space"
         ? { ...settings, spacePaneWidth: clampedWidth }
-        : { ...settings, settingsPaneWidth: clampedWidth };
+        : pane === "settings"
+          ? { ...settings, settingsPaneWidth: clampedWidth }
+          : { ...settings, backlinksPaneWidth: clampedWidth };
   }
 
-  function startResize(event: PointerEvent, pane: "space" | "settings") {
+  function startResize(event: PointerEvent, pane: "space" | "settings" | "backlinks") {
     event.preventDefault();
     resizing = {
       pane,
       startX: event.clientX,
       startWidth:
-        pane === "space" ? settings.spacePaneWidth : settings.settingsPaneWidth,
+        pane === "space"
+          ? settings.spacePaneWidth
+          : pane === "settings"
+            ? settings.settingsPaneWidth
+            : settings.backlinksPaneWidth,
     };
   }
 
@@ -325,7 +332,7 @@
 
   function resizeWithKeyboard(
     event: KeyboardEvent,
-    pane: "space" | "settings",
+    pane: "space" | "settings" | "backlinks",
   ) {
     if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
       return;
@@ -336,7 +343,11 @@
     const direction = event.key === "ArrowRight" ? 1 : -1;
     const step = event.shiftKey ? 40 : 12;
     const currentWidth =
-      pane === "space" ? settings.spacePaneWidth : settings.settingsPaneWidth;
+      pane === "space"
+        ? settings.spacePaneWidth
+        : pane === "settings"
+          ? settings.settingsPaneWidth
+          : settings.backlinksPaneWidth;
     const nextWidth =
       currentWidth + (pane === "space" ? direction : -direction) * step;
 
@@ -1055,9 +1066,14 @@
     spacePaneOpen={settings.spacePaneOpen}
     grammarEnabled={settings.features.grammarPolice}
     databasesEnabled={settings.features.databases}
+    backlinksAvailable={Boolean(backlinks.length) && !activeDatabaseId}
+    backlinksOpen={settings.backlinksPaneOpen}
+    backlinksCount={backlinks.length}
     onSelectBreadcrumb={(relativePath) =>
       runWithStatus(() => selectSpaceNote(relativePath))}
     onToggleSpacePane={toggleSpacePane}
+    onToggleBacklinks={() =>
+      (settings = { ...settings, backlinksPaneOpen: !settings.backlinksPaneOpen })}
     onToggleSettings={() => (settingsOpen = !settingsOpen)}
     onToggleDatabases={() => {
       if (settings.features.databases) {
@@ -1158,14 +1174,49 @@
           resolveWikilink={resolveActiveWikilink}
           renderWikilinkEmbed={renderActiveWikilinkEmbed}
           {wikilinkKey}
-          {backlinks}
-          onSelectBacklink={(relativePath) =>
-            runWithStatus(() => selectSpaceNote(relativePath))}
           decorations={settings.features.grammarPolice && grammarOpen ? grammarDecorations : []}
           {resolveAsset}
         />
       {/if}
     </div>
+
+    {#if backlinks.length && !activeDatabaseId}
+      {#if settings.backlinksPaneOpen}
+        <div class="flex min-h-0 shrink-0" transition:slide={paneSlide}>
+          <button
+            type="button"
+            class="z-10 w-1.5 shrink-0 cursor-col-resize bg-transparent transition-colors hover:bg-emerald-600/20 focus-visible:bg-emerald-600/20 focus-visible:outline-none"
+            aria-label="Resize backlinks pane"
+            title="Resize backlinks pane"
+            onpointerdown={(event) => startResize(event, "backlinks")}
+            onkeydown={(event) => resizeWithKeyboard(event, "backlinks")}
+          ></button>
+          <div
+            class="flex min-h-0 shrink-0 border-l border-stone-200/70 bg-[#fbf8f1] dark:border-stone-800 dark:bg-[#181714]"
+            style={`width: ${settings.backlinksPaneWidth}px`}
+          >
+            <BacklinksPanel
+              {backlinks}
+              onSelect={(relativePath) =>
+                runWithStatus(() => selectSpaceNote(relativePath))}
+              onClose={() => (settings = { ...settings, backlinksPaneOpen: false })}
+              className="h-full w-full overflow-y-auto px-5 py-6"
+            />
+          </div>
+        </div>
+      {:else}
+        <button
+          type="button"
+          class="flex w-9 shrink-0 items-center justify-center border-l border-stone-200/70 bg-[#fbf8f1] text-xs font-semibold tracking-wide text-stone-500 uppercase transition-colors hover:bg-emerald-50/70 hover:text-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600/25 dark:border-stone-800 dark:bg-[#181714] dark:text-stone-400 dark:hover:bg-emerald-950/20 dark:hover:text-emerald-300"
+          title="Show backlinks"
+          aria-label="Show backlinks"
+          onclick={() => (settings = { ...settings, backlinksPaneOpen: true })}
+          transition:slide={paneSlide}
+        >
+          <span class="rotate-90 whitespace-nowrap">Backlinks {backlinks.length}</span>
+        </button>
+      {/if}
+    {/if}
 
     {#if settings.features.grammarPolice && grammarOpen && !activeDatabaseId}
       <div class="flex min-h-0" transition:slide={paneSlide}>
