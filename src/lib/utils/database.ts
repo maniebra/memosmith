@@ -16,6 +16,10 @@ export type Column = {
   options?: string[];
   /** Id of the database a `relation` column links to. */
   relationDatabase?: string;
+  /** Id of the table inside that database; defaults to its first table. */
+  relationTable?: string;
+  /** Pixel width set by dragging the header edge; unset means the default width. */
+  width?: number;
 };
 
 /** Selectable values for a column: literal options, or linked rows for a relation. */
@@ -25,6 +29,8 @@ export type CellValue = string | number | boolean | string[] | null;
 
 export type Row = {
   id: string;
+  /** Table this row belongs to; a database holds several. */
+  tableId: string;
   position: number;
   data: Record<string, CellValue>;
 };
@@ -68,15 +74,34 @@ export type View = {
   groupBy?: string;
   filter: FilterGroup;
   sorts: Sort[];
+  /** Pixel width of board columns; unset means the default. */
+  cardWidth?: number;
+};
+
+export type Table = {
+  id: string;
+  name: string;
+  columns: Column[];
+  views: View[];
 };
 
 export type Database = {
   id: string;
   name: string;
-  columns: Column[];
-  views: View[];
+  tables: Table[];
+  /** Rows of every table, tagged by `tableId`. */
   rows: Row[];
 };
+
+export function tableOf(database: Database | undefined, tableId?: string) {
+  return database?.tables.find((table) => table.id === tableId) ?? database?.tables[0];
+}
+
+export function rowsOf(database: Database | undefined, tableId?: string) {
+  const table = tableOf(database, tableId);
+
+  return database && table ? database.rows.filter((row) => row.tableId === table.id) : [];
+}
 
 export const columnTypes: { value: ColumnType; label: string }[] = [
   { value: "text", label: "Text" },
@@ -263,8 +288,9 @@ export function matchesFilter(node: FilterNode, columns: Column[], row: Row): bo
 }
 
 export function sortRows(rows: Row[], sorts: Sort[], columns: Column[]) {
+  // Position is the hand-dragged order, so it is the default sort, not the load order.
   if (!sorts.length) {
-    return rows;
+    return [...rows].sort((left, right) => left.position - right.position);
   }
 
   return [...rows].sort((left, right) => {
@@ -310,8 +336,13 @@ export function rowTitle(row: Row, columns: Column[]) {
 export function choicesFor(column: Column, relations: Record<string, Database>): Choice[] {
   if (column.type === "relation") {
     const target = column.relationDatabase ? relations[column.relationDatabase] : undefined;
+    const table = tableOf(target, column.relationTable);
 
-    return (target?.rows ?? []).map((row) => ({ value: row.id, label: rowTitle(row, target!.columns) }));
+    if (!target || !table) {
+      return [];
+    }
+
+    return rowsOf(target, table.id).map((row) => ({ value: row.id, label: rowTitle(row, table.columns) }));
   }
 
   return (column.options ?? []).map((option) => ({ value: option, label: option }));
@@ -360,4 +391,10 @@ export function defaultViews(columns: Column[]): View[] {
       sorts: [],
     },
   ];
+}
+
+export function defaultTable(name = "Table"): Table {
+  const columns = defaultColumns();
+
+  return { id: newId(), name, columns, views: defaultViews(columns) };
 }

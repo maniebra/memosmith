@@ -30,6 +30,7 @@ pub fn run() {
             databases::load_database,
             databases::save_database_meta,
             databases::save_database_row,
+            databases::delete_database_table,
             databases::delete_database_row,
             databases::delete_database,
             runner::run_code,

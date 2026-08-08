@@ -6,6 +6,8 @@ const FOLDER: &str = ".databases";
 #[derive(Serialize, Deserialize)]
 pub struct DatabaseRow {
     pub id: String,
+    #[serde(rename = "tableId")]
+    pub table_id: String,
     pub position: f64,
     /// Column id -> cell value, as JSON so columns can change without migrations.
     pub data: serde_json::Value,
@@ -21,10 +23,13 @@ pub struct DatabaseSummary {
 pub struct DatabaseData {
     pub id: String,
     pub name: String,
-    pub columns: serde_json::Value,
-    pub views: serde_json::Value,
+    /// `[{ id, name, columns, views }]`; rows carry the table they belong to.
+    pub tables: serde_json::Value,
     pub rows: Vec<DatabaseRow>,
 }
+
+/// Id of the table that pre-tables databases are folded into.
+const LEGACY_TABLE: &str = "main";
 
 /// Ids become file names, so they must not walk out of the `.databases` folder.
 fn database_path(root: &str, id: &str) -> Result<std::path::PathBuf, String> {
@@ -48,7 +53,41 @@ fn open(root: &str, id: &str) -> Result<Connection, String> {
         return Err(format!("{} does not exist", path.display()));
     }
 
-    Connection::open(path).map_err(|error| error.to_string())
+    let connection = Connection::open(path).map_err(|error| error.to_string())?;
+
+    migrate(&connection)?;
+
+    Ok(connection)
+}
+
+/// Databases written before tables existed hold one column set; it becomes the `main` table.
+fn migrate(connection: &Connection) -> Result<(), String> {
+    let has_table_id = connection
+        .prepare("SELECT table_id FROM rows LIMIT 1")
+        .is_ok();
+
+    if !has_table_id {
+        connection
+            .execute(
+                &format!("ALTER TABLE rows ADD COLUMN table_id TEXT NOT NULL DEFAULT '{LEGACY_TABLE}'"),
+                [],
+            )
+            .map_err(|error| error.to_string())?;
+    }
+
+    if read_meta(connection, "tables").is_ok() {
+        return Ok(());
+    }
+
+    let parse = |raw: String| serde_json::from_str(&raw).unwrap_or(serde_json::Value::Array(vec![]));
+    let tables = serde_json::json!([{
+        "id": LEGACY_TABLE,
+        "name": read_meta(connection, "name").unwrap_or_else(|_| "Table".into()),
+        "columns": parse(read_meta(connection, "columns").unwrap_or_default()),
+        "views": parse(read_meta(connection, "views").unwrap_or_default()),
+    }]);
+
+    write_meta(connection, "tables", &tables.to_string())
 }
 
 fn read_meta(connection: &Connection, key: &str) -> Result<String, String> {
@@ -105,8 +144,7 @@ pub fn create_database(
     root: String,
     id: String,
     name: String,
-    columns: serde_json::Value,
-    views: serde_json::Value,
+    tables: serde_json::Value,
 ) -> Result<(), String> {
     let path = database_path(&root, &id)?;
 
@@ -123,13 +161,12 @@ pub fn create_database(
     connection
         .execute_batch(
             "CREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT NOT NULL);
-             CREATE TABLE rows(id TEXT PRIMARY KEY, position REAL NOT NULL, data TEXT NOT NULL);",
+             CREATE TABLE rows(id TEXT PRIMARY KEY, table_id TEXT NOT NULL, position REAL NOT NULL, data TEXT NOT NULL);",
         )
         .map_err(|error| error.to_string())?;
 
     write_meta(&connection, "name", &name)?;
-    write_meta(&connection, "columns", &columns.to_string())?;
-    write_meta(&connection, "views", &views.to_string())
+    write_meta(&connection, "tables", &tables.to_string())
 }
 
 #[tauri::command]
@@ -138,15 +175,16 @@ pub fn load_database(root: String, id: String) -> Result<DatabaseData, String> {
     let parse = |raw: String| serde_json::from_str(&raw).unwrap_or(serde_json::Value::Array(vec![]));
 
     let mut statement = connection
-        .prepare("SELECT id, position, data FROM rows ORDER BY position")
+        .prepare("SELECT id, table_id, position, data FROM rows ORDER BY position")
         .map_err(|error| error.to_string())?;
 
     let rows = statement
         .query_map([], |row| {
             Ok(DatabaseRow {
                 id: row.get(0)?,
-                position: row.get(1)?,
-                data: serde_json::from_str(&row.get::<_, String>(2)?)
+                table_id: row.get(1)?,
+                position: row.get(2)?,
+                data: serde_json::from_str(&row.get::<_, String>(3)?)
                     .unwrap_or(serde_json::Value::Object(Default::default())),
             })
         })
@@ -156,8 +194,7 @@ pub fn load_database(root: String, id: String) -> Result<DatabaseData, String> {
 
     Ok(DatabaseData {
         name: read_meta(&connection, "name")?,
-        columns: parse(read_meta(&connection, "columns")?),
-        views: parse(read_meta(&connection, "views")?),
+        tables: parse(read_meta(&connection, "tables")?),
         rows,
         id,
     })
@@ -168,14 +205,12 @@ pub fn save_database_meta(
     root: String,
     id: String,
     name: String,
-    columns: serde_json::Value,
-    views: serde_json::Value,
+    tables: serde_json::Value,
 ) -> Result<(), String> {
     let connection = open(&root, &id)?;
 
     write_meta(&connection, "name", &name)?;
-    write_meta(&connection, "columns", &columns.to_string())?;
-    write_meta(&connection, "views", &views.to_string())
+    write_meta(&connection, "tables", &tables.to_string())
 }
 
 #[tauri::command]
@@ -184,10 +219,21 @@ pub fn save_database_row(root: String, id: String, row: DatabaseRow) -> Result<(
 
     connection
         .execute(
-            "INSERT INTO rows(id, position, data) VALUES(?1, ?2, ?3)
-             ON CONFLICT(id) DO UPDATE SET position = excluded.position, data = excluded.data",
-            rusqlite::params![row.id, row.position, row.data.to_string()],
+            "INSERT INTO rows(id, table_id, position, data) VALUES(?1, ?2, ?3, ?4)
+             ON CONFLICT(id) DO UPDATE SET table_id = excluded.table_id, position = excluded.position, data = excluded.data",
+            rusqlite::params![row.id, row.table_id, row.position, row.data.to_string()],
         )
+        .map(|_| ())
+        .map_err(|error| error.to_string())
+}
+
+/// Dropping a table takes its rows with it.
+#[tauri::command]
+pub fn delete_database_table(root: String, id: String, table_id: String) -> Result<(), String> {
+    let connection = open(&root, &id)?;
+
+    connection
+        .execute("DELETE FROM rows WHERE table_id = ?1", [table_id])
         .map(|_| ())
         .map_err(|error| error.to_string())
 }

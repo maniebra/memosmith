@@ -68,6 +68,7 @@
     { label: "Focused", value: "focused" },
     { label: "Comfortable", value: "comfortable" },
     { label: "Wide", value: "wide" },
+    { label: "Full width", value: "full" },
   ];
 
   const grammarCheckModeOptions: SelectOption[] = [

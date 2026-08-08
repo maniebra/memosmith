@@ -72,11 +72,7 @@
     listDatabases,
     type DatabaseSummary,
   } from "../../lib/tauri/databases";
-  import {
-    defaultColumns,
-    defaultViews,
-    slugify,
-  } from "../../lib/utils/database";
+  import { defaultTable, slugify } from "../../lib/utils/database";
   import { applyAppearanceTheme } from "../../lib/utils/theme";
   import { renderDocument, type WikilinkEmbed } from "../../lib/utils/markdown";
   import BacklinksPanel from "../sections/BacklinksPanel.svelte";
@@ -402,10 +398,9 @@
 
     await flushNoteSave();
 
-    const columns = defaultColumns();
     const id = slugify(name);
 
-    await createDatabase(spaceRoot, id, name, columns, defaultViews(columns));
+    await createDatabase(spaceRoot, id, name, [defaultTable()]);
     await refreshSpace();
     activeDatabaseId = id;
     databasesOpen = false;
@@ -557,6 +552,8 @@
       title: displayNotePath(resolved.path),
       html: renderDocument(embeddedText, (source) => resolveAssetFromDir(embeddedDir, source), {
         fancyTableEditor: false,
+        callouts: settings.features.callouts,
+        calloutDefinitions: settings.callouts,
         drawings: settings.features.drawings,
         diagrams: settings.features.diagrams,
         staticDiagramPreviews: true,
@@ -1173,6 +1170,10 @@
           onWikilink={(target) => runWithStatus(() => openWikilink(target))}
           resolveWikilink={resolveActiveWikilink}
           renderWikilinkEmbed={renderActiveWikilinkEmbed}
+          databaseRoot={settings.features.databases ? (spaceRoot ?? "") : ""}
+          databaseOptions={databases}
+          onOpenDatabase={(id) => runWithStatus(() => selectDatabase(id))}
+          onStatus={(message) => (statusMessage = message)}
           {wikilinkKey}
           decorations={settings.features.grammarPolice && grammarOpen ? grammarDecorations : []}
           {resolveAsset}

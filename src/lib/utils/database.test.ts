@@ -1,5 +1,5 @@
 const assert = (ok: unknown, msg: string) => { if (!ok) throw new Error(msg); };
-import { choicesFor, groupRows, matchesFilter, rowTitle, slugify, sortRows, uncategorized, visibleRows } from "./database";
+import { choicesFor, emptyFilter, rowsOf, tableOf, groupRows, matchesFilter, rowTitle, slugify, sortRows, uncategorized, visibleRows } from "./database";
 import type { Column, Database, FilterGroup, Row, View } from "./database";
 
 const columns: Column[] = [
@@ -13,19 +13,18 @@ const columns: Column[] = [
 ];
 
 const rows: Row[] = [
-  { id: "1", position: 0, data: { name: "Alpha", size: 3, status: "todo", tags: ["a"], done: false, due: "2026-01-02", owner: ["p1"] } },
-  { id: "2", position: 1, data: { name: "Beta", size: 10, status: "done", tags: ["a", "b"], done: true, due: "2026-03-04", owner: ["p2"] } },
-  { id: "3", position: 2, data: { name: "Gamma", size: null, status: null, tags: [], done: false, due: "", owner: [] } },
+  { id: "1", tableId: "t", position: 0, data: { name: "Alpha", size: 3, status: "todo", tags: ["a"], done: false, due: "2026-01-02", owner: ["p1"] } },
+  { id: "2", tableId: "t", position: 1, data: { name: "Beta", size: 10, status: "done", tags: ["a", "b"], done: true, due: "2026-03-04", owner: ["p2"] } },
+  { id: "3", tableId: "t", position: 2, data: { name: "Gamma", size: null, status: null, tags: [], done: false, due: "", owner: [] } },
 ];
 
 const people: Database = {
   id: "people",
   name: "People",
-  columns: [{ id: "n", name: "Name", type: "text" }],
-  views: [],
+  tables: [{ id: "main", name: "People", columns: [{ id: "n", name: "Name", type: "text" }], views: [] }],
   rows: [
-    { id: "p1", position: 0, data: { n: "Ada" } },
-    { id: "p2", position: 1, data: { n: "Lin" } },
+    { id: "p1", tableId: "main", position: 0, data: { n: "Ada" } },
+    { id: "p2", tableId: "main", position: 1, data: { n: "Lin" } },
   ],
 };
 
@@ -95,5 +94,29 @@ assert(rowTitle(rows[0], columns) === "Alpha", "row title comes from the first t
 
 assert(/^my-db-[a-z0-9]+$/.test(slugify("My DB!")), "slug is file-name safe");
 assert(/^[a-z0-9]+$/.test(slugify("!!!")), "slug never ends up empty");
+
+const tasksTable = {
+  id: "t",
+  name: "Tasks",
+  columns,
+  views: [{ id: "v1", name: "Table", type: "table" as const, filter: emptyFilter(), sorts: [] }],
+};
+const embedDatabase: Database = {
+  id: "tasks",
+  name: "Tasks",
+  tables: [tasksTable, { id: "t2", name: "Other", columns: [], views: [] }],
+  rows,
+};
+
+assert(rowsOf(embedDatabase, "t").length === 3, "rows follow their table");
+assert(rowsOf(embedDatabase, "t2").length === 0, "an empty table has no rows");
+assert(tableOf(embedDatabase, undefined)?.id === "t", "a missing table id falls back to the first");
+
+const shuffled = [{ ...rows[2], position: 0 }, rows[0], rows[1]];
+
+assert(
+  sortRows(shuffled, [], columns).map((row) => row.id).join() === "3,1,2",
+  "with no sorts, rows follow their dragged position",
+);
 
 console.log("database ok");

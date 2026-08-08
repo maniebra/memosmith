@@ -597,6 +597,23 @@ body {
     @apply h-auto max-h-96 max-w-full;
   }
 
+  /* Never unfolds: the card is the only face a database embed has. */
+  .md-database-line {
+    font-size: 0;
+    line-height: 0;
+    letter-spacing: 0;
+    @apply my-0 overflow-hidden py-0;
+  }
+
+  .md-database-preview {
+    @apply my-3 overflow-hidden rounded-lg border border-stone-200 bg-white text-[0.95em] shadow-sm dark:border-stone-800 dark:bg-stone-900/65;
+    user-select: none;
+  }
+
+  .md-database-empty {
+    @apply m-0 px-3 py-4 text-sm text-stone-400;
+  }
+
   .md-diagram-line:not([data-active]) {
     font-size: 0;
     line-height: 0;

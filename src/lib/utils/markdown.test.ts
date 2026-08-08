@@ -163,6 +163,18 @@ assert(
   "a code block after a diagram block is still code",
 );
 
+const databaseEmbed = renderDocument('```database\n{"database":"db1"}\n```', undefined, {
+  databaseEmbeds: true,
+});
+
+assert(databaseEmbed.includes("md-database-preview"), "database fence renders a preview card");
+assert(
+  databaseEmbed.includes('data-embed="{&quot;database&quot;:&quot;db1&quot;}"'),
+  "the card carries its embed source for the editor to mount into",
+);
+assert(!renderDocument('```database\n{}\n```').includes("md-database-preview"), "database embeds stay off by default");
+
+
 // Code execution: only closed, runnable fences grow a run bar, and only when the feature is on.
 const runBars = (text: string, codeExecution: boolean) =>
   (renderDocument(text, undefined, { codeExecution }).match(/md-run-preview/g) ?? []).length;

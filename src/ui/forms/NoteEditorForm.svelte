@@ -43,6 +43,10 @@
     | ((target: string, depth: number) => WikilinkEmbed | null)
     | undefined = undefined;
   export let wikilinkKey = "";
+  export let databaseRoot = "";
+  export let databaseOptions: { id: string; name: string }[] = [];
+  export let onOpenDatabase: ((databaseId: string) => void) | null = null;
+  export let onStatus: (message: string) => void = () => {};
   export let decorations: { start: number; end: number; tone: "mistake" | "suggestion" }[] = [];
   export let onIconChange: (icon: PageIcon | null) => void | Promise<void>;
   export let onCoverChange: (cover: string | null) => void | Promise<void>;
@@ -53,6 +57,7 @@
     focused: "max-w-[38rem]",
     comfortable: "max-w-[46rem]",
     wide: "max-w-[58rem]",
+    full: "max-w-none",
   };
 
   $: editorClass = cn("leading-[1.75]", widthClasses[editorWidth]);
@@ -98,6 +103,10 @@
       {resolveWikilink}
       {renderWikilinkEmbed}
       {wikilinkKey}
+      {databaseRoot}
+      {databaseOptions}
+      {onOpenDatabase}
+      {onStatus}
       {decorations}
       {resolveAsset}
     />

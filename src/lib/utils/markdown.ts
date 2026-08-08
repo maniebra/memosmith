@@ -649,6 +649,7 @@ export type RenderDocumentOptions = {
   wikilinkEmbedDepth?: number;
   staticDiagramPreviews?: boolean;
   codeExecution?: boolean;
+  databaseEmbeds?: boolean;
 };
 
 /** Language of the fenced block that holds an Excalidraw scene as JSON. */
@@ -708,6 +709,20 @@ function runPreview(group: number, language: string) {
   )}" contenteditable="false"><div class="md-run-bar"><button type="button" class="md-run-button" title="Run cell"><span class="md-run-icon">${PLAY_ICON}</span><span class="md-run-label">Run</span></button><span class="md-run-kernel">${
     kernel ? KERNEL_LABELS[kernel] : ""
   }</span><span class="md-run-status"></span><button type="button" class="md-run-restart" title="Restart kernel">${RESTART_ICON}</button></div></div>`;
+}
+
+/** Language of the fenced block that names a database view to embed, as JSON. */
+export const DATABASE_LANGUAGE = "database";
+
+export function emptyDatabaseEmbed(databaseId: string) {
+  return `\`\`\`database\n${JSON.stringify({ database: databaseId })}\n\`\`\``;
+}
+
+/** An empty frame: the editor mounts the live database view into it. */
+function databasePreview(group: number, source: string) {
+  return `<div class="md-preview md-database-preview" data-code="${group}" data-embed="${attribute(
+    source,
+  )}" contenteditable="false"></div>`;
 }
 
 function drawingPreview(group: number) {
@@ -798,6 +813,15 @@ function calloutPreview(
   }</div>`;
 }
 
+/** Embedded source hides behind its preview card, so every embed language gets a collapsed line. */
+function embedLineClass(language: string) {
+  if (language === DIAGRAM_LANGUAGE) {
+    return "md-diagram-line";
+  }
+
+  return language === DATABASE_LANGUAGE ? "md-database-line" : "md-drawing-line";
+}
+
 export function renderDocument(
   text: string,
   resolveAsset?: (source: string) => string,
@@ -862,7 +886,9 @@ export function renderDocument(
       language = isOpening ? fence[1].toLowerCase() : null;
       const index = isOpening ? codeGroup : codeGroup++;
       const embedded: string | null = isOpening
-        ? (drawings && language === DRAWING_LANGUAGE) || (diagrams && language === DIAGRAM_LANGUAGE)
+        ? (drawings && language === DRAWING_LANGUAGE) ||
+          (diagrams && language === DIAGRAM_LANGUAGE) ||
+          (options.databaseEmbeds && language === DATABASE_LANGUAGE)
           ? language
           : null
         : embedGroup !== null
@@ -872,10 +898,14 @@ export function renderDocument(
       embedLanguage = isOpening ? embedded : null;
       embedGroup = embedded && isOpening ? index : null;
       embedSourceLines = embedded && isOpening ? [line] : embedSourceLines;
-      const embedClass = embedded === DIAGRAM_LANGUAGE ? " md-diagram-line" : embedded ? " md-drawing-line" : "";
+      const embedClass = embedded ? ` ${embedLineClass(embedded)}` : "";
 
       output.push(
-        `<div class="md-block ${className}${embedClass}" data-code="${index}">${escapeHtml(line)}</div>`,
+        `<div class="md-block ${className}${embedClass}"${
+          embedded === DATABASE_LANGUAGE || (embedLanguage === DATABASE_LANGUAGE && !isOpening)
+            ? ' contenteditable="false"'
+            : ""
+        } data-code="${index}">${escapeHtml(line)}</div>`,
       );
 
       if (isOpening) {
@@ -888,10 +918,14 @@ export function renderDocument(
       // The source lives behind the preview card, so the raw JSON is only shown while the caret is inside.
       if (embedded && !isOpening) {
         embedSourceLines?.push(line);
+        const embedSource = embedSourceLines?.slice(1, -1).join("\n") ?? "";
+
         output.push(
           embedded === DIAGRAM_LANGUAGE
-            ? diagramPreview(index, embedSourceLines?.slice(1, -1).join("\n") ?? "", options.staticDiagramPreviews)
-            : drawingPreview(index),
+            ? diagramPreview(index, embedSource, options.staticDiagramPreviews)
+            : embedded === DATABASE_LANGUAGE
+              ? databasePreview(index, embedSource)
+              : drawingPreview(index),
         );
         embedSourceLines = null;
       }
@@ -903,11 +937,13 @@ export function renderDocument(
     if (language !== null) {
       // Embedded source never wears the code slab: it sits collapsed behind the preview card.
       if (embedLanguage) {
-        const embedClass = embedLanguage === DIAGRAM_LANGUAGE ? "md-diagram-line" : "md-drawing-line";
+        const embedClass = embedLineClass(embedLanguage);
 
         embedSourceLines?.push(line);
         output.push(
-          `<div class="md-block ${embedClass}" data-code="${codeGroup}">${escapeHtml(line)}</div>`,
+          `<div class="md-block ${embedClass}"${
+            embedLanguage === DATABASE_LANGUAGE ? ' contenteditable="false"' : ""
+          } data-code="${codeGroup}">${escapeHtml(line)}</div>`,
         );
         i++;
         continue;

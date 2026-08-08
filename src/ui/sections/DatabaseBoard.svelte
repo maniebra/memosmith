@@ -12,8 +12,39 @@
   export let onCell: (rowId: string, columnId: string, value: CellValue) => void;
   export let onAddRow: (groupValue: string | null) => void;
   export let onDeleteRow: (rowId: string) => void;
+  /** Width of every board column, in pixels; unset uses the default. */
+  export let cardWidth: number | undefined = undefined;
+  export let onCardWidth: (width: number) => void = () => {};
+
+  const MIN_WIDTH = 180;
+  const DEFAULT_WIDTH = 288;
 
   let dragging: string | null = null;
+  let resizing: { startX: number; startWidth: number; width: number; x: number } | null = null;
+
+  $: width = resizing?.width ?? cardWidth ?? DEFAULT_WIDTH;
+
+  function startResize(event: PointerEvent) {
+    event.preventDefault();
+    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+
+    resizing = { startX: event.clientX, startWidth: width, width, x: event.clientX };
+  }
+
+  function moveResize(event: PointerEvent) {
+    if (resizing) {
+      const next = Math.max(MIN_WIDTH, Math.round(resizing.startWidth + event.clientX - resizing.startX));
+
+      resizing = { ...resizing, width: next, x: resizing.startX + next - resizing.startWidth };
+    }
+  }
+
+  function endResize() {
+    if (resizing) {
+      onCardWidth(resizing.width);
+      resizing = null;
+    }
+  }
 
   $: groupColumn = columns.find((column) => column.id === groupBy);
   $: groupChoices = groupColumn ? (choices[groupColumn.id] ?? []) : [];
@@ -42,6 +73,10 @@
   }
 </script>
 
+{#if resizing}
+  <div class="pointer-events-none fixed inset-y-0 z-50 w-px bg-emerald-500" style="left: {resizing.x}px"></div>
+{/if}
+
 {#if !groupColumn}
   <p class="px-4 py-6 text-sm text-stone-400">
     Pick a "Group by" column to use the board.
@@ -50,11 +85,24 @@
   <div class="flex min-h-0 flex-1 gap-3 overflow-x-auto p-3">
     {#each groups as group (group.key)}
       <section
-        class="flex max-h-full w-72 shrink-0 flex-col rounded-xl bg-stone-500/5 p-2 dark:bg-stone-800/40"
+        class="relative flex max-h-full shrink-0 flex-col rounded-xl bg-stone-500/5 p-2 dark:bg-stone-800/40"
+        style="width: {width}px"
         role="list"
         ondragover={(event) => event.preventDefault()}
         ondrop={() => drop(group.key)}
       >
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div
+          class="absolute inset-y-0 -right-2 z-10 w-2 cursor-col-resize rounded hover:bg-emerald-600/30 {resizing
+            ? 'bg-emerald-600/40'
+            : ''}"
+          onpointerdown={startResize}
+          onpointermove={moveResize}
+          onpointerup={endResize}
+          onpointercancel={endResize}
+          ondblclick={() => onCardWidth(DEFAULT_WIDTH)}
+          title="Drag to resize board columns, double-click to reset"
+        ></div>
         <header class="flex items-center justify-between px-1 pb-2">
           <span class="truncate text-xs font-medium tracking-wide text-stone-500 uppercase">
             {groupLabel(group.key)}

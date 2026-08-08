@@ -54,6 +54,8 @@
     withMediaOptions,
     EMPTY_DRAWING,
     EMPTY_DIAGRAM,
+    emptyDatabaseEmbed,
+    DATABASE_LANGUAGE,
   } from "../../lib/utils/markdown";
   import { runCode, resetSession } from "../../lib/tauri/runner";
   import { outputKey } from "../../lib/utils/runner";
@@ -66,6 +68,9 @@
     wordPrefix,
     type Completion,
   } from "../../lib/utils/lsp";
+  import { mount, unmount } from "svelte";
+  import DatabaseView from "../sections/DatabaseView.svelte";
+  import type { Database } from "../../lib/utils/database";
   import DrawingModal from "./DrawingModal.svelte";
   import DiagramModal from "./DiagramModal.svelte";
 
@@ -103,6 +108,12 @@
     | ((target: string, depth: number) => WikilinkEmbed | null)
     | undefined = undefined;
   export let wikilinkKey = "";
+  /** Space folder the embedded databases live in; empty disables database embeds. */
+  export let databaseRoot = "";
+  /** Databases offered by the slash menu and by relation columns. */
+  export let databaseOptions: { id: string; name: string }[] = [];
+  export let onOpenDatabase: ((databaseId: string) => void) | null = null;
+  export let onStatus: (message: string) => void = () => {};
   /** Source ranges to underline, drawn in an overlay so the editable DOM stays untouched. */
   export let decorations: Decoration[] = [];
   export let resolveAsset: ((source: string) => string) | null = null;
@@ -246,6 +257,13 @@
       : []),
     ...(drawings ? [{ label: "Drawing", hint: "excalidraw", prefix: EMPTY_DRAWING }] : []),
     ...(diagrams ? [{ label: "Diagram", hint: "draw.io", prefix: EMPTY_DIAGRAM }] : []),
+    ...(databaseRoot
+      ? databaseOptions.map((option) => ({
+          label: `Database: ${option.name}`,
+          hint: "embed",
+          prefix: emptyDatabaseEmbed(option.id),
+        }))
+      : []),
   ];
   $: matches = commands.filter((command) =>
     command.label.toLowerCase().includes(slashQuery.toLowerCase()),
@@ -748,10 +766,11 @@
               : null;
 
     for (const block of Array.from(element?.children ?? []) as HTMLElement[]) {
+      // A database card is live UI, never source to unfold: its fence stays collapsed.
       block.toggleAttribute(
         "data-active",
-        block === active ||
-          (groupName !== null && block.dataset[groupName] === group),
+        !block.classList.contains("md-database-line") &&
+          (block === active || (groupName !== null && block.dataset[groupName] === group)),
       );
     }
 
@@ -1097,8 +1116,10 @@
       codeExecution,
       resolveWikilink,
       renderWikilinkEmbed,
+      databaseEmbeds: Boolean(databaseRoot),
     });
     bindTableToolbars();
+    paintDatabaseEmbeds();
     paintDrawingPreviews();
     paintDiagramPreviews();
     paintRunPreviews();
@@ -2214,6 +2235,77 @@
     }
   }
 
+  type DatabaseEmbed = { database?: string; table?: string; view?: string };
+
+  function databaseEmbedSource(preview: HTMLElement) {
+    try {
+      return JSON.parse(preview.dataset.embed || "{}") as DatabaseEmbed;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Live database views, one per embed card, replaced whenever the document re-renders. */
+  let databaseViews: ReturnType<typeof mount>[] = [];
+  /** Loaded databases, so a re-render repaints the card without another round trip. */
+  const databaseCache = new Map<string, Database>();
+
+  function paintDatabaseEmbeds() {
+    for (const view of databaseViews) {
+      void unmount(view);
+    }
+
+    databaseViews = [];
+
+    if (!databaseRoot) {
+      return;
+    }
+
+    for (const preview of Array.from(element?.querySelectorAll(".md-database-preview") ?? [])) {
+      const embed = databaseEmbedSource(preview as HTMLElement);
+
+      if (!embed?.database) {
+        preview.innerHTML = `<p class="md-database-empty">Database unavailable</p>`;
+        continue;
+      }
+
+      const databaseId = embed.database;
+
+      databaseViews.push(
+        mount(DatabaseView, {
+          target: preview,
+          props: {
+            root: databaseRoot,
+            databaseId,
+            compact: true,
+            preloaded: databaseCache.get(databaseId) ?? null,
+            tableId: embed.table ?? null,
+            viewId: embed.view ?? null,
+            databaseOptions,
+            onStatus,
+            onRenamed: () => {},
+            onOpen: onOpenDatabase ? () => onOpenDatabase?.(databaseId) : null,
+            onChange: (database: Database) => databaseCache.set(database.id, database),
+            onNavigate: (tableId: string, viewId: string) =>
+              writeDatabaseEmbed(preview as HTMLElement, { database: databaseId, table: tableId, view: viewId }),
+          },
+        }),
+      );
+    }
+  }
+
+  /** Keeps the fence JSON in step with the tab the card is showing. */
+  function writeDatabaseEmbed(preview: HTMLElement, embed: DatabaseEmbed) {
+    const source = JSON.stringify(embed);
+
+    if (source === preview.dataset.embed || !editable) {
+      return;
+    }
+
+    preview.dataset.embed = source;
+    replaceFencedSource(preview, DATABASE_LANGUAGE, source, false);
+  }
+
   function openDrawing(preview: HTMLElement) {
     const lines = codeSourceBlocks(preview).map(sourceText);
 
@@ -2230,7 +2322,12 @@
   }
 
   /** Rewrites the whole fenced block a preview card stands for. */
-  function replaceFencedSource(preview: HTMLElement, language: string, source: string) {
+  function replaceFencedSource(
+    preview: HTMLElement,
+    language: string,
+    source: string,
+    rerender = true,
+  ) {
     const sourceBlocks = codeSourceBlocks(preview);
     const first = sourceBlocks[0];
     const last = sourceBlocks[sourceBlocks.length - 1];
@@ -2242,7 +2339,11 @@
     }
 
     value = value.slice(0, start) + `\`\`\`${language}\n${source}\n\`\`\`` + value.slice(end);
-    render(null);
+
+    if (rerender) {
+      render(null);
+    }
+
     onInput();
   }
 
@@ -2491,6 +2592,12 @@
     closeMenu();
 
     const target = event.target as HTMLElement;
+
+    // Same as a left click: the database card owns no caret position.
+    if (target.closest(".md-database-preview")) {
+      return;
+    }
+
     const embedPreview = target.closest(EMBED_SELECTOR) as HTMLElement | null;
 
     // An embed card holds no caret position, so focusing and placing one there would
@@ -2874,6 +2981,14 @@
 
     if (prefix === DEFAULT_TABLE_MARKDOWN) {
       replace(start, lineEnd, prefix, start + prefix.length);
+      return;
+    }
+
+    // Embeds carry their own source, so the caret waits on a fresh line under the card.
+    if (prefix.startsWith("```") && prefix.includes("\n")) {
+      const opening = applyPrefix(value.slice(start, slashStart), prefix);
+
+      replace(start, lineEnd, `${opening}\n\n${tail}`, start + opening.length + 2);
       return;
     }
 

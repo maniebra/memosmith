@@ -15,7 +15,7 @@ import {
 const SETTINGS_KEY = "memosmith:settings";
 
 export type ThemePreference = ColorMode;
-export type EditorWidth = "focused" | "comfortable" | "wide";
+export type EditorWidth = "focused" | "comfortable" | "wide" | "full";
 export type GrammarCheckMode = "auto-diff" | "auto-full" | "manual";
 
 export type FeatureSettings = {
@@ -246,7 +246,7 @@ function isEditorLineHeight(value: unknown): value is EditorLineHeight {
 }
 
 function isEditorWidth(value: unknown): value is EditorWidth {
-  return value === "focused" || value === "comfortable" || value === "wide";
+  return value === "focused" || value === "comfortable" || value === "wide" || value === "full";
 }
 
 function isGrammarCheckMode(value: unknown): value is GrammarCheckMode {
