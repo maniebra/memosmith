@@ -456,4 +456,36 @@ body {
   .md-drawing-open.md-drawing-thumbnail svg {
     @apply h-auto max-h-96 max-w-full;
   }
+
+  .md-diagram-line:not([data-active]) {
+    font-size: 0;
+    line-height: 0;
+    letter-spacing: 0;
+    @apply my-0 overflow-hidden py-0;
+  }
+
+  .md-diagram-preview {
+    @apply my-3 flex;
+  }
+
+  .md-diagram-open {
+    @apply cursor-pointer rounded-md border border-stone-300 bg-stone-100 px-3 py-2 text-sm text-stone-700 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200;
+  }
+
+  /* draw.io exports theme-adaptive SVG: every colour is a CSS `light-dark()` pair. The export pins
+     `color-scheme: light dark` inline, which resolves against the OS preference, so the app theme
+     has to override it (`!important`, since it is fighting an inline style). */
+  .md-diagram-open.md-diagram-thumbnail {
+    @apply max-w-full bg-transparent p-1;
+  }
+
+  .md-diagram-open.md-diagram-thumbnail svg {
+    @apply h-auto max-h-96 max-w-full;
+    color-scheme: light !important;
+  }
+
+  .dark .md-diagram-open.md-diagram-thumbnail svg {
+    color-scheme: dark !important;
+  }
+
 }

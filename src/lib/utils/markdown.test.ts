@@ -113,3 +113,15 @@ assert(
   !renderDocument("```js\nlet a\n```", undefined, { drawings: true }).includes("md-drawing"),
   "other languages are untouched",
 );
+
+const diagram = renderDocument('```drawio\n{"xml":"","svg":""}\n```', undefined, { diagrams: true });
+assert(diagram.includes("md-diagram-preview"), "drawio fence gets a preview card");
+assert((diagram.match(/md-diagram-line/g) ?? []).length === 3, "diagram fences and source are collapsed");
+assert(
+  !renderDocument('```drawio\n{}\n```').includes("md-diagram"),
+  "diagram block stays a plain code block while the feature is off",
+);
+assert(
+  renderDocument('```drawio\n{}\n```\n\n```js\nlet a\n```', undefined, { diagrams: true }).includes("md-codeblock"),
+  "a code block after a diagram block is still code",
+);

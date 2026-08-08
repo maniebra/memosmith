@@ -594,12 +594,22 @@ export function insideFence(text: string) {
 export type RenderDocumentOptions = {
   fancyTableEditor?: boolean;
   drawings?: boolean;
+  diagrams?: boolean;
 };
 
 /** Language of the fenced block that holds an Excalidraw scene as JSON. */
 export const DRAWING_LANGUAGE = "excalidraw";
 
 export const EMPTY_DRAWING = '```excalidraw\n{"elements":[]}\n```';
+
+/** Language of the fenced block that holds a draw.io diagram: its XML plus a rendered SVG. */
+export const DIAGRAM_LANGUAGE = "drawio";
+
+export const EMPTY_DIAGRAM = '```drawio\n{"xml":"","svg":""}\n```';
+
+function diagramPreview(group: number) {
+  return `<div class="md-preview md-diagram-preview" data-code="${group}" contenteditable="false"><button type="button" class="md-diagram-open">Edit diagram</button></div>`;
+}
 
 function drawingPreview(group: number) {
   return `<div class="md-preview md-drawing-preview" data-code="${group}" contenteditable="false"><button type="button" class="md-drawing-open">Edit drawing</button></div>`;
@@ -612,7 +622,10 @@ export function renderDocument(
 ) {
   const fancyTableEditor = options.fancyTableEditor ?? true;
   const drawings = options.drawings ?? false;
-  let drawingGroup: number | null = null;
+  const diagrams = options.diagrams ?? false;
+  let embedGroup: number | null = null;
+  /** Non-null while inside a fenced block that renders as a preview card instead of code. */
+  let embedLanguage: string | null = null;
   let language: string | null = null;
   let codeGroup = 0;
   let mathGroup = 0;
@@ -657,17 +670,25 @@ export function renderDocument(
 
       language = isOpening ? fence[1].toLowerCase() : null;
       const index = isOpening ? codeGroup : codeGroup++;
-      const drawing: boolean =
-        drawings && (isOpening ? language === DRAWING_LANGUAGE : drawingGroup !== null);
-      drawingGroup = drawing && isOpening ? index : null;
+      const embedded: string | null = isOpening
+        ? (drawings && language === DRAWING_LANGUAGE) || (diagrams && language === DIAGRAM_LANGUAGE)
+          ? language
+          : null
+        : embedGroup !== null
+          ? embedLanguage
+          : null;
+
+      embedLanguage = isOpening ? embedded : null;
+      embedGroup = embedded && isOpening ? index : null;
+      const embedClass = embedded === DIAGRAM_LANGUAGE ? " md-diagram-line" : embedded ? " md-drawing-line" : "";
 
       output.push(
-        `<div class="md-block ${className}${drawing ? " md-drawing-line" : ""}" data-code="${index}">${escapeHtml(line)}</div>`,
+        `<div class="md-block ${className}${embedClass}" data-code="${index}">${escapeHtml(line)}</div>`,
       );
 
-      // The scene lives behind the preview card, so the raw JSON is only shown while the caret is inside.
-      if (drawing && !isOpening) {
-        output.push(drawingPreview(index));
+      // The source lives behind the preview card, so the raw JSON is only shown while the caret is inside.
+      if (embedded && !isOpening) {
+        output.push(embedded === DIAGRAM_LANGUAGE ? diagramPreview(index) : drawingPreview(index));
       }
 
       i++;
@@ -675,10 +696,12 @@ export function renderDocument(
     }
 
     if (language !== null) {
-      // A drawing's JSON never wears the code slab: it sits collapsed behind the preview card.
-      if (drawings && language === DRAWING_LANGUAGE) {
+      // Embedded source never wears the code slab: it sits collapsed behind the preview card.
+      if (embedLanguage) {
+        const embedClass = embedLanguage === DIAGRAM_LANGUAGE ? "md-diagram-line" : "md-drawing-line";
+
         output.push(
-          `<div class="md-block md-drawing-line" data-code="${codeGroup}">${escapeHtml(line)}</div>`,
+          `<div class="md-block ${embedClass}" data-code="${codeGroup}">${escapeHtml(line)}</div>`,
         );
         i++;
         continue;

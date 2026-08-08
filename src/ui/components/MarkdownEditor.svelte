@@ -43,8 +43,10 @@
     SLASH_COMMANDS,
     withMediaOptions,
     EMPTY_DRAWING,
+    EMPTY_DIAGRAM,
   } from "../../lib/utils/markdown";
   import DrawingModal from "./DrawingModal.svelte";
+  import DiagramModal from "./DiagramModal.svelte";
 
   export let value: string;
   export let element: HTMLElement | undefined = undefined;
@@ -54,6 +56,7 @@
   export let slashCommands = true;
   export let fancyTableEditor = true;
   export let drawings = false;
+  export let diagrams = false;
   export let editable = true;
   export let className = "";
   export let onInput: () => void = () => {};
@@ -74,8 +77,11 @@
   let composing = false;
   let renderedFancyTableEditor = fancyTableEditor;
   let renderedDrawings = drawings;
+  let renderedDiagrams = diagrams;
   /** The drawing block being edited in the modal, plus the scene JSON it opened with. */
   let editingDrawing: { preview: HTMLElement; scene: string } | null = null;
+  /** The diagram block being edited in the modal, plus the JSON it opened with. */
+  let editingDiagram: { preview: HTMLElement; diagram: string } | null = null;
   let decorationBoxes: { left: number; top: number; width: number; height: number; tone: string }[] = [];
   const EMPTY_CARET = String.fromCharCode(8203);
 
@@ -171,9 +177,11 @@
     { label: "Code", prefix: "```", icon: Code2 },
   ];
 
-  $: commands = drawings
-    ? [...SLASH_COMMANDS, { label: "Drawing", hint: "excalidraw", prefix: EMPTY_DRAWING }]
-    : SLASH_COMMANDS;
+  $: commands = [
+    ...SLASH_COMMANDS,
+    ...(drawings ? [{ label: "Drawing", hint: "excalidraw", prefix: EMPTY_DRAWING }] : []),
+    ...(diagrams ? [{ label: "Diagram", hint: "draw.io", prefix: EMPTY_DIAGRAM }] : []),
+  ];
   $: matches = commands.filter((command) =>
     command.label.toLowerCase().includes(slashQuery.toLowerCase()),
   );
@@ -189,6 +197,10 @@
   }
   $: if (element && renderedDrawings !== drawings) {
     renderedDrawings = drawings;
+    render(caretOffset());
+  }
+  $: if (element && renderedDiagrams !== diagrams) {
+    renderedDiagrams = diagrams;
     render(caretOffset());
   }
 
@@ -952,9 +964,10 @@
       return;
     }
 
-    element.innerHTML = renderDocument(value, resolveAsset ?? undefined, { fancyTableEditor, drawings });
+    element.innerHTML = renderDocument(value, resolveAsset ?? undefined, { fancyTableEditor, drawings, diagrams });
     bindTableToolbars();
     paintDrawingPreviews();
+    paintDiagramPreviews();
 
     if (!editable) {
       for (const cell of Array.from(element.querySelectorAll("[data-table-cell]"))) {
@@ -1619,6 +1632,7 @@
         darkMode = dark;
         drawingThumbnails.clear();
         paintDrawingPreviews();
+    paintDiagramPreviews();
       }
     });
 
@@ -1690,6 +1704,40 @@
     }
   }
 
+  function paintDiagramPreviews() {
+    for (const preview of Array.from(element?.querySelectorAll(".md-diagram-preview") ?? [])) {
+      const button = preview.querySelector(".md-diagram-open") as HTMLElement | null;
+
+      if (!button) {
+        continue;
+      }
+
+      let svg = "";
+
+      try {
+        svg = (JSON.parse(sceneOf(preview) || "{}") as { svg?: string }).svg ?? "";
+      } catch {
+        svg = "";
+      }
+
+      button.classList.toggle("md-diagram-thumbnail", Boolean(svg));
+      button.innerHTML = svg || "Edit diagram";
+    }
+  }
+
+  function openDiagram(preview: HTMLElement) {
+    editingDiagram = { preview, diagram: sceneOf(preview) };
+  }
+
+  function saveDiagram(diagram: string) {
+    const preview = editingDiagram?.preview;
+    editingDiagram = null;
+
+    if (preview) {
+      replaceFencedSource(preview, "drawio", diagram);
+    }
+  }
+
   function openDrawing(preview: HTMLElement) {
     const lines = codeSourceBlocks(preview).map(sourceText);
 
@@ -1700,10 +1748,13 @@
     const preview = editingDrawing?.preview;
     editingDrawing = null;
 
-    if (!preview) {
-      return;
+    if (preview) {
+      replaceFencedSource(preview, "excalidraw", scene);
     }
+  }
 
+  /** Rewrites the whole fenced block a preview card stands for. */
+  function replaceFencedSource(preview: HTMLElement, language: string, source: string) {
     const sourceBlocks = codeSourceBlocks(preview);
     const first = sourceBlocks[0];
     const last = sourceBlocks[sourceBlocks.length - 1];
@@ -1714,13 +1765,24 @@
       return;
     }
 
-    value = value.slice(0, start) + `\`\`\`excalidraw\n${scene}\n\`\`\`` + value.slice(end);
+    value = value.slice(0, start) + `\`\`\`${language}\n${source}\n\`\`\`` + value.slice(end);
     render(null);
     onInput();
   }
 
   function handlePointerDown(event: PointerEvent) {
     const handle = event.target as HTMLElement;
+
+    if (handle.closest?.(".md-diagram-open")) {
+      const preview = handle.closest(".md-diagram-preview") as HTMLElement | null;
+
+      if (editable && preview) {
+        event.preventDefault();
+        openDiagram(preview);
+      }
+
+      return;
+    }
 
     if (handle.closest?.(".md-drawing-open")) {
       const preview = handle.closest(".md-drawing-preview") as HTMLElement | null;
@@ -2469,6 +2531,14 @@
     scene={editingDrawing.scene}
     onSave={saveDrawing}
     onClose={() => (editingDrawing = null)}
+  />
+{/if}
+
+{#if editingDiagram}
+  <DiagramModal
+    diagram={editingDiagram.diagram}
+    onSave={saveDiagram}
+    onClose={() => (editingDiagram = null)}
   />
 {/if}
 

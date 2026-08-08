@@ -343,6 +343,12 @@
             className="h-10 w-full"
             onChange={(drawings) => updateFeatures({ drawings })}
           />
+          <Switch
+            checked={settings.features.diagrams}
+            label="Diagram blocks (draw.io)"
+            className="h-10 w-full"
+            onChange={(diagrams) => updateFeatures({ diagrams })}
+          />
         </section>
       </div>
     {:else if activeTab === "ai"}

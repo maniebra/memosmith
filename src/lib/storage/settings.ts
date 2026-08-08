@@ -22,6 +22,7 @@ export type FeatureSettings = {
   databases: boolean;
   fancyTableEditor: boolean;
   drawings: boolean;
+  diagrams: boolean;
 };
 
 /** Every field is a string so an empty one simply means "leave it out of the request". */
@@ -116,6 +117,7 @@ export const defaultFeatureSettings: FeatureSettings = {
   databases: true,
   fancyTableEditor: true,
   drawings: false,
+  diagrams: false,
 };
 
 export const defaultSettings: AppSettings = {
@@ -257,6 +259,8 @@ function readFeatures(value: unknown): FeatureSettings {
         : defaultFeatureSettings.fancyTableEditor,
     drawings:
       typeof parsed.drawings === "boolean" ? parsed.drawings : defaultFeatureSettings.drawings,
+    diagrams:
+      typeof parsed.diagrams === "boolean" ? parsed.diagrams : defaultFeatureSettings.diagrams,
   };
 }
 

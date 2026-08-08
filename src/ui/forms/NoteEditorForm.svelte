@@ -14,6 +14,7 @@
   export let slashCommands: boolean;
   export let fancyTableEditor: boolean;
   export let drawings: boolean;
+  export let diagrams: boolean;
   export let editable: boolean;
   export let noteTitle: string;
   export let showPageTitle: boolean;
@@ -60,6 +61,7 @@
       {slashCommands}
       {fancyTableEditor}
       {drawings}
+      {diagrams}
       {editable}
       {onInput}
       {onAssets}

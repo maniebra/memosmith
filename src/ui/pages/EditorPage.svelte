@@ -956,6 +956,7 @@
           slashCommands={settings.slashCommands}
           fancyTableEditor={settings.features.fancyTableEditor}
           drawings={settings.features.drawings}
+          diagrams={settings.features.diagrams}
           editable={Boolean(path)}
           {noteTitle}
           pageMeta={activePageMeta}
