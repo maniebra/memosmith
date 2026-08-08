@@ -408,6 +408,20 @@
     return { top, bottom, height: bottom - top };
   }
 
+  function lastVisualBlockRect() {
+    const children = Array.from(element?.children ?? []) as HTMLElement[];
+
+    for (let index = children.length - 1; index >= 0; index--) {
+      const rect = children[index].getBoundingClientRect();
+
+      if (rect.height > 0) {
+        return rect;
+      }
+    }
+
+    return null;
+  }
+
   function syncBlockToolbar() {
     requestAnimationFrame(() => {
       const unit = currentUnit();
@@ -434,9 +448,7 @@
         return;
       }
 
-      const units = sourceUnits();
-      const lastUnit = units[units.length - 1];
-      const lastRect = lastUnit ? unitVisualRect(lastUnit) : null;
+      const lastRect = lastVisualBlockRect();
       const shellRect = shell.getBoundingClientRect();
       const fallback = element.getBoundingClientRect();
 
@@ -946,7 +958,10 @@
   $: element, editable, value, textSize, syncBlockToolbar();
 
   onMount(() => {
-    const observer = new ResizeObserver(scheduleMeasure);
+    const observer = new ResizeObserver(() => {
+      scheduleMeasure();
+      syncTailAdd();
+    });
 
     if (element) {
       observer.observe(element);
@@ -3175,7 +3190,7 @@
 
 {#if editable}
   <div
-    class="group absolute right-0 bottom-0 left-0 z-20 flex min-h-7 items-start"
+    class="absolute right-0 left-0 z-20 flex h-7 items-start"
     style={`top: ${tailAddTop}px;`}
     role="presentation"
     onpointerdown={(event) => {
@@ -3187,7 +3202,7 @@
   >
     <button
       type="button"
-      class="flex h-7 w-full items-center justify-center rounded-md border border-dashed border-stone-300 bg-[#fffdfa]/90 text-stone-400 opacity-0 shadow-sm backdrop-blur transition-[border-color,background-color,color,opacity] group-hover:opacity-100 hover:border-emerald-600/40 hover:bg-emerald-50/80 hover:text-emerald-700 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 dark:border-stone-700 dark:bg-[#1a1917]/90 dark:text-stone-500 dark:hover:border-emerald-400/40 dark:hover:bg-emerald-950/30 dark:hover:text-emerald-300"
+      class="flex h-7 w-full items-center justify-center rounded-md border border-dashed border-stone-300 bg-[#fffdfa]/90 text-stone-400 opacity-0 shadow-sm backdrop-blur transition-[border-color,background-color,color,opacity] hover:border-emerald-600/40 hover:bg-emerald-50/80 hover:text-emerald-700 hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 dark:border-stone-700 dark:bg-[#1a1917]/90 dark:text-stone-500 dark:hover:border-emerald-400/40 dark:hover:bg-emerald-950/30 dark:hover:text-emerald-300"
       title="Add block"
       aria-label="Add block"
       onmousedown={(event) => event.preventDefault()}
