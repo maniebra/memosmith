@@ -557,6 +557,7 @@
         drawings: settings.features.drawings,
         diagrams: settings.features.diagrams,
         plantuml: settings.features.plantuml,
+        mermaid: settings.features.mermaid,
         staticDiagramPreviews: true,
         resolveWikilink: (target) =>
           resolveWikilinkTarget(target, spaceNotes, resolved.path),
@@ -1141,6 +1142,8 @@
           codeExecution={settings.features.codeExecution}
           plantuml={settings.features.plantuml}
           plantumlSettings={settings.plantuml}
+          mermaid={settings.features.mermaid}
+          mermaidSettings={settings.mermaid}
           runSession={path ?? ""}
           runner={settings.runner}
           lsp={settings.features.lsp}

@@ -27,6 +27,8 @@
   import {
     defaultCalloutDefinitions,
     type LspSettings,
+    type MermaidSettings,
+    type MermaidTheme,
     type PlantumlFormat,
     type PlantumlSettings,
     type RunnerSettings,
@@ -89,6 +91,7 @@
   let grammarOptionsOpen = false;
   let codeOptionsOpen = false;
   let plantumlOptionsOpen = false;
+  let mermaidOptionsOpen = false;
   let lspOptionsOpen = false;
   /** Resolved language server per kernel, refreshed whenever the paths change. */
   let languageServers: Record<string, string> = {};
@@ -122,6 +125,17 @@
     { label: "PNG", value: "png" },
     { label: "ASCII art", value: "txt" },
   ];
+
+  const mermaidThemeOptions = [
+    { label: "Default", value: "default" },
+    { label: "Dark", value: "dark" },
+    { label: "Forest", value: "forest" },
+    { label: "Neutral", value: "neutral" },
+  ];
+
+  function updateMermaid(next: Partial<MermaidSettings>) {
+    updateSettings({ mermaid: { ...settings.mermaid, ...next } });
+  }
 
   function updatePlantuml(next: Partial<PlantumlSettings>) {
     updateSettings({ plantuml: { ...settings.plantuml, ...next } });
@@ -817,6 +831,51 @@
                     className="h-9"
                     rootClassName={compactSelectRoot}
                     onChange={(format) => updatePlantuml({ format: format as PlantumlFormat })}
+                  />
+                </label>
+              </div>
+            {/if}
+          </div>
+
+          <div class="grid gap-2">
+            <div class="flex items-center gap-1">
+              <Switch
+                checked={settings.features.mermaid}
+                label="Mermaid blocks (live render)"
+                className="h-10 w-full"
+                onChange={(mermaid) => updateFeatures({ mermaid })}
+              />
+              <button
+                type="button"
+                class="grid size-10 shrink-0 place-items-center rounded-md text-stone-500 transition-colors hover:bg-stone-500/10 hover:text-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 dark:hover:text-stone-200"
+                aria-expanded={mermaidOptionsOpen}
+                aria-label="Mermaid options"
+                onclick={() => (mermaidOptionsOpen = !mermaidOptionsOpen)}
+              >
+                <ChevronDown
+                  class={cn("size-4 transition-transform", mermaidOptionsOpen && "rotate-180")}
+                />
+              </button>
+            </div>
+
+            {#if mermaidOptionsOpen}
+              <div
+                class="grid gap-4 rounded-md border border-stone-200 p-3 dark:border-stone-800"
+                transition:slide={{ duration: 160, easing: cubicOut }}
+              >
+                <span class="text-xs text-stone-500">
+                  Mermaid ships with the app and draws in the page, so it needs nothing installed
+                  and works offline.
+                </span>
+
+                <label class="grid gap-1">
+                  <span class="text-sm text-stone-700 dark:text-stone-200">Theme</span>
+                  <Select
+                    value={settings.mermaid.theme}
+                    options={mermaidThemeOptions}
+                    className="h-9"
+                    rootClassName={compactSelectRoot}
+                    onChange={(theme) => updateMermaid({ theme: theme as MermaidTheme })}
                   />
                 </label>
               </div>

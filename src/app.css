@@ -566,7 +566,7 @@ body {
 
   .md-drawing-open:hover .md-resize,
   .md-diagram-open:hover .md-resize,
-  .md-plantuml-figure:hover .md-resize,
+  .md-livediagram-figure:hover .md-resize,
   .md-media-wrap:hover .md-resize,
   .md-resize:active {
     @apply bg-stone-900/40 dark:bg-stone-100/50;
@@ -732,9 +732,9 @@ body {
 
   /* Same collapse trick as drawings: never `display: none`, or the caret jumps. The code slab
      is dropped too, so a folded diagram leaves no empty strip behind. */
-  .md-plantuml-line:not([data-active]),
-  .md-fence-open:not([data-active]) + .md-codeblock.md-plantuml-line:not([data-active]),
-  .md-codeblock.md-plantuml-line:not([data-active]):has(+ .md-fence-close:not([data-active])) {
+  .md-livediagram-line:not([data-active]),
+  .md-fence-open:not([data-active]) + .md-codeblock.md-livediagram-line:not([data-active]),
+  .md-codeblock.md-livediagram-line:not([data-active]):has(+ .md-fence-close:not([data-active])) {
     font-size: 0;
     line-height: 0;
     letter-spacing: 0;
@@ -743,39 +743,44 @@ body {
 
   /* No slab, no language badge either. */
   .md-fence-open:not([data-active])
-    + .md-codeblock.md-plantuml-line[data-language]:not([data-language=""])::after {
+    + .md-codeblock.md-livediagram-line[data-language]:not([data-language=""])::after {
     content: none;
   }
 
-  .md-plantuml-preview {
+  .md-livediagram-preview {
     @apply my-3 flex;
   }
 
-  /* Shrink-wrapped: a full-width box would park the resize handle far from the diagram.
-     PlantUML bakes black-on-white art, so the card owns the white and frames it on purpose. */
-  .md-plantuml-figure {
-    @apply relative w-fit max-w-full rounded-md border border-stone-200 bg-white p-3 dark:border-stone-700;
+  /* Shrink-wrapped: a full-width box would park the resize handle far from the diagram. */
+  .md-livediagram-figure {
+    @apply relative w-fit max-w-full rounded-md p-1;
   }
 
-  .md-plantuml-preview svg,
-  .md-plantuml-preview img {
+  /* PlantUML bakes black-on-white art, so its card owns the white and frames it on purpose.
+     Mermaid draws with the chosen theme and transparent ground, so it gets no paper. */
+  .md-livediagram-paper {
+    @apply border border-stone-200 bg-white p-3 dark:border-stone-700;
+  }
+
+  .md-livediagram-preview svg,
+  .md-livediagram-preview img {
     @apply h-auto max-w-full;
   }
 
-  .md-plantuml-ascii {
+  .md-livediagram-ascii {
     @apply font-mono text-[0.8em] leading-tight whitespace-pre text-stone-700 dark:text-stone-200;
   }
 
-  .md-plantuml-busy,
-  .md-plantuml-error {
+  .md-livediagram-busy,
+  .md-livediagram-error {
     @apply font-mono text-[0.8em] whitespace-pre-wrap;
   }
 
-  .md-plantuml-busy {
+  .md-livediagram-busy {
     @apply text-stone-500;
   }
 
-  .md-plantuml-error {
+  .md-livediagram-error {
     @apply border-l-2 border-l-rose-500/70 text-rose-600 dark:text-rose-400;
   }
 

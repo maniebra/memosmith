@@ -1,5 +1,5 @@
 const assert = (ok: unknown, msg: string) => { if (!ok) throw new Error(msg); };
-import { plantumlFenceLine, applyPrefix, continueList, continueQuote, DEFAULT_TABLE_MARKDOWN, editMarkdownTable, insideFence, isMediaLine, lineClass, mathUnclosed, mediaOptions, renderDocument, renderLine, withMediaOptions } from "./markdown";
+import { liveDiagramFenceLine, applyPrefix, continueList, continueQuote, DEFAULT_TABLE_MARKDOWN, editMarkdownTable, insideFence, isMediaLine, lineClass, mathUnclosed, mediaOptions, renderDocument, renderLine, withMediaOptions } from "./markdown";
 
 // The caret maps by counting source blocks, so previews must never be counted as lines.
 const sourceBlocks = (text: string) =>
@@ -187,20 +187,28 @@ assert(sourceBlocks("```python\nprint(1)\n```") === 3, "the run bar is not a sou
 
 const plantumlSource = "```plantuml\n@startuml\nA -> B\n@enduml\n```";
 const plantuml = renderDocument(plantumlSource, undefined, { plantuml: true });
-assert(plantuml.includes("md-plantuml-preview"), "plantuml fences get a preview");
+assert(plantuml.includes("md-livediagram-preview"), "plantuml fences get a preview");
 assert(plantuml.includes("@startuml"), "plantuml source stays visible as code");
-assert(plantuml.includes('data-plantuml="@startuml\nA -&gt; B\n@enduml"'), "preview carries the source");
-assert(!renderDocument(plantumlSource).includes("md-plantuml"), "plantuml stays off by default");
+assert(plantuml.includes('data-livediagram="@startuml\nA -&gt; B\n@enduml"'), "preview carries the source");
+assert(!renderDocument(plantumlSource).includes("md-livediagram"), "plantuml stays off by default");
 assert(
   renderDocument("```plantuml\n@startuml\n@enduml\n```\n```js\nlet a\n```", undefined, { plantuml: true })
-    .match(/md-plantuml-preview/g)?.length === 1,
+    .match(/md-livediagram-preview/g)?.length === 1,
   "only plantuml fences get a diagram preview",
 );
 const alignedPlantuml = renderDocument("```plantuml|center|420\n@startuml\n@enduml\n```", undefined, {
   plantuml: true,
 });
 assert(alignedPlantuml.includes("justify-content:center"), "fence options align the diagram");
-assert(alignedPlantuml.includes('data-plantuml-width="420"'), "fence options size the diagram");
-assert(alignedPlantuml.includes("md-plantuml-line"), "plantuml source collapses when not focused");
-assert(plantumlFenceLine("plantuml", "right", 300) === "```plantuml|right|300", "options round-trip");
-assert(plantumlFenceLine("puml") === "```puml", "a plain diagram keeps a plain fence");
+assert(alignedPlantuml.includes('data-livediagram-width="420"'), "fence options size the diagram");
+assert(alignedPlantuml.includes("md-livediagram-line"), "diagram source collapses when not focused");
+assert(liveDiagramFenceLine("plantuml", "right", 300) === "```plantuml|right|300", "options round-trip");
+assert(liveDiagramFenceLine("puml") === "```puml", "a plain diagram keeps a plain fence");
+
+// Mermaid rides the same path as PlantUML, behind its own switch.
+const mermaidSource = "```mermaid\nflowchart LR\n  A --> B\n```";
+const mermaid = renderDocument(mermaidSource, undefined, { mermaid: true });
+assert(mermaid.includes('data-livediagram-engine="mermaid"'), "mermaid fences name their engine");
+assert(mermaid.includes("md-livediagram-line"), "mermaid source collapses when not focused");
+assert(!renderDocument(mermaidSource, undefined, { plantuml: true }).includes("md-livediagram"), "the plantuml switch does not enable mermaid");
+assert(renderDocument(plantumlSource, undefined, { mermaid: true }).includes("md-livediagram") === false, "the mermaid switch does not enable plantuml");

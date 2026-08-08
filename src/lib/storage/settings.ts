@@ -29,9 +29,17 @@ export type FeatureSettings = {
   codeExecution: boolean;
   lsp: boolean;
   plantuml: boolean;
+  mermaid: boolean;
 };
 
 export type PlantumlFormat = "svg" | "png" | "txt";
+
+export type MermaidTheme = "default" | "dark" | "forest" | "neutral";
+
+/** Mermaid renders in the page, so all it needs is which built-in theme to draw with. */
+export type MermaidSettings = {
+  theme: MermaidTheme;
+};
 
 /** Either a local binary/command or a PlantUML server URL; the server wins when both are set. */
 export type PlantumlSettings = {
@@ -85,6 +93,7 @@ export type AppSettings = {
   runner: RunnerSettings;
   lsp: LspSettings;
   plantuml: PlantumlSettings;
+  mermaid: MermaidSettings;
   editorWidth: EditorWidth;
   textSize: number;
   spellcheck: boolean;
@@ -163,6 +172,7 @@ export const defaultFeatureSettings: FeatureSettings = {
   codeExecution: false,
   lsp: false,
   plantuml: false,
+  mermaid: false,
 };
 
 export const defaultPlantumlSettings: PlantumlSettings = {
@@ -171,6 +181,8 @@ export const defaultPlantumlSettings: PlantumlSettings = {
   format: "svg",
   theme: "",
 };
+
+export const defaultMermaidSettings: MermaidSettings = { theme: "default" };
 
 export const defaultRunnerSettings: RunnerSettings = {
   commands: { bash: "", python: "", node: "", java: "", kotlin: "", r: "", cpp: "", rust: "" },
@@ -198,6 +210,7 @@ export const defaultSettings: AppSettings = {
   runner: { commands: { ...defaultRunnerSettings.commands }, timeoutMs: defaultRunnerSettings.timeoutMs },
   lsp: { commands: { ...defaultLspSettings.commands } },
   plantuml: { ...defaultPlantumlSettings },
+  mermaid: { ...defaultMermaidSettings },
   editorWidth: "comfortable",
   textSize: 17,
   spellcheck: true,
@@ -393,6 +406,7 @@ function readFeatures(value: unknown): FeatureSettings {
     lsp: typeof parsed.lsp === "boolean" ? parsed.lsp : defaultFeatureSettings.lsp,
     plantuml:
       typeof parsed.plantuml === "boolean" ? parsed.plantuml : defaultFeatureSettings.plantuml,
+    mermaid: typeof parsed.mermaid === "boolean" ? parsed.mermaid : defaultFeatureSettings.mermaid,
   };
 }
 
@@ -442,6 +456,17 @@ function readPlantuml(value: unknown): PlantumlSettings {
   };
 }
 
+function readMermaid(value: unknown): MermaidSettings {
+  const theme = ((value ?? {}) as Partial<MermaidSettings>).theme;
+
+  return {
+    theme:
+      theme === "dark" || theme === "forest" || theme === "neutral" || theme === "default"
+        ? theme
+        : defaultMermaidSettings.theme,
+  };
+}
+
 export function loadSettings(): AppSettings {
   const rawSettings = localStorage.getItem(SETTINGS_KEY);
 
@@ -460,6 +485,7 @@ export function loadSettings(): AppSettings {
       runner: readRunner(parsed.runner),
       lsp: readLsp(parsed.lsp),
       plantuml: readPlantuml(parsed.plantuml),
+      mermaid: readMermaid(parsed.mermaid),
       editorWidth: isEditorWidth(parsed.editorWidth) ? parsed.editorWidth : defaultSettings.editorWidth,
       textSize: clampTextSize(parsed.textSize),
       spellcheck: typeof parsed.spellcheck === "boolean" ? parsed.spellcheck : defaultSettings.spellcheck,

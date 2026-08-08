@@ -30,10 +30,12 @@
   import { scale } from "svelte/transition";
   import {
     defaultLspSettings,
+    defaultMermaidSettings,
     defaultPlantumlSettings,
     defaultRunnerSettings,
     type CalloutDefinition,
     type LspSettings,
+    type MermaidSettings,
     type PlantumlSettings,
     type RunnerSettings,
   } from "../../lib/storage/settings";
@@ -57,12 +59,14 @@
     EMPTY_DRAWING,
     EMPTY_DIAGRAM,
     EMPTY_PLANTUML,
-    plantumlFenceLine,
+    EMPTY_MERMAID,
+    liveDiagramFenceLine,
+    type LiveDiagramEngine,
     emptyDatabaseEmbed,
     DATABASE_LANGUAGE,
   } from "../../lib/utils/markdown";
   import { runCode, resetSession } from "../../lib/tauri/runner";
-  import { renderPlantuml, type PlantumlOutput } from "../../lib/tauri/plantuml";
+  import { renderDiagram, type DiagramOutput } from "../../lib/render/diagram";
   import { outputKey } from "../../lib/utils/runner";
   import { completeCode } from "../../lib/tauri/lsp";
   import {
@@ -94,6 +98,8 @@
   export let codeExecution = false;
   export let plantuml = false;
   export let plantumlSettings: PlantumlSettings = defaultPlantumlSettings;
+  export let mermaid = false;
+  export let mermaidSettings: MermaidSettings = defaultMermaidSettings;
   /** Identifies the kernels a note owns, so its variables survive between cells. */
   export let runSession = "";
   export let runner: RunnerSettings = defaultRunnerSettings;
@@ -136,6 +142,7 @@
   let renderedDiagrams = diagrams;
   let renderedCodeExecution = codeExecution;
   let renderedPlantuml = plantuml;
+  let renderedMermaid = mermaid;
   type CellRun = {
     state: "running" | "ok" | "error" | "timeout";
     text: string;
@@ -267,6 +274,7 @@
     ...(drawings ? [{ label: "Drawing", hint: "excalidraw", prefix: EMPTY_DRAWING }] : []),
     ...(diagrams ? [{ label: "Diagram", hint: "draw.io", prefix: EMPTY_DIAGRAM }] : []),
     ...(plantuml ? [{ label: "PlantUML", hint: "diagram", prefix: EMPTY_PLANTUML }] : []),
+    ...(mermaid ? [{ label: "Mermaid", hint: "diagram", prefix: EMPTY_MERMAID }] : []),
     ...(databaseRoot
       ? databaseOptions.map((option) => ({
           label: `Database: ${option.name}`,
@@ -313,10 +321,15 @@
     render(caretOffset());
   }
 
+  $: if (element && renderedMermaid !== mermaid) {
+    renderedMermaid = mermaid;
+    render(caretOffset());
+  }
+
   /** Switching binary, server, or output format invalidates every painted diagram. */
-  $: plantumlKeyPrefix = `${plantumlSettings.format}|${plantumlSettings.theme}|${plantumlSettings.server}|${plantumlSettings.command}`;
-  $: if (element && plantuml && plantumlKeyPrefix) {
-    paintPlantumlPreviews();
+  $: diagramKeyPrefix = `${plantumlSettings.format}|${plantumlSettings.theme}|${plantumlSettings.server}|${plantumlSettings.command}|${mermaidSettings.theme}`;
+  $: if (element && (plantuml || mermaid) && diagramKeyPrefix) {
+    paintDiagramLivePreviews();
   }
 
   $: if (element && renderedDiagrams !== diagrams) {
@@ -1020,7 +1033,7 @@
   });
 
   onDestroy(() => {
-    window.clearTimeout(plantumlTimer);
+    window.clearTimeout(diagramTimer);
     clearBlockToolbarHide();
 
     for (const entry of databaseViews.values()) {
@@ -1156,13 +1169,14 @@
       renderWikilinkEmbed,
       databaseEmbeds: Boolean(databaseRoot),
       plantuml,
+      mermaid,
     });
     bindTableToolbars();
     paintDatabaseEmbeds();
     paintDrawingPreviews();
     paintDiagramPreviews();
     paintRunPreviews();
-    paintPlantumlPreviews();
+    paintDiagramLivePreviews();
 
     if (!editable) {
       for (const cell of Array.from(element.querySelectorAll("[data-table-cell]"))) {
@@ -2055,66 +2069,77 @@
     return outputKey(preview.dataset.runLanguage ?? "", sceneOf(preview));
   }
 
-  type PlantumlRender = { state: "rendering" | "ok" | "error"; output?: PlantumlOutput; message?: string };
+  type DiagramRender = { state: "rendering" | "ok" | "error"; output?: DiagramOutput; message?: string };
   /** Keyed by source plus the settings that shaped it, so a re-render repaints without re-asking. */
-  const plantumlRenders = new Map<string, PlantumlRender>();
+  const diagramRenders = new Map<string, DiagramRender>();
   /** Diagrams edited away are dead weight; the oldest entries go once the map gets big. */
-  const PLANTUML_CACHE_LIMIT = 60;
+  const DIAGRAM_CACHE_LIMIT = 60;
 
-  function plantumlKey(source: string) {
-    return `${plantumlSettings.format}\u0000${plantumlSettings.theme}\u0000${plantumlSettings.server.trim() || plantumlSettings.command}\u0000${source}`;
+  function diagramKey(engine: LiveDiagramEngine, source: string) {
+    const settings =
+      engine === "mermaid"
+        ? mermaidSettings.theme
+        : `${plantumlSettings.format}|${plantumlSettings.theme}|${plantumlSettings.server.trim() || plantumlSettings.command}`;
+
+    return `${engine}\u0000${settings}\u0000${source}`;
   }
 
-  function cachePlantuml(key: string, render: PlantumlRender) {
-    plantumlRenders.delete(key);
-    plantumlRenders.set(key, render);
+  function diagramEngineOf(preview: HTMLElement) {
+    return (preview.dataset.livediagramEngine === "mermaid" ? "mermaid" : "plantuml") as LiveDiagramEngine;
+  }
 
-    const excess = Math.max(0, plantumlRenders.size - PLANTUML_CACHE_LIMIT);
+  function cacheDiagram(key: string, render: DiagramRender) {
+    diagramRenders.delete(key);
+    diagramRenders.set(key, render);
 
-    for (const stale of Array.from(plantumlRenders.keys()).slice(0, excess)) {
-      plantumlRenders.delete(stale);
+    const excess = Math.max(0, diagramRenders.size - DIAGRAM_CACHE_LIMIT);
+
+    for (const stale of Array.from(diagramRenders.keys()).slice(0, excess)) {
+      diagramRenders.delete(stale);
     }
   }
 
   /** Typing rewrites the fence on every keystroke; diagrams only chase the source once it settles. */
-  const PLANTUML_IDLE_MS = 800;
-  let plantumlTimer: number | undefined;
+  const DIAGRAM_IDLE_MS = 800;
+  let diagramTimer: number | undefined;
   /** Last good render per block, so an edit keeps showing the old diagram instead of blanking. */
-  const plantumlLast = new Map<string, PlantumlOutput>();
+  const diagramLast = new Map<string, DiagramOutput>();
 
   /** Rendering happens off the render pass: a slow or missing PlantUML never blocks the editor. */
-  function paintPlantumlPreviews() {
+  function paintDiagramLivePreviews() {
     let pending = false;
 
-    for (const preview of Array.from(element?.querySelectorAll(".md-plantuml-preview") ?? [])) {
-      pending = paintPlantumlPreview(preview as HTMLElement) || pending;
+    for (const preview of Array.from(element?.querySelectorAll(".md-livediagram-preview") ?? [])) {
+      pending = paintDiagramLivePreview(preview as HTMLElement) || pending;
     }
 
-    window.clearTimeout(plantumlTimer);
+    window.clearTimeout(diagramTimer);
 
     if (pending) {
-      plantumlTimer = window.setTimeout(renderPendingPlantuml, PLANTUML_IDLE_MS);
+      diagramTimer = window.setTimeout(renderPendingDiagrams, DIAGRAM_IDLE_MS);
     }
   }
 
   /** Fires only after the caret has been still, so one diagram is rendered per pause, not per key. */
-  function renderPendingPlantuml() {
-    for (const preview of Array.from(element?.querySelectorAll(".md-plantuml-preview") ?? [])) {
-      const source = (preview as HTMLElement).dataset.plantuml ?? "";
+  function renderPendingDiagrams() {
+    for (const preview of Array.from(element?.querySelectorAll(".md-livediagram-preview") ?? [])) {
+      const source = (preview as HTMLElement).dataset.livediagram ?? "";
+      const engine = diagramEngineOf(preview as HTMLElement);
 
-      if (source.trim() && !plantumlRenders.has(plantumlKey(source))) {
-        void renderPlantumlSource(source);
+      if (source.trim() && !diagramRenders.has(diagramKey(engine, source))) {
+        void renderDiagramSource(engine, source);
       }
     }
   }
 
   /** Rendered nodes are kept per block and moved back in, so a keystroke never reparses the SVG. */
-  const plantumlNodes = new Map<string, { content: string; node: HTMLElement }>();
+  const diagramNodes = new Map<string, { content: string; node: HTMLElement }>();
 
-  function buildPlantumlNode(output: PlantumlOutput) {
+  function buildDiagramNode(output: DiagramOutput, engine: LiveDiagramEngine) {
     const figure = document.createElement("div");
 
-    figure.className = "md-plantuml-figure";
+    figure.className =
+      engine === "plantuml" ? "md-livediagram-figure md-livediagram-paper" : "md-livediagram-figure";
 
     if (output.format === "svg") {
       figure.innerHTML = output.content;
@@ -2124,8 +2149,9 @@
 
       svg?.setAttribute("preserveAspectRatio", "xMidYMid meet");
       svg?.removeAttribute("height");
-      // The export also pins a pixel height inline, which beats any class the card sets.
+      // Both engines pin sizes inline, which beats any class the card sets.
       svg?.style.setProperty("height", "auto");
+      svg?.style.setProperty("max-width", "100%");
     } else if (output.format === "png") {
       const image = document.createElement("img");
 
@@ -2135,7 +2161,7 @@
     } else {
       const ascii = document.createElement("pre");
 
-      ascii.className = "md-plantuml-ascii";
+      ascii.className = "md-livediagram-ascii";
       ascii.textContent = output.content;
       figure.append(ascii);
     }
@@ -2145,12 +2171,15 @@
     return figure;
   }
 
-  function showPlantumlOutput(preview: HTMLElement, output: PlantumlOutput, group: string) {
-    const cached = plantumlNodes.get(group);
-    const node = cached?.content === output.content ? cached.node : buildPlantumlNode(output);
+  function showDiagramOutput(preview: HTMLElement, output: DiagramOutput, group: string) {
+    const cached = diagramNodes.get(group);
+    const node =
+      cached?.content === output.content
+        ? cached.node
+        : buildDiagramNode(output, diagramEngineOf(preview));
 
     if (node !== cached?.node) {
-      plantumlNodes.set(group, { content: output.content, node });
+      diagramNodes.set(group, { content: output.content, node });
     }
 
     if (preview.firstChild !== node || preview.childNodes.length !== 1) {
@@ -2161,34 +2190,34 @@
   }
 
   /** Returns true when this block still needs a render scheduled. */
-  function paintPlantumlPreview(preview: HTMLElement) {
-    const source = preview.dataset.plantuml ?? "";
+  function paintDiagramLivePreview(preview: HTMLElement) {
+    const source = preview.dataset.livediagram ?? "";
     const group = preview.dataset.code ?? "";
-    const cached = plantumlRenders.get(plantumlKey(source));
-    const previous = plantumlLast.get(group);
+    const cached = diagramRenders.get(diagramKey(diagramEngineOf(preview), source));
+    const previous = diagramLast.get(group);
 
     if (cached?.state === "ok" && cached.output) {
-      plantumlLast.set(group, cached.output);
-      preview.classList.remove("md-plantuml-busy", "md-plantuml-error");
-      showPlantumlOutput(preview, cached.output, group);
+      diagramLast.set(group, cached.output);
+      preview.classList.remove("md-livediagram-busy", "md-livediagram-error");
+      showDiagramOutput(preview, cached.output, group);
 
       return false;
     }
 
     if (cached?.state === "error") {
-      preview.classList.remove("md-plantuml-busy");
-      preview.classList.add("md-plantuml-error");
+      preview.classList.remove("md-livediagram-busy");
+      preview.classList.add("md-livediagram-error");
       preview.textContent = cached.message ?? "";
 
       return false;
     }
 
     // Still rendering, or not asked for yet: keep the last diagram on screen rather than blanking.
-    preview.classList.toggle("md-plantuml-busy", Boolean(source.trim()) && !previous);
-    preview.classList.remove("md-plantuml-error");
+    preview.classList.toggle("md-livediagram-busy", Boolean(source.trim()) && !previous);
+    preview.classList.remove("md-livediagram-error");
 
     if (previous) {
-      showPlantumlOutput(preview, previous, group);
+      showDiagramOutput(preview, previous, group);
     } else {
       preview.textContent = source.trim() ? "Rendering diagram…" : "";
     }
@@ -2196,21 +2225,27 @@
     return Boolean(source.trim()) && !cached;
   }
 
-  async function renderPlantumlSource(source: string) {
-    const key = plantumlKey(source);
+  async function renderDiagramSource(engine: LiveDiagramEngine, source: string) {
+    const key = diagramKey(engine, source);
 
-    cachePlantuml(key, { state: "rendering" });
+    cacheDiagram(key, { state: "rendering" });
 
     try {
-      cachePlantuml(key, { state: "ok", output: await renderPlantuml(source, plantumlSettings) });
+      cacheDiagram(key, {
+        state: "ok",
+        output: await renderDiagram(engine, source, {
+          plantuml: plantumlSettings,
+          mermaid: mermaidSettings,
+        }),
+      });
     } catch (error) {
-      cachePlantuml(key, {
+      cacheDiagram(key, {
         state: "error",
         message: error instanceof Error ? error.message : String(error),
       });
     }
 
-    paintPlantumlPreviews();
+    paintDiagramLivePreviews();
   }
 
   /** Results live in a map, so every re-render repaints them onto the fresh run bars. */
@@ -2310,10 +2345,10 @@
     paintRunPreviews();
   }
 
-  const EMBED_SELECTOR = ".md-drawing-preview, .md-diagram-preview, .md-plantuml-preview";
+  const EMBED_SELECTOR = ".md-drawing-preview, .md-diagram-preview, .md-livediagram-preview";
 
-  function isPlantumlPreview(preview: Element) {
-    return preview.classList.contains("md-plantuml-preview");
+  function isLiveDiagramPreview(preview: Element) {
+    return preview.classList.contains("md-livediagram-preview");
   }
 
   function embedLanguage(preview: Element) {
@@ -2322,12 +2357,12 @@
 
   function embedSource(preview: Element): Record<string, any> {
     // PlantUML holds diagram text, not JSON, so its layout rides on the opening fence instead.
-    if (isPlantumlPreview(preview)) {
-      const { plantumlAlign, plantumlWidth } = (preview as HTMLElement).dataset;
-      const width = Number(plantumlWidth);
+    if (isLiveDiagramPreview(preview)) {
+      const { livediagramAlign, livediagramWidth } = (preview as HTMLElement).dataset;
+      const width = Number(livediagramWidth);
 
       return {
-        ...(plantumlAlign && { align: plantumlAlign }),
+        ...(livediagramAlign && { align: livediagramAlign }),
         ...(Number.isFinite(width) && width > 0 && { width }),
       };
     }
@@ -2342,7 +2377,7 @@
   }
 
   /** Rewrites just the opening fence, so the diagram source itself is never touched. */
-  function setPlantumlOption(
+  function setLiveDiagramOption(
     preview: HTMLElement,
     options: { width?: number | null; align?: string | null },
   ) {
@@ -2360,7 +2395,7 @@
 
     value =
       value.slice(0, start) +
-      plantumlFenceLine(language, align, width) +
+      liveDiagramFenceLine(language, align, width) +
       value.slice(start + sourceLength(open));
     render(null);
     onInput();
@@ -2380,8 +2415,8 @@
   }
 
   function setEmbedOption(preview: HTMLElement, options: { width?: number | null; align?: string | null }) {
-    if (isPlantumlPreview(preview)) {
-      setPlantumlOption(preview, options);
+    if (isLiveDiagramPreview(preview)) {
+      setLiveDiagramOption(preview, options);
 
       return;
     }

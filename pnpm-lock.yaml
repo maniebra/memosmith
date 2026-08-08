@@ -32,6 +32,9 @@ importers:
       katex:
         specifier: ^0.18.1
         version: 0.18.1
+      mermaid:
+        specifier: ^11.16.1
+        version: 11.16.1
       react:
         specifier: ^19.2.8
         version: 19.2.8

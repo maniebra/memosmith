@@ -651,6 +651,7 @@ export type RenderDocumentOptions = {
   codeExecution?: boolean;
   databaseEmbeds?: boolean;
   plantuml?: boolean;
+  mermaid?: boolean;
 };
 
 /** Language of the fenced block that holds an Excalidraw scene as JSON. */
@@ -712,13 +713,31 @@ function runPreview(group: number, language: string) {
   }</span><span class="md-run-status"></span><button type="button" class="md-run-restart" title="Restart kernel">${RESTART_ICON}</button></div></div>`;
 }
 
-/** Fence languages that render as a PlantUML diagram under their source. */
-export const PLANTUML_LANGUAGES = ["plantuml", "puml", "uml"];
+/** Fence languages that render live under their source, and the engine that draws them. */
+export const LIVE_DIAGRAM_LANGUAGES: Record<string, LiveDiagramEngine> = {
+  plantuml: "plantuml",
+  puml: "plantuml",
+  uml: "plantuml",
+  mermaid: "mermaid",
+  mmd: "mermaid",
+};
+
+export type LiveDiagramEngine = "plantuml" | "mermaid";
 
 export const EMPTY_PLANTUML = "```plantuml\n@startuml\nAlice -> Bob: Hello\n@enduml\n```";
 
-/** Width in pixels and alignment ride along on the opening fence: ```plantuml|center|420 */
-export function plantumlLayout(info: string) {
+export const EMPTY_MERMAID = "```mermaid\nflowchart LR\n  A[Start] --> B[Done]\n```";
+
+function liveDiagramEngine(language: string, options: RenderDocumentOptions) {
+  const engine = LIVE_DIAGRAM_LANGUAGES[language];
+
+  return (engine === "plantuml" && options.plantuml) || (engine === "mermaid" && options.mermaid)
+    ? engine
+    : null;
+}
+
+/** Width in pixels and alignment ride along on the opening fence: ```mermaid|center|420 */
+export function liveDiagramLayout(info: string) {
   const parts = info.split("|").map((part) => part.trim());
   const align = parts.find((part) => part === "center" || part === "right");
   const width = parts.map(Number).find((part) => Number.isFinite(part) && part > 0);
@@ -726,21 +745,26 @@ export function plantumlLayout(info: string) {
   return { align, width };
 }
 
-export function plantumlFenceLine(language: string, align?: string, width?: number) {
+export function liveDiagramFenceLine(language: string, align?: string, width?: number) {
   return ["```" + language, align, width ? String(Math.round(width)) : ""]
     .filter(Boolean)
     .join("|");
 }
 
 /** An empty frame: the editor paints the rendered diagram in once it lands. */
-function plantumlPreview(group: number, source: string, info: string) {
-  const { align, width } = plantumlLayout(info);
+function liveDiagramPreview(
+  group: number,
+  engine: LiveDiagramEngine,
+  source: string,
+  info: string,
+) {
+  const { align, width } = liveDiagramLayout(info);
   const justify = align === "center" ? "center" : align === "right" ? "flex-end" : "flex-start";
 
-  return `<div class="md-preview md-plantuml-preview" data-code="${group}" data-plantuml="${attribute(
+  return `<div class="md-preview md-livediagram-preview" data-code="${group}" data-livediagram-engine="${engine}" data-livediagram="${attribute(
     source,
-  )}"${align ? ` data-plantuml-align="${attribute(align)}"` : ""}${
-    width ? ` data-plantuml-width="${width}"` : ""
+  )}"${align ? ` data-livediagram-align="${attribute(align)}"` : ""}${
+    width ? ` data-livediagram-width="${width}"` : ""
   } style="justify-content:${justify}" contenteditable="false"></div>`;
 }
 
@@ -868,10 +892,11 @@ export function renderDocument(
   const codeExecution = options.codeExecution ?? false;
   /** Language of the open fence when it is runnable, so its close can grow a run bar. */
   let runLanguage: string | null = null;
-  /** Source of the open PlantUML fence, so its close can grow a diagram preview. */
-  let plantumlLines: string[] | null = null;
-  /** Layout options from the opening fence, kept until its close builds the preview. */
-  let plantumlInfo = "";
+  /** Source of the open live-diagram fence, so its close can grow a preview. */
+  let diagramLines: string[] | null = null;
+  /** Engine and layout options from the opening fence, kept until its close builds the preview. */
+  let diagramEngine: LiveDiagramEngine | null = null;
+  let diagramInfo = "";
   const inlineOptions = { resolveWikilink: options.resolveWikilink };
   let embedGroup: number | null = null;
   /** Non-null while inside a fenced block that renders as a preview card instead of code. */
@@ -936,17 +961,13 @@ export function renderDocument(
       embedGroup = embedded && isOpening ? index : null;
       embedSourceLines = embedded && isOpening ? [line] : embedSourceLines;
       const embedClass = embedded ? ` ${embedLineClass(embedded)}` : "";
-      const startsPlantuml = Boolean(
-        isOpening &&
-          options.plantuml &&
-          !embedded &&
-          PLANTUML_LANGUAGES.includes(fence[1].toLowerCase()),
-      );
+      const opensDiagram =
+        isOpening && !embedded ? liveDiagramEngine(fence[1].toLowerCase(), options) : null;
       // Source collapses behind the diagram unless the caret is inside the fence.
-      const plantumlClass = startsPlantuml || (!isOpening && plantumlLines) ? " md-plantuml-line" : "";
+      const diagramClass = opensDiagram || (!isOpening && diagramLines) ? " md-livediagram-line" : "";
 
       output.push(
-        `<div class="md-block ${className}${embedClass}${plantumlClass}"${
+        `<div class="md-block ${className}${embedClass}${diagramClass}"${
           embedded === DATABASE_LANGUAGE || (embedLanguage === DATABASE_LANGUAGE && !isOpening)
             ? ' contenteditable="false"'
             : ""
@@ -955,17 +976,21 @@ export function renderDocument(
 
       if (isOpening) {
         runLanguage = codeExecution && !embedded && isRunnable(language ?? "") ? language : null;
-        plantumlLines = startsPlantuml ? [] : null;
-        plantumlInfo = startsPlantuml ? fence[2] : "";
+        diagramLines = opensDiagram ? [] : null;
+        diagramEngine = opensDiagram;
+        diagramInfo = opensDiagram ? fence[2] : "";
       } else {
         if (runLanguage) {
           output.push(runPreview(index, runLanguage));
           runLanguage = null;
         }
 
-        if (plantumlLines) {
-          output.push(plantumlPreview(index, plantumlLines.join("\n"), plantumlInfo));
-          plantumlLines = null;
+        if (diagramLines && diagramEngine) {
+          output.push(
+            liveDiagramPreview(index, diagramEngine, diagramLines.join("\n"), diagramInfo),
+          );
+          diagramLines = null;
+          diagramEngine = null;
         }
       }
 
@@ -1003,9 +1028,9 @@ export function renderDocument(
         continue;
       }
 
-      plantumlLines?.push(line);
+      diagramLines?.push(line);
       output.push(
-        `<div class="md-block md-codeblock${plantumlLines ? " md-plantuml-line" : ""}" data-code="${codeGroup}" data-language="${attribute(language)}">${renderCode(line, language)}</div>`,
+        `<div class="md-block md-codeblock${diagramLines ? " md-livediagram-line" : ""}" data-code="${codeGroup}" data-language="${attribute(language)}">${renderCode(line, language)}</div>`,
       );
       i++;
       continue;

@@ -3,6 +3,7 @@
     CalloutDefinition,
     EditorWidth,
     LspSettings,
+    MermaidSettings,
     PlantumlSettings,
     RunnerSettings,
   } from "../../lib/storage/settings";
@@ -28,6 +29,8 @@
   export let codeExecution: boolean;
   export let plantuml: boolean;
   export let plantumlSettings: PlantumlSettings;
+  export let mermaid: boolean;
+  export let mermaidSettings: MermaidSettings;
   export let runSession = "";
   export let runner: RunnerSettings;
   export let lsp: boolean;
@@ -95,6 +98,8 @@
       {codeExecution}
       {plantuml}
       {plantumlSettings}
+      {mermaid}
+      {mermaidSettings}
       {runSession}
       {runner}
       {lsp}
