@@ -240,6 +240,51 @@ body {
     @apply bg-amber-500/10 text-amber-800 ring-amber-500/15 dark:text-amber-300 dark:ring-amber-400/15;
   }
 
+  .md-wikilink-embed-line:not([data-active]) {
+    font-size: 0;
+    line-height: 0;
+    letter-spacing: 0;
+    color: transparent;
+    text-decoration: none;
+    text-shadow: none;
+    caret-color: var(--ms-accent-strong);
+    @apply my-0 overflow-hidden py-0;
+  }
+
+  .md-wikilink-embed-line:not([data-active]) * {
+    background: transparent !important;
+    box-shadow: none !important;
+    color: inherit !important;
+    outline: 0 !important;
+    text-decoration: inherit !important;
+    text-shadow: inherit !important;
+  }
+
+  .dark .md-wikilink-embed-line:not([data-active]) {
+    caret-color: var(--ms-accent-soft);
+  }
+
+  .md-wikilink-embed-preview {
+    @apply my-3 overflow-hidden rounded-lg border border-stone-200 bg-white shadow-sm dark:border-stone-800 dark:bg-stone-900/65;
+    user-select: none;
+  }
+
+  .md-wikilink-embed-missing {
+    @apply border-amber-300/70 bg-amber-50/60 dark:border-amber-500/25 dark:bg-amber-950/15;
+  }
+
+  .md-wikilink-embed-body {
+    @apply max-h-80 overflow-y-auto overscroll-contain px-4 py-3 text-[0.95em];
+  }
+
+  .md-wikilink-embed-body .md-block-toolbar {
+    @apply hidden;
+  }
+
+  .md-wikilink-embed-empty {
+    @apply m-0 text-sm text-stone-400;
+  }
+
   .md-table-line {
     @apply font-mono text-[0.85em] text-stone-500 dark:text-stone-400;
   }

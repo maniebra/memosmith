@@ -63,6 +63,11 @@ function mathPreview(source: string, group: number) {
 }
 
 export type WikilinkResolver = (target: string) => WikilinkResolution;
+export type WikilinkEmbed = {
+  title: string;
+  html: string;
+  exists: boolean;
+};
 
 type RenderInlineOptions = {
   resolveWikilink?: WikilinkResolver;
@@ -520,6 +525,7 @@ export const SLASH_COMMANDS = [
 ];
 
 const MEDIA_LINE = /^(\s*)!\[([^\]\n]*)\]\(([^)\n]+)\)\s*$/;
+const WIKILINK_EMBED_LINE = /^(\s*)!\[\[([^\]\n]+)\]\]\s*$/;
 
 export type MediaOptions = { width?: number; align?: "left" | "center" | "right" };
 
@@ -632,6 +638,9 @@ export type RenderDocumentOptions = {
   drawings?: boolean;
   diagrams?: boolean;
   resolveWikilink?: WikilinkResolver;
+  renderWikilinkEmbed?: (target: string, depth: number) => WikilinkEmbed | null;
+  wikilinkEmbedDepth?: number;
+  staticDiagramPreviews?: boolean;
 };
 
 /** Language of the fenced block that holds an Excalidraw scene as JSON. */
@@ -644,12 +653,54 @@ export const DIAGRAM_LANGUAGE = "drawio";
 
 export const EMPTY_DIAGRAM = '```drawio\n{"xml":"","svg":""}\n```';
 
-function diagramPreview(group: number) {
+function diagramPreview(group: number, source = "", staticPreview = false) {
+  if (staticPreview) {
+    let svg = "";
+    let width: number | undefined;
+    let align: string | undefined;
+
+    try {
+      const parsed = JSON.parse(source || "{}") as {
+        svg?: string;
+        width?: number;
+        align?: string;
+      };
+
+      svg = parsed.svg ?? "";
+      width = typeof parsed.width === "number" ? parsed.width : undefined;
+      align = parsed.align;
+    } catch {
+      svg = "";
+    }
+
+    const justify =
+      align === "center" ? "center" : align === "right" ? "flex-end" : "flex-start";
+    const widthStyle = width ? ` style="width:${width}px"` : "";
+    const body = svg
+      ? `<div class="md-diagram-open md-diagram-thumbnail md-diagram-static"${widthStyle}>${svg}</div>`
+      : `<div class="md-diagram-open md-diagram-static">Diagram preview unavailable</div>`;
+
+    return `<div class="md-preview md-diagram-preview md-diagram-static-preview" data-code="${group}" style="justify-content:${justify}" contenteditable="false">${body}</div>`;
+  }
+
   return `<div class="md-preview md-diagram-preview" data-code="${group}" contenteditable="false"><button type="button" class="md-diagram-open">Edit diagram</button></div>`;
 }
 
 function drawingPreview(group: number) {
   return `<div class="md-preview md-drawing-preview" data-code="${group}" contenteditable="false"><button type="button" class="md-drawing-open">Edit drawing</button></div>`;
+}
+
+function wikilinkEmbedPreview(rawTarget: string, options: RenderDocumentOptions) {
+  const depth = options.wikilinkEmbedDepth ?? 0;
+  const embed = options.renderWikilinkEmbed?.(rawTarget, depth);
+  const body = embed?.exists
+    ? embed.html || `<p class="md-wikilink-embed-empty">Empty note</p>`
+    : `<p class="md-wikilink-embed-empty">Missing note</p>`;
+  const missing = embed?.exists === false ? " md-wikilink-embed-missing" : "";
+
+  return `<div class="md-preview md-wikilink-embed-preview${missing}" data-wikilink-target="${attribute(
+    rawTarget,
+  )}" contenteditable="false"><div class="md-wikilink-embed-body">${body}</div></div>`;
 }
 
 export function renderDocument(
@@ -664,6 +715,7 @@ export function renderDocument(
   let embedGroup: number | null = null;
   /** Non-null while inside a fenced block that renders as a preview card instead of code. */
   let embedLanguage: string | null = null;
+  let embedSourceLines: string[] | null = null;
   let language: string | null = null;
   let codeGroup = 0;
   let mathGroup = 0;
@@ -718,6 +770,7 @@ export function renderDocument(
 
       embedLanguage = isOpening ? embedded : null;
       embedGroup = embedded && isOpening ? index : null;
+      embedSourceLines = embedded && isOpening ? [line] : embedSourceLines;
       const embedClass = embedded === DIAGRAM_LANGUAGE ? " md-diagram-line" : embedded ? " md-drawing-line" : "";
 
       output.push(
@@ -726,7 +779,13 @@ export function renderDocument(
 
       // The source lives behind the preview card, so the raw JSON is only shown while the caret is inside.
       if (embedded && !isOpening) {
-        output.push(embedded === DIAGRAM_LANGUAGE ? diagramPreview(index) : drawingPreview(index));
+        embedSourceLines?.push(line);
+        output.push(
+          embedded === DIAGRAM_LANGUAGE
+            ? diagramPreview(index, embedSourceLines?.slice(1, -1).join("\n") ?? "", options.staticDiagramPreviews)
+            : drawingPreview(index),
+        );
+        embedSourceLines = null;
       }
 
       i++;
@@ -738,6 +797,7 @@ export function renderDocument(
       if (embedLanguage) {
         const embedClass = embedLanguage === DIAGRAM_LANGUAGE ? "md-diagram-line" : "md-drawing-line";
 
+        embedSourceLines?.push(line);
         output.push(
           `<div class="md-block ${embedClass}" data-code="${codeGroup}">${escapeHtml(line)}</div>`,
         );
@@ -764,6 +824,17 @@ export function renderDocument(
 
     if (line.trim() === "$$") {
       mathLines = [line];
+      i++;
+      continue;
+    }
+
+    const wikilinkEmbed = WIKILINK_EMBED_LINE.exec(line);
+
+    if (wikilinkEmbed) {
+      output.push(
+        `<div class="md-block md-wikilink-embed-line">${renderLine(line, inlineOptions)}</div>`,
+        wikilinkEmbedPreview(wikilinkEmbed[2], options),
+      );
       i++;
       continue;
     }

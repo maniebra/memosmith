@@ -78,6 +78,7 @@
     slugify,
   } from "../../lib/utils/database";
   import { applyAppearanceTheme } from "../../lib/utils/theme";
+  import { renderDocument, type WikilinkEmbed } from "../../lib/utils/markdown";
   import DatabaseManager from "../sections/DatabaseManager.svelte";
   import DatabaseView from "../sections/DatabaseView.svelte";
   import NoteEditorForm from "../forms/NoteEditorForm.svelte";
@@ -520,6 +521,43 @@
     return resolveWikilinkTarget(rawTarget, spaceNotes, activeRelativePath);
   }
 
+  function renderActiveWikilinkEmbed(rawTarget: string, depth: number): WikilinkEmbed | null {
+    const resolved = resolveWikilinkTarget(rawTarget, spaceNotes, activeRelativePath);
+    const maxDepth = 2;
+
+    if (!resolved.exists || !resolved.path) {
+      return {
+        title: rawTarget,
+        html: "",
+        exists: false,
+      };
+    }
+
+    const embeddedText =
+      resolved.path === activeRelativePath
+        ? contents
+        : (noteContents[resolved.path] ?? "");
+    const embeddedPath = spacePath(resolved.path);
+    const embeddedDir = embeddedPath.includes("/")
+      ? embeddedPath.slice(0, embeddedPath.lastIndexOf("/"))
+      : spaceRoot;
+
+    return {
+      title: displayNotePath(resolved.path),
+      html: renderDocument(embeddedText, (source) => resolveAssetFromDir(embeddedDir, source), {
+        fancyTableEditor: false,
+        drawings: settings.features.drawings,
+        diagrams: settings.features.diagrams,
+        staticDiagramPreviews: true,
+        resolveWikilink: (target) =>
+          resolveWikilinkTarget(target, spaceNotes, resolved.path),
+        renderWikilinkEmbed: depth + 1 >= maxDepth ? undefined : renderActiveWikilinkEmbed,
+        wikilinkEmbedDepth: depth + 1,
+      }),
+      exists: true,
+    };
+  }
+
   async function renameSpaceEntry(relativePath: string, name: string) {
     await flushNoteSave();
 
@@ -933,12 +971,16 @@
     dismissGrammarIssue(issue);
   }
 
-  function resolveAsset(source: string) {
-    if (!noteDir || /^[a-z][\w+.-]*:/i.test(source) || source.startsWith("/")) {
+  function resolveAssetFromDir(dir: string | null, source: string) {
+    if (!dir || /^[a-z][\w+.-]*:/i.test(source) || source.startsWith("/")) {
       return source;
     }
 
-    return convertFileSrc(`${noteDir}/${decodeURI(source)}`);
+    return convertFileSrc(`${dir}/${decodeURI(source)}`);
+  }
+
+  function resolveAsset(source: string) {
+    return resolveAssetFromDir(noteDir, source);
   }
 
   function handleShortcut(event: KeyboardEvent) {
@@ -1107,6 +1149,7 @@
           onGenerate={generateFromPrompt}
           onWikilink={(target) => runWithStatus(() => openWikilink(target))}
           resolveWikilink={resolveActiveWikilink}
+          renderWikilinkEmbed={renderActiveWikilinkEmbed}
           {wikilinkKey}
           {backlinks}
           onSelectBacklink={(relativePath) =>

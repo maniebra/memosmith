@@ -2,6 +2,7 @@
   import type { EditorWidth } from "../../lib/storage/settings";
   import { cn } from "../../lib/utils/cn";
   import type { PageIcon, PageMeta } from "../../lib/utils/pageMeta";
+  import type { WikilinkEmbed } from "../../lib/utils/markdown";
   import type { Backlink, WikilinkResolution } from "../../lib/utils/wikilinks";
   import MarkdownEditor from "../components/MarkdownEditor.svelte";
   import PageIdentity from "../components/PageIdentity.svelte";
@@ -27,6 +28,9 @@
   export let onGenerate: ((prompt: string) => Promise<string>) | null = null;
   export let onWikilink: ((target: string) => void | Promise<void>) | null = null;
   export let resolveWikilink: ((target: string) => WikilinkResolution) | undefined = undefined;
+  export let renderWikilinkEmbed:
+    | ((target: string, depth: number) => WikilinkEmbed | null)
+    | undefined = undefined;
   export let wikilinkKey = "";
   export let backlinks: Backlink[] = [];
   export let onSelectBacklink: (relativePath: string) => void | Promise<void>;
@@ -76,6 +80,7 @@
       {onGenerate}
       {onWikilink}
       {resolveWikilink}
+      {renderWikilinkEmbed}
       {wikilinkKey}
       {decorations}
       {resolveAsset}

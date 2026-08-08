@@ -104,6 +104,14 @@ assert(withMediaOptions("![a|left|200](x.png)", { width: 50 }) === "![a|left|50]
 assert(withMediaOptions("plain", { width: 50 }) === "plain", "non-media line untouched");
 assert(renderDocument("![a|center|300](x.png)", (s) => s).includes("width:300px"), "preview uses the width option");
 assert(renderDocument("![a](x.png)", (s) => s).includes("md-resize"), "image preview gets a resize handle");
+const wikilinkEmbed = renderDocument("![[Note]]", undefined, {
+  renderWikilinkEmbed: () => ({ title: "Note", html: "<p>Embedded</p>", exists: true }),
+});
+assert(wikilinkEmbed.includes("md-wikilink-embed-line"), "wikilink embed source line remains editable");
+assert(wikilinkEmbed.includes("md-wikilink-embed-preview"), "wikilink embed gets a preview frame");
+assert(wikilinkEmbed.includes("Embedded"), "wikilink embed renders supplied content");
+assert(!wikilinkEmbed.includes("md-wikilink-embed-header"), "wikilink embed has no title link header");
+assert(sourceBlocks("![[Note]]") === 1, "wikilink embed preview does not add a source block");
 
 const drawing = renderDocument('```excalidraw\n{"elements":[]}\n```', undefined, { drawings: true });
 assert(drawing.includes("md-drawing-preview"), "drawing fence gets a preview card");
@@ -120,6 +128,12 @@ assert(
 const diagram = renderDocument('```drawio\n{"xml":"","svg":""}\n```', undefined, { diagrams: true });
 assert(diagram.includes("md-diagram-preview"), "drawio fence gets a preview card");
 assert((diagram.match(/md-diagram-line/g) ?? []).length === 3, "diagram fences and source are collapsed");
+const staticDiagram = renderDocument('```drawio\n{"svg":"<svg><rect /></svg>"}\n```', undefined, {
+  diagrams: true,
+  staticDiagramPreviews: true,
+});
+assert(staticDiagram.includes("md-diagram-static-preview"), "static diagram preview is marked");
+assert(staticDiagram.includes("<svg><rect /></svg>"), "static diagram preview renders cached svg");
 assert(
   !renderDocument('```drawio\n{}\n```').includes("md-diagram"),
   "diagram block stays a plain code block while the feature is off",

@@ -40,6 +40,7 @@
     mathUnclosed,
     mediaOptions,
     renderDocument,
+    type WikilinkEmbed,
     type WikilinkResolver,
     SLASH_COMMANDS,
     withMediaOptions,
@@ -71,6 +72,9 @@
   export let onGenerate: ((prompt: string) => Promise<string>) | null = null;
   export let onWikilink: ((target: string) => void | Promise<void>) | null = null;
   export let resolveWikilink: WikilinkResolver | undefined = undefined;
+  export let renderWikilinkEmbed:
+    | ((target: string, depth: number) => WikilinkEmbed | null)
+    | undefined = undefined;
   export let wikilinkKey = "";
   /** Source ranges to underline, drawn in an overlay so the editable DOM stays untouched. */
   export let decorations: Decoration[] = [];
@@ -977,6 +981,7 @@
       drawings,
       diagrams,
       resolveWikilink,
+      renderWikilinkEmbed,
     });
     bindTableToolbars();
     paintDrawingPreviews();
@@ -1626,10 +1631,28 @@
   /** Source lines of a fenced block, preview cards excluded. */
   function codeSourceBlocks(preview: Element) {
     const group = (preview as HTMLElement).dataset.code;
+    const blocks: HTMLElement[] = [];
+    let sibling = preview.previousElementSibling;
 
-    return (Array.from(element?.children ?? []) as HTMLElement[]).filter(
-      (block) => block.dataset.code === group && !block.classList.contains("md-preview"),
-    );
+    while (sibling) {
+      if (
+        sibling instanceof HTMLElement &&
+        sibling.dataset.code === group &&
+        !sibling.classList.contains("md-preview")
+      ) {
+        blocks.unshift(sibling);
+        sibling = sibling.previousElementSibling;
+        continue;
+      }
+
+      if (blocks.length) {
+        break;
+      }
+
+      sibling = sibling.previousElementSibling;
+    }
+
+    return blocks;
   }
 
   /** Drag target for manual sizing, appended inside every embed card. */
@@ -1810,7 +1833,7 @@
   }
 
   function paintDiagramPreviews() {
-    for (const preview of Array.from(element?.querySelectorAll(".md-diagram-preview") ?? [])) {
+    for (const preview of Array.from(element?.querySelectorAll(".md-diagram-preview:not(.md-diagram-static-preview)") ?? [])) {
       const button = preview.querySelector(".md-diagram-open") as HTMLElement | null;
 
       if (!button) {
@@ -1885,8 +1908,19 @@
     }
 
     const wikilink = handle.closest?.(".md-wikilink") as HTMLElement | null;
+    const wikilinkEmbedOpen = handle.closest?.(".md-wikilink-embed-open") as HTMLElement | null;
 
-    if (wikilink?.dataset.wikilinkTarget && onWikilink && (!editable || event.ctrlKey || event.metaKey)) {
+    if (wikilinkEmbedOpen?.dataset.wikilinkTarget && onWikilink) {
+      event.preventDefault();
+      void onWikilink(wikilinkEmbedOpen.dataset.wikilinkTarget);
+      return;
+    }
+
+    if (
+      wikilink?.dataset.wikilinkTarget &&
+      onWikilink &&
+      (!editable || event.ctrlKey || event.metaKey || Boolean(wikilink.closest(".md-wikilink-embed-preview")))
+    ) {
       event.preventDefault();
       void onWikilink(wikilink.dataset.wikilinkTarget);
       return;
@@ -1900,7 +1934,7 @@
     if (handle.closest?.(".md-diagram-open")) {
       const preview = handle.closest(".md-diagram-preview") as HTMLElement | null;
 
-      if (editable && preview) {
+      if (editable && preview && !preview.classList.contains("md-diagram-static-preview")) {
         event.preventDefault();
         openDiagram(preview);
       }
