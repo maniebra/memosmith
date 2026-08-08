@@ -17,6 +17,8 @@
   export let onAddColumn: () => void;
   /** Rows in their new order, top to bottom. */
   export let onReorderRows: (rowIds: string[]) => void = () => {};
+  /** Embedded tables delay text-like cell commits so the note editor keeps focus stable. */
+  export let commitCellsOnInput = true;
 
   const panelWidth = 240;
   const MIN_WIDTH = 80;
@@ -318,6 +320,8 @@
 
           {#each columns as column (column.id)}
             <td
+              data-row={row.id}
+              data-column={column.id}
               class="overflow-hidden border-r border-stone-200/70 align-top dark:border-stone-800"
               style={widthOf(column)
                 ? `width:${widthOf(column)}px;min-width:${widthOf(column)}px;max-width:${widthOf(column)}px`
@@ -327,6 +331,7 @@
                 {column}
                 choices={choices[column.id] ?? []}
                 value={row.data[column.id] ?? null}
+                commitOnInput={commitCellsOnInput}
                 onChange={(value) => onCell(row.id, column.id, value)}
               />
             </td>

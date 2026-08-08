@@ -720,7 +720,7 @@ export function emptyDatabaseEmbed(databaseId: string) {
 
 /** An empty frame: the editor mounts the live database view into it. */
 function databasePreview(group: number, source: string) {
-  return `<div class="md-preview md-database-preview" data-code="${group}" data-embed="${attribute(
+  return `<div class="md-preview md-database-preview md-database-anchor" data-code="${group}" data-embed="${attribute(
     source,
   )}" contenteditable="false"></div>`;
 }

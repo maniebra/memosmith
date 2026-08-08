@@ -76,6 +76,7 @@
 
   export let value: string;
   export let element: HTMLElement | undefined = undefined;
+  let databaseLayer: HTMLElement | undefined;
   export let placeholder = "";
   export let textSize = 17;
   export let spellcheck = true;
@@ -980,16 +981,32 @@
     const observer = new ResizeObserver(() => {
       scheduleMeasure();
       syncTailAdd();
+      scheduleDatabaseLayout();
     });
+    const repositionDatabaseLayer = () => scheduleDatabaseLayout();
 
     if (element) {
       observer.observe(element);
     }
 
-    return () => observer.disconnect();
+    window.addEventListener("resize", repositionDatabaseLayer);
+    window.addEventListener("scroll", repositionDatabaseLayer, true);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", repositionDatabaseLayer);
+      window.removeEventListener("scroll", repositionDatabaseLayer, true);
+    };
   });
 
-  onDestroy(clearBlockToolbarHide);
+  onDestroy(() => {
+    clearBlockToolbarHide();
+
+    for (const entry of databaseViews.values()) {
+      disposeDatabaseEntry(entry);
+    }
+    databaseViews.clear();
+  });
 
   let previewNavigation:
     | { direction: "up" | "down"; column: number }
@@ -2245,35 +2262,210 @@
     }
   }
 
-  /** Live database views, one per embed card, replaced whenever the document re-renders. */
-  let databaseViews: ReturnType<typeof mount>[] = [];
+  type DatabasePortal = {
+    view: ReturnType<typeof mount>;
+    card: HTMLElement;
+    host: HTMLElement;
+    resizeObserver: ResizeObserver;
+  };
+
+  /** Live database views, keyed by their fenced source. The host lives outside contenteditable. */
+  const databaseViews = new Map<string, DatabasePortal>();
   /** Loaded databases, so a re-render repaints the card without another round trip. */
   const databaseCache = new Map<string, Database>();
+  let databaseLayoutFrame: number | undefined;
 
-  function paintDatabaseEmbeds() {
-    for (const view of databaseViews) {
-      void unmount(view);
+  /**
+   * A re-render rebuilds the note's DOM, which takes the mounted card with it. Remember
+   * which cell was being typed in so the caret can be put back where the user left it.
+   */
+  function databaseFocus() {
+    const active = document.activeElement as HTMLInputElement | null;
+    const cell = active?.closest?.("[data-row][data-column]") as HTMLElement | null;
+    const card = cell?.closest(".md-database-preview") as HTMLElement | null;
+
+    if (!cell || !card || !("selectionStart" in (active ?? {}))) {
+      return null;
     }
 
-    databaseViews = [];
+    return {
+      code: card.dataset.code,
+      row: cell.dataset.row,
+      column: cell.dataset.column,
+      start: active?.selectionStart ?? null,
+      end: active?.selectionEnd ?? null,
+    };
+  }
 
-    if (!databaseRoot) {
+  function databaseCardFor(event?: Event) {
+    return ((event?.target as HTMLElement | null)?.closest?.(".md-database-preview") ??
+      (document.activeElement as HTMLElement | null)?.closest?.(".md-database-preview")) as HTMLElement | null;
+  }
+
+  function enterDatabaseIsland(event?: Event) {
+    if (!databaseCardFor(event)) {
+      return false;
+    }
+
+    closeMenu();
+    closeCompletions();
+    selectedTableCell = null;
+    markSelectedTableCell();
+
+    return true;
+  }
+
+  function restoreDatabaseFocus(focus: ReturnType<typeof databaseFocus>) {
+    if (!focus) {
       return;
     }
 
+    const input = databaseLayer
+      ?.querySelector(`.md-database-portal[data-code="${focus.code}"]`)
+      ?.querySelector(
+        `[data-row="${focus.row}"][data-column="${focus.column}"] input, [data-row="${focus.row}"][data-column="${focus.column}"] textarea`,
+      ) as HTMLInputElement | null;
+
+    // Focus survived the re-render: leave the caret exactly where the user has it.
+    if (!input || document.activeElement === input) {
+      return;
+    }
+
+    input.focus();
+
+    if (focus.start !== null) {
+      const start = Math.min(focus.start, input.value.length);
+
+      input.setSelectionRange(start, Math.min(focus.end ?? start, input.value.length));
+    }
+  }
+
+  /**
+   * Cells swallow re-renders while they are being typed in. Once focus leaves the card the
+   * note catches up in one go.
+   */
+  function handleDatabaseBlur(event: FocusEvent) {
+    const card = (event.target as HTMLElement | null)?.closest?.(".md-database-preview");
+
+    if (!card) {
+      return;
+    }
+
+    // A focus that bounces back inside the card is the browser shuffling, not the user
+    // leaving: settle first, then decide.
+    setTimeout(() => {
+      if (!card.contains(document.activeElement)) {
+        render(caretOffset());
+      }
+    }, 0);
+  }
+
+  function embedKey(preview: HTMLElement) {
+    return `${preview.dataset.code}:${preview.dataset.embed}`;
+  }
+
+  function positionDatabaseEntry(entry: DatabasePortal) {
+    if (!databaseLayer || !entry.card.isConnected) {
+      return;
+    }
+
+    const card = entry.card.getBoundingClientRect();
+    const layer = databaseLayer.getBoundingClientRect();
+
+    entry.host.style.left = `${card.left - layer.left}px`;
+    entry.host.style.top = `${card.top - layer.top}px`;
+    entry.host.style.width = `${card.width}px`;
+
+    const height = entry.host.getBoundingClientRect().height;
+
+    if (height > 0) {
+      entry.card.style.height = `${height}px`;
+    }
+  }
+
+  function positionDatabaseEntries() {
+    databaseLayoutFrame = undefined;
+
+    for (const entry of databaseViews.values()) {
+      positionDatabaseEntry(entry);
+    }
+  }
+
+  function scheduleDatabaseLayout() {
+    if (databaseLayoutFrame !== undefined) {
+      return;
+    }
+
+    databaseLayoutFrame = requestAnimationFrame(positionDatabaseEntries);
+  }
+
+  function disposeDatabaseEntry(entry: DatabasePortal) {
+    entry.resizeObserver.disconnect();
+    void unmount(entry.view);
+    entry.host.remove();
+  }
+
+  function databaseEntryForHost(host: HTMLElement) {
+    for (const entry of databaseViews.values()) {
+      if (entry.host === host) {
+        return entry;
+      }
+    }
+
+    return null;
+  }
+
+  function createDatabaseHost(preview: HTMLElement) {
+    const host = document.createElement("div");
+
+    host.className = "md-database-preview md-database-portal";
+    host.dataset.code = preview.dataset.code ?? "";
+    host.dataset.embed = preview.dataset.embed ?? "";
+    host.contentEditable = "false";
+    host.style.position = "absolute";
+
+    databaseLayer?.append(host);
+
+    return host;
+  }
+
+  function paintDatabaseEmbeds() {
+    const focus = databaseFocus();
+    const live = new Set<string>();
+
     for (const preview of Array.from(element?.querySelectorAll(".md-database-preview") ?? [])) {
-      const embed = databaseEmbedSource(preview as HTMLElement);
+      const anchor = preview as HTMLElement;
+      const embed = databaseRoot ? databaseEmbedSource(anchor) : null;
+      const key = embedKey(anchor);
+
+      live.add(key);
+
+      const existing = databaseViews.get(key);
+
+      if (existing) {
+        existing.card = anchor;
+        existing.host.dataset.code = anchor.dataset.code ?? "";
+        existing.host.dataset.embed = anchor.dataset.embed ?? "";
+        scheduleDatabaseLayout();
+        continue;
+      }
 
       if (!embed?.database) {
-        preview.innerHTML = `<p class="md-database-empty">Database unavailable</p>`;
+        anchor.classList.remove("md-database-anchor");
+        anchor.innerHTML = `<p class="md-database-empty">Database unavailable</p>`;
         continue;
       }
 
       const databaseId = embed.database;
+      const host = createDatabaseHost(anchor);
+      const resizeObserver = new ResizeObserver(() => scheduleDatabaseLayout());
 
-      databaseViews.push(
-        mount(DatabaseView, {
-          target: preview,
+      resizeObserver.observe(host);
+
+      const entry: DatabasePortal = {
+        card: anchor,
+        view: mount(DatabaseView, {
+          target: host,
           props: {
             root: databaseRoot,
             databaseId,
@@ -2286,12 +2478,29 @@
             onRenamed: () => {},
             onOpen: onOpenDatabase ? () => onOpenDatabase?.(databaseId) : null,
             onChange: (database: Database) => databaseCache.set(database.id, database),
-            onNavigate: (tableId: string, viewId: string) =>
-              writeDatabaseEmbed(preview as HTMLElement, { database: databaseId, table: tableId, view: viewId }),
+            onNavigate: (tableId: string, viewId: string) => {
+              const current = databaseEntryForHost(host)?.card ?? anchor;
+
+              writeDatabaseEmbed(current, { database: databaseId, table: tableId, view: viewId });
+            },
           },
         }),
-      );
+        host,
+        resizeObserver,
+      };
+
+      databaseViews.set(key, entry);
+      scheduleDatabaseLayout();
     }
+
+    for (const [key, entry] of databaseViews) {
+      if (!live.has(key)) {
+        disposeDatabaseEntry(entry);
+        databaseViews.delete(key);
+      }
+    }
+
+    restoreDatabaseFocus(focus);
   }
 
   /** Keeps the fence JSON in step with the tab the card is showing. */
@@ -2302,7 +2511,17 @@
       return;
     }
 
+    const previous = embedKey(preview);
+
     preview.dataset.embed = source;
+
+    const entry = databaseViews.get(previous);
+
+    if (entry) {
+      databaseViews.delete(previous);
+      databaseViews.set(embedKey(preview), entry);
+    }
+
     replaceFencedSource(preview, DATABASE_LANGUAGE, source, false);
   }
 
@@ -3008,8 +3227,16 @@
     replace(start, lineEnd, nextLine, start + nextLine.length - tail.length);
   }
 
+  /**
+   * Events from the live database card belong to it, not to the note's source. IME and
+   * composition events name the editor as their target, so the focused element decides too.
+   */
+  function insideDatabaseEmbed(event?: Event) {
+    return Boolean(databaseCardFor(event));
+  }
+
   function handleInput(event?: Event) {
-    if (composing) {
+    if (composing || insideDatabaseEmbed(event)) {
       return;
     }
 
@@ -3033,6 +3260,10 @@
   }
 
   function handleKeydown(event: KeyboardEvent) {
+    if (insideDatabaseEmbed(event)) {
+      return;
+    }
+
     const tableCell = tableCellForNode(event.target as Node | null);
 
     if (tableCell && handleTableKeydown(event, tableCell)) {
@@ -3175,6 +3406,10 @@
   }
 
   function handlePaste(event: ClipboardEvent) {
+    if (insideDatabaseEmbed(event)) {
+      return;
+    }
+
     const files = Array.from(event.clipboardData?.files ?? []);
 
     if (files.length) {
@@ -3284,9 +3519,17 @@
     className,
   )}
   oninput={handleInput}
+  onfocusout={handleDatabaseBlur}
   onkeydown={handleKeydown}
   oncontextmenu={openContextMenu}
+  onfocusin={(event) => {
+    enterDatabaseIsland(event);
+  }}
   onpointerdown={(event) => {
+    if (enterDatabaseIsland(event)) {
+      return;
+    }
+
     if (!handleTailPointerDown(event) && !handleTablePointerDown(event)) {
       handlePointerDown(event);
     }
@@ -3296,11 +3539,26 @@
     closeMenu();
     closeCompletions();
   }}
-  oncompositionstart={() => (composing = true)}
-  oncompositionend={() => {
+  oncompositionstart={(event) => {
+    if (!insideDatabaseEmbed(event)) {
+      composing = true;
+    }
+  }}
+  oncompositionend={(event) => {
+    if (insideDatabaseEmbed(event)) {
+      return;
+    }
+
     composing = false;
     handleInput();
   }}
+></div>
+
+<div
+  bind:this={databaseLayer}
+  class="pointer-events-none absolute inset-0 z-10"
+  role="presentation"
+  onfocusout={handleDatabaseBlur}
 ></div>
 
 {#if editable}

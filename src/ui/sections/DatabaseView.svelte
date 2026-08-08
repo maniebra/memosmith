@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onDestroy } from "svelte";
   import { Filter, LayoutGrid, Plus, Table2, X } from "@lucide/svelte";
   import {
     choicesFor,
@@ -201,13 +202,34 @@
     }
   }
 
-  function persistRow(row: Row) {
+  const rowSaveTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+  function persistRow(row: Row, immediate = false) {
     if (!database) {
       return;
     }
 
-    void saveDatabaseRow(root, database.id, row).catch((error) =>
-      onStatus(error instanceof Error ? error.message : String(error)),
+    const databaseId = database.id;
+
+    clearTimeout(rowSaveTimers.get(row.id));
+
+    if (immediate) {
+      rowSaveTimers.delete(row.id);
+      void saveDatabaseRow(root, databaseId, row).catch((error) =>
+        onStatus(error instanceof Error ? error.message : String(error)),
+      );
+      return;
+    }
+
+    // Typing a cell must not mean one write per character.
+    rowSaveTimers.set(
+      row.id,
+      setTimeout(() => {
+        rowSaveTimers.delete(row.id);
+        void saveDatabaseRow(root, databaseId, row).catch((error) =>
+          onStatus(error instanceof Error ? error.message : String(error)),
+        );
+      }, 400),
     );
   }
 
@@ -231,7 +253,7 @@
 
     for (const row of database.rows) {
       if (positions.has(row.id)) {
-        persistRow(row);
+        persistRow(row, true);
       }
     }
   }
@@ -274,7 +296,7 @@
     };
 
     database = { ...database, rows: [...database.rows, row] };
-    persistRow(row);
+    persistRow(row, true);
   }
 
   async function removeRow(rowId: string) {
@@ -332,6 +354,29 @@
     activeViewId = created.id;
     updateTable({ views: [...table.views, created] });
   }
+
+  // A card can be torn down mid-edit; pending writes still have to land.
+  onDestroy(() => {
+    for (const [rowId, timer] of rowSaveTimers) {
+      clearTimeout(timer);
+
+      const row = database?.rows.find((entry) => entry.id === rowId);
+
+      if (row && database) {
+        void saveDatabaseRow(root, database.id, row).catch(() => {});
+      }
+    }
+
+    rowSaveTimers.clear();
+
+    if (metaSaveTimer) {
+      clearTimeout(metaSaveTimer);
+
+      if (database) {
+        void saveDatabaseMeta(root, database.id, database.name, database.tables).catch(() => {});
+      }
+    }
+  });
 
   function renameDatabase(name: string) {
     updateDatabase({ name });
@@ -511,6 +556,7 @@
           onCell={setCell}
           onAddRow={addRow}
           onDeleteRow={removeRow}
+          commitCellsOnInput={!compact}
         />
       {:else}
         <DatabaseTable
@@ -524,6 +570,7 @@
           onColumnsChange={setColumns}
           onAddColumn={addColumn}
           onReorderRows={reorderRows}
+          commitCellsOnInput={!compact}
         />
       {/if}
     </div>

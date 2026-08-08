@@ -15,6 +15,8 @@
   /** Width of every board column, in pixels; unset uses the default. */
   export let cardWidth: number | undefined = undefined;
   export let onCardWidth: (width: number) => void = () => {};
+  /** Embedded boards delay text-like cell commits so the note editor keeps focus stable. */
+  export let commitCellsOnInput = true;
 
   const MIN_WIDTH = 180;
   const DEFAULT_WIDTH = 288;
@@ -139,6 +141,7 @@
                       {column}
                       choices={choices[column.id] ?? []}
                       value={row.data[column.id] ?? null}
+                      commitOnInput={commitCellsOnInput}
                       onChange={(value) => onCell(row.id, column.id, value)}
                     />
                   </div>
