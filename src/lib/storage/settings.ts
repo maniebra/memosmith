@@ -14,6 +14,14 @@ const SETTINGS_KEY = "memosmith:settings";
 
 export type ThemePreference = ColorMode;
 export type EditorWidth = "focused" | "comfortable" | "wide";
+export type GrammarCheckMode = "auto-diff" | "auto-full" | "manual";
+
+export type FeatureSettings = {
+  grammarPolice: boolean;
+  grammarCheckMode: GrammarCheckMode;
+  databases: boolean;
+  fancyTableEditor: boolean;
+};
 
 /** Every field is a string so an empty one simply means "leave it out of the request". */
 export type LlmSettings = {
@@ -35,6 +43,7 @@ export type LlmSettings = {
 export type AppSettings = {
   theme: ThemePreference;
   appearance: AppearanceSettings;
+  features: FeatureSettings;
   editorWidth: EditorWidth;
   textSize: number;
   spellcheck: boolean;
@@ -100,9 +109,17 @@ function defaultProfiles(): Record<GrammarMode, GrammarProfile> {
   ) as Record<GrammarMode, GrammarProfile>;
 }
 
+export const defaultFeatureSettings: FeatureSettings = {
+  grammarPolice: true,
+  grammarCheckMode: "auto-full",
+  databases: true,
+  fancyTableEditor: true,
+};
+
 export const defaultSettings: AppSettings = {
   theme: "system",
   appearance: { ...defaultAppearanceSettings },
+  features: { ...defaultFeatureSettings },
   editorWidth: "comfortable",
   textSize: 17,
   spellcheck: true,
@@ -174,6 +191,10 @@ function isEditorWidth(value: unknown): value is EditorWidth {
   return value === "focused" || value === "comfortable" || value === "wide";
 }
 
+function isGrammarCheckMode(value: unknown): value is GrammarCheckMode {
+  return value === "auto-diff" || value === "auto-full" || value === "manual";
+}
+
 function clampTextSize(value: unknown) {
   const size = Number(value);
 
@@ -215,6 +236,26 @@ function readAppearance(value: unknown): AppearanceSettings {
   };
 }
 
+function readFeatures(value: unknown): FeatureSettings {
+  const parsed = (value ?? {}) as Partial<FeatureSettings>;
+
+  return {
+    grammarPolice:
+      typeof parsed.grammarPolice === "boolean"
+        ? parsed.grammarPolice
+        : defaultFeatureSettings.grammarPolice,
+    grammarCheckMode: isGrammarCheckMode(parsed.grammarCheckMode)
+      ? parsed.grammarCheckMode
+      : defaultFeatureSettings.grammarCheckMode,
+    databases:
+      typeof parsed.databases === "boolean" ? parsed.databases : defaultFeatureSettings.databases,
+    fancyTableEditor:
+      typeof parsed.fancyTableEditor === "boolean"
+        ? parsed.fancyTableEditor
+        : defaultFeatureSettings.fancyTableEditor,
+  };
+}
+
 export function loadSettings(): AppSettings {
   const rawSettings = localStorage.getItem(SETTINGS_KEY);
 
@@ -228,6 +269,7 @@ export function loadSettings(): AppSettings {
     return {
       theme: isThemePreference(parsed.theme) ? parsed.theme : defaultSettings.theme,
       appearance: readAppearance(parsed.appearance),
+      features: readFeatures(parsed.features),
       editorWidth: isEditorWidth(parsed.editorWidth) ? parsed.editorWidth : defaultSettings.editorWidth,
       textSize: clampTextSize(parsed.textSize),
       spellcheck: typeof parsed.spellcheck === "boolean" ? parsed.spellcheck : defaultSettings.spellcheck,

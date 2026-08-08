@@ -147,6 +147,13 @@
   $: document.title = `${displayName} - ${appTitle}`;
   $: applyAppearanceTheme(settings.theme, settings.appearance, prefersDark);
   $: saveSettings(settings);
+  $: if (!settings.features.grammarPolice && grammarOpen) {
+    grammarOpen = false;
+  }
+  $: if (!settings.features.databases && (databasesOpen || activeDatabaseId)) {
+    databasesOpen = false;
+    activeDatabaseId = null;
+  }
 
   function countWords(text: string) {
     const trimmedText = text.trim();
@@ -683,6 +690,10 @@
   }
 
   $: grammarProfile = settings.grammarProfiles[settings.grammarMode];
+  $: grammarAutoFull =
+    settings.features.grammarPolice && settings.features.grammarCheckMode === "auto-full";
+  $: grammarAutoDiff =
+    settings.features.grammarPolice && settings.features.grammarCheckMode === "auto-diff";
   $: grammarDecorations = (grammarReport?.issues ?? []).flatMap((issue) => {
     const range = issueRange(contents, issue);
 
@@ -690,7 +701,7 @@
   });
 
   async function runGrammarCheck() {
-    if (!contents.trim() || grammarChecking) {
+    if (!settings.features.grammarPolice || !contents.trim() || grammarChecking) {
       return;
     }
 
@@ -715,9 +726,13 @@
     }
   }
 
+  function canAutoCheckGrammar() {
+    return grammarAutoFull || (grammarAutoDiff && Boolean(grammarCheckedText));
+  }
+
   /** Re-checking costs a request per run, so it waits for a real pause in typing. */
   function scheduleGrammarCheck() {
-    if (!grammarOpen) {
+    if ((!grammarAutoFull && !grammarAutoDiff) || !grammarOpen) {
       return;
     }
 
@@ -728,7 +743,7 @@
     grammarTimer = setTimeout(() => {
       grammarTimer = undefined;
 
-      if (contents !== grammarCheckedText) {
+      if (contents !== grammarCheckedText && canAutoCheckGrammar()) {
         void runGrammarCheck();
       }
     }, 2500);
@@ -754,13 +769,20 @@
     grammarReport = null;
     grammarError = "";
     grammarCheckedText = "";
-    void runGrammarCheck();
+
+    if (canAutoCheckGrammar()) {
+      void runGrammarCheck();
+    }
   }
 
   function toggleGrammar() {
+    if (!settings.features.grammarPolice) {
+      return;
+    }
+
     grammarOpen = !grammarOpen;
 
-    if (grammarOpen && !grammarReport && !grammarError) {
+    if (grammarOpen && canAutoCheckGrammar() && !grammarReport && !grammarError) {
       void runGrammarCheck();
     }
   }
@@ -866,11 +888,17 @@
     {breadcrumbs}
     {isDirty}
     spacePaneOpen={settings.spacePaneOpen}
+    grammarEnabled={settings.features.grammarPolice}
+    databasesEnabled={settings.features.databases}
     onSelectBreadcrumb={(relativePath) =>
       runWithStatus(() => selectSpaceNote(relativePath))}
     onToggleSpacePane={toggleSpacePane}
     onToggleSettings={() => (settingsOpen = !settingsOpen)}
-    onToggleDatabases={() => (databasesOpen = !databasesOpen)}
+    onToggleDatabases={() => {
+      if (settings.features.databases) {
+        databasesOpen = !databasesOpen;
+      }
+    }}
     onToggleGrammar={toggleGrammar}
   />
 
@@ -907,7 +935,7 @@
     {/if}
 
     <div class="min-w-0 flex-1">
-      {#if activeDatabaseId && spaceRoot}
+      {#if settings.features.databases && activeDatabaseId && spaceRoot}
         <DatabaseView
           root={spaceRoot}
           databaseId={activeDatabaseId}
@@ -926,6 +954,7 @@
           textSize={settings.textSize}
           spellcheck={settings.spellcheck}
           slashCommands={settings.slashCommands}
+          fancyTableEditor={settings.features.fancyTableEditor}
           editable={Boolean(path)}
           {noteTitle}
           pageMeta={activePageMeta}
@@ -951,13 +980,13 @@
               return "";
             })}
           onGenerate={generateFromPrompt}
-          decorations={grammarOpen ? grammarDecorations : []}
+          decorations={settings.features.grammarPolice && grammarOpen ? grammarDecorations : []}
           {resolveAsset}
         />
       {/if}
     </div>
 
-    {#if grammarOpen && !activeDatabaseId}
+    {#if settings.features.grammarPolice && grammarOpen && !activeDatabaseId}
       <div class="flex min-h-0" transition:slide={paneSlide}>
         <GrammarPolice
           report={grammarReport}
@@ -979,7 +1008,7 @@
       </div>
     {/if}
 
-    {#if databasesOpen}
+    {#if settings.features.databases && databasesOpen}
       <div
         class="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/40 backdrop-blur-sm"
         role="presentation"

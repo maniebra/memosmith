@@ -12,6 +12,8 @@
   export let breadcrumbs: ToolbarBreadcrumb[] = [];
   export let isDirty: boolean;
   export let spacePaneOpen: boolean;
+  export let grammarEnabled = true;
+  export let databasesEnabled = true;
   export let onSelectBreadcrumb: (path: string) => void;
   export let onToggleSpacePane: () => void;
   export let onToggleSettings: () => void;
@@ -73,20 +75,24 @@
   </nav>
 
   <div class="ml-auto flex shrink-0 items-center gap-0.5">
-    <Button
-      label="Grammar Police"
-      icon={ShieldCheck}
-      onClick={onToggleGrammar}
-      variant="ghost"
-      size="sm"
-    />
-    <Button
-      label="Databases"
-      icon={Database}
-      onClick={onToggleDatabases}
-      variant="ghost"
-      size="sm"
-    />
+    {#if grammarEnabled}
+      <Button
+        label="Grammar Police"
+        icon={ShieldCheck}
+        onClick={onToggleGrammar}
+        variant="ghost"
+        size="sm"
+      />
+    {/if}
+    {#if databasesEnabled}
+      <Button
+        label="Databases"
+        icon={Database}
+        onClick={onToggleDatabases}
+        variant="ghost"
+        size="sm"
+      />
+    {/if}
     <Button
       label="Settings"
       icon={Settings}

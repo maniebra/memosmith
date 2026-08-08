@@ -1,8 +1,12 @@
 <script lang="ts">
-  import { RotateCcw, X } from "@lucide/svelte";
+  import { ChevronDown, RotateCcw, X } from "@lucide/svelte";
+  import { cubicOut } from "svelte/easing";
+  import { fade, slide } from "svelte/transition";
   import type {
     AppSettings,
     EditorWidth,
+    FeatureSettings,
+    GrammarCheckMode,
     ThemePreference,
   } from "../../lib/storage/settings";
   import {
@@ -22,7 +26,6 @@
   import TextArea from "../components/TextArea.svelte";
   import Select, { type SelectOption } from "../components/Select.svelte";
   import { REASONING_LEVELS } from "../../lib/utils/llmOptions";
-  import { GRAMMAR_MODES, type GrammarMode } from "../../lib/utils/grammar";
   import Slider from "../components/Slider.svelte";
   import Switch from "../components/Switch.svelte";
   import { cn } from "../../lib/utils/cn";
@@ -44,11 +47,19 @@
     { label: "Wide", value: "wide" },
   ];
 
-  type SettingsTab = "appearance" | "editor" | "ai";
+  const grammarCheckModeOptions: SelectOption[] = [
+    { label: "Auto diff", value: "auto-diff" },
+    { label: "Auto full", value: "auto-full" },
+    { label: "Manual", value: "manual" },
+  ];
+
+  type SettingsTab = "appearance" | "features" | "editor" | "ai";
 
   let activeTab: SettingsTab = "appearance";
+  let grammarOptionsOpen = false;
   const tabOptions: { label: string; value: SettingsTab }[] = [
     { label: "Appearance", value: "appearance" },
+    { label: "Features", value: "features" },
     { label: "Editor", value: "editor" },
     { label: "AI", value: "ai" },
   ];
@@ -63,45 +74,26 @@
     });
   }
 
-  /** "base" edits the shared config; a mode edits only its overrides. */
-  let llmProfile: "base" | GrammarMode = "base";
-
-  const profileOptions: SelectOption[] = [
-    { label: "Base (all features)", value: "base" },
-    ...GRAMMAR_MODES.map((mode) => ({ label: `Grammar Police: ${mode.label}`, value: mode.id })),
-  ];
-
-  $: activeLlm =
-    llmProfile === "base" ? settings.llm : settings.grammarProfiles[llmProfile].llm;
-  $: isOverride = llmProfile !== "base";
-
-  function updateLlm(nextLlm: Partial<AppSettings["llm"]>) {
-    if (llmProfile === "base") {
-      updateSettings({ llm: { ...settings.llm, ...nextLlm } });
-      return;
-    }
-
-    const profile = settings.grammarProfiles[llmProfile];
-
+  function updateFeatures(nextFeatures: Partial<FeatureSettings>) {
     updateSettings({
-      grammarProfiles: {
-        ...settings.grammarProfiles,
-        [llmProfile]: { ...profile, llm: { ...profile.llm, ...nextLlm } },
-      },
+      features: { ...settings.features, ...nextFeatures },
     });
   }
 
-  /** An override shows what it inherits as its placeholder. */
+  $: activeLlm = settings.llm;
+
+  function updateLlm(nextLlm: Partial<AppSettings["llm"]>) {
+    updateSettings({ llm: { ...settings.llm, ...nextLlm } });
+  }
+
   function hint(key: keyof AppSettings["llm"], fallback: string) {
-    return isOverride ? settings.llm[key] || `inherit (${fallback})` : fallback;
+    return settings.llm[key] || fallback;
   }
 
   $: reasoningOptions = REASONING_LEVELS.map((level) => ({
     label: level
       ? level[0].toUpperCase() + level.slice(1)
-      : isOverride
-        ? "Inherit"
-        : "Provider default",
+      : "Provider default",
     value: level,
   })) as SelectOption[];
 
@@ -116,7 +108,6 @@
 
   const compactSelectRoot = "w-full sm:w-56";
   const shortSelectRoot = "w-full sm:w-44";
-  const profileSelectRoot = "w-full sm:w-80";
 </script>
 
 <div
@@ -286,26 +277,70 @@
           </div>
         </section>
       </div>
+    {:else if activeTab === "features"}
+      <div class="grid w-full gap-4">
+        <section class="grid w-full gap-2">
+          <div class="flex h-10 w-full items-center gap-2">
+            <Switch
+              checked={settings.features.grammarPolice}
+              label="Grammar Police"
+              className="h-full min-w-0 flex-1"
+              onChange={(grammarPolice) => updateFeatures({ grammarPolice })}
+            />
+            <button
+              type="button"
+              class="grid size-10 shrink-0 place-items-center rounded-md text-stone-500 transition-colors hover:bg-stone-500/10 hover:text-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 dark:hover:text-stone-200"
+              aria-expanded={grammarOptionsOpen}
+              aria-label="Grammar Police options"
+              title="Grammar Police options"
+              onclick={() => (grammarOptionsOpen = !grammarOptionsOpen)}
+            >
+              <ChevronDown
+                class={cn(
+                  "size-4 shrink-0 transition-transform duration-200 ease-out",
+                  grammarOptionsOpen && "rotate-180",
+                )}
+                strokeWidth={1.8}
+                aria-hidden="true"
+              />
+            </button>
+          </div>
+          {#if grammarOptionsOpen}
+            <div
+              class="ml-14 grid gap-2 pl-2 text-xs text-stone-500"
+              transition:slide={{ duration: 160, easing: cubicOut }}
+            >
+              <div class="grid gap-1.5" in:fade={{ duration: 120 }} out:fade={{ duration: 80 }}>
+                <label class="grid gap-1.5">
+                  Check mode
+                  <Select
+                    value={settings.features.grammarCheckMode}
+                    options={grammarCheckModeOptions}
+                    className="h-9"
+                    rootClassName={compactSelectRoot}
+                    onChange={(grammarCheckMode) =>
+                      updateFeatures({ grammarCheckMode: grammarCheckMode as GrammarCheckMode })}
+                  />
+                </label>
+              </div>
+            </div>
+          {/if}
+          <Switch
+            checked={settings.features.databases}
+            label="Databases"
+            className="h-10 w-full"
+            onChange={(databases) => updateFeatures({ databases })}
+          />
+          <Switch
+            checked={settings.features.fancyTableEditor}
+            label="Fancy table editor"
+            className="h-10 w-full"
+            onChange={(fancyTableEditor) => updateFeatures({ fancyTableEditor })}
+          />
+        </section>
+      </div>
     {:else if activeTab === "ai"}
       <div class="grid max-w-2xl gap-6">
-        <section class="grid gap-2 sm:grid-cols-[8rem_auto] sm:items-start">
-          <span class="text-sm font-medium text-stone-800 sm:pt-2 dark:text-stone-200">
-            Config
-          </span>
-          <Select
-            value={llmProfile}
-            options={profileOptions}
-            className="h-9"
-            rootClassName={profileSelectRoot}
-            onChange={(next) => (llmProfile = next as "base" | GrammarMode)}
-          />
-          <span class="text-xs text-stone-500 sm:col-start-2">
-            {isOverride
-              ? "Only the fields you fill in here override the base config for this coach."
-              : "Used by every feature unless a coach overrides it."}
-          </span>
-        </section>
-
         <section class="grid gap-2">
           <span class="text-sm font-medium text-stone-800 dark:text-stone-200">
             Base URL
@@ -328,7 +363,7 @@
           <Input
             value={activeLlm.apiKey}
             type="password"
-            placeholder={isOverride ? "inherit" : "sk-..."}
+            placeholder="sk-..."
             oninput={(event) =>
               updateLlm({ apiKey: (event.target as HTMLInputElement).value })}
           />
@@ -354,7 +389,7 @@
             value={activeLlm.systemPrompt}
             size="sm"
             className="text-sm"
-            placeholder={isOverride ? "inherit (Grammar Police writes its own prompt anyway)" : ""}
+            placeholder=""
             onInput={(event) =>
               updateLlm({ systemPrompt: (event.target as HTMLTextAreaElement).value })}
           />

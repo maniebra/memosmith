@@ -44,6 +44,14 @@ assert(
 assert(renderDocument(DEFAULT_TABLE_MARKDOWN).includes("md-table-tools"), "default table renders editing tools");
 assert(renderDocument(DEFAULT_TABLE_MARKDOWN).includes("md-table-tools-shell"), "table tools render inside a toolbar shell");
 assert(renderDocument(DEFAULT_TABLE_MARKDOWN).includes("md-table-scroll"), "table body has a separate scroll area");
+assert(
+  renderDocument(DEFAULT_TABLE_MARKDOWN, undefined, { fancyTableEditor: false }).includes("md-table-preview"),
+  "table preview still renders when the fancy editor is disabled",
+);
+assert(
+  !renderDocument(DEFAULT_TABLE_MARKDOWN, undefined, { fancyTableEditor: false }).includes("md-table-tools-shell"),
+  "disabled fancy table editor skips only the toolbar",
+);
 const editedCell = editMarkdownTable(DEFAULT_TABLE_MARKDOWN, { type: "set-cell-text", row: 1, column: 0, text: "Hello" });
 assert(editedCell.includes("| Hello |"), "table cell text edits serialize");
 assert(editMarkdownTable(DEFAULT_TABLE_MARKDOWN, { type: "insert-column", column: 0 }).split("\n")[0].split("|").length === 5, "table column insertion serializes");

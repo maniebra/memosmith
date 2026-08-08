@@ -50,6 +50,7 @@
   export let textSize = 17;
   export let spellcheck = true;
   export let slashCommands = true;
+  export let fancyTableEditor = true;
   export let editable = true;
   export let className = "";
   export let onInput: () => void = () => {};
@@ -68,6 +69,7 @@
   type Decoration = { start: number; end: number; tone: "mistake" | "suggestion" };
 
   let composing = false;
+  let renderedFancyTableEditor = fancyTableEditor;
   let decorationBoxes: { left: number; top: number; width: number; height: number; tone: string }[] = [];
   const EMPTY_CARET = String.fromCharCode(8203);
 
@@ -170,6 +172,10 @@
     closeMenu();
   }
   $: if (element && !composing && getText() !== value) {
+    render(caretOffset());
+  }
+  $: if (element && renderedFancyTableEditor !== fancyTableEditor) {
+    renderedFancyTableEditor = fancyTableEditor;
     render(caretOffset());
   }
 
@@ -933,7 +939,7 @@
       return;
     }
 
-    element.innerHTML = renderDocument(value, resolveAsset ?? undefined);
+    element.innerHTML = renderDocument(value, resolveAsset ?? undefined, { fancyTableEditor });
     bindTableToolbars();
 
     if (!editable) {

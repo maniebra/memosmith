@@ -12,6 +12,7 @@
   export let textSize: number;
   export let spellcheck: boolean;
   export let slashCommands: boolean;
+  export let fancyTableEditor: boolean;
   export let editable: boolean;
   export let noteTitle: string;
   export let showPageTitle: boolean;
@@ -56,6 +57,7 @@
       {textSize}
       {spellcheck}
       {slashCommands}
+      {fancyTableEditor}
       {editable}
       {onInput}
       {onAssets}

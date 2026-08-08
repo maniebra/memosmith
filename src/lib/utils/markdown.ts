@@ -350,17 +350,20 @@ function tableLine(line: string, group: number) {
   return `<div class="md-block md-table-line" data-table="${group}">${renderLine(line)}</div>`;
 }
 
-function tablePreview(lines: string[], group: number) {
+function tablePreview(lines: string[], group: number, showToolbar = true) {
   const divider = '<span class="md-table-tool-divider" aria-hidden="true">|</span>';
+  const toolbar = showToolbar
+    ? `<div class="md-table-tools-shell" contenteditable="false"><div class="md-table-tools"><button type="button" data-table-action="insert-row" title="Add row">Row +</button>${divider}<button type="button" data-table-action="insert-column" title="Add column">Col +</button>${divider}<button type="button" data-table-action="merge-right" title="Merge with cell on the right">Merge H</button>${divider}<button type="button" data-table-action="merge-down" title="Merge with cell below">Merge V</button>${divider}<button type="button" data-table-action="split-cell" title="Split cell">Split</button>${divider}${Array.from(
+        TABLE_BACKGROUNDS,
+      )
+        .map(
+          (color) =>
+            `<button type="button" class="md-table-swatch" data-table-action="set-color" data-color="${color}" style="background-color:${color}" title="Cell color"></button>`,
+        )
+        .join("")}${divider}<button type="button" data-table-action="clear-color" title="Clear cell color">Clear</button></div></div>`
+    : "";
 
-  return `<div class="md-preview md-table-preview" data-table="${group}" contenteditable="false"><div class="md-table-tools-shell" contenteditable="false"><div class="md-table-tools"><button type="button" data-table-action="insert-row" title="Add row">Row +</button>${divider}<button type="button" data-table-action="insert-column" title="Add column">Col +</button>${divider}<button type="button" data-table-action="merge-right" title="Merge with cell on the right">Merge H</button>${divider}<button type="button" data-table-action="merge-down" title="Merge with cell below">Merge V</button>${divider}<button type="button" data-table-action="split-cell" title="Split cell">Split</button>${divider}${Array.from(
-    TABLE_BACKGROUNDS,
-  )
-    .map(
-      (color) =>
-        `<button type="button" class="md-table-swatch" data-table-action="set-color" data-color="${color}" style="background-color:${color}" title="Cell color"></button>`,
-    )
-    .join("")}${divider}<button type="button" data-table-action="clear-color" title="Clear cell color">Clear</button></div></div><div class="md-table-scroll">${renderTable(
+  return `<div class="md-preview md-table-preview" data-table="${group}" contenteditable="false">${toolbar}<div class="md-table-scroll">${renderTable(
       lines,
     )}</div></div>`;
 }
@@ -588,7 +591,16 @@ export function insideFence(text: string) {
   return (text.match(/^[ \t]*```/gm) ?? []).length % 2 === 1;
 }
 
-export function renderDocument(text: string, resolveAsset?: (source: string) => string) {
+export type RenderDocumentOptions = {
+  fancyTableEditor?: boolean;
+};
+
+export function renderDocument(
+  text: string,
+  resolveAsset?: (source: string) => string,
+  options: RenderDocumentOptions = {},
+) {
+  const fancyTableEditor = options.fancyTableEditor ?? true;
   let language: string | null = null;
   let codeGroup = 0;
   let mathGroup = 0;
@@ -689,7 +701,7 @@ export function renderDocument(text: string, resolveAsset?: (source: string) => 
         output.push(tableLine(tableSourceLine, group));
       }
 
-      output.push(tablePreview(tableLines, group));
+      output.push(tablePreview(tableLines, group, fancyTableEditor));
       i = j;
       continue;
     }
