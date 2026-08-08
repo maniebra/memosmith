@@ -42,7 +42,9 @@
     renderDocument,
     SLASH_COMMANDS,
     withMediaOptions,
+    EMPTY_DRAWING,
   } from "../../lib/utils/markdown";
+  import DrawingModal from "./DrawingModal.svelte";
 
   export let value: string;
   export let element: HTMLElement | undefined = undefined;
@@ -51,6 +53,7 @@
   export let spellcheck = true;
   export let slashCommands = true;
   export let fancyTableEditor = true;
+  export let drawings = false;
   export let editable = true;
   export let className = "";
   export let onInput: () => void = () => {};
@@ -70,6 +73,9 @@
 
   let composing = false;
   let renderedFancyTableEditor = fancyTableEditor;
+  let renderedDrawings = drawings;
+  /** The drawing block being edited in the modal, plus the scene JSON it opened with. */
+  let editingDrawing: { preview: HTMLElement; scene: string } | null = null;
   let decorationBoxes: { left: number; top: number; width: number; height: number; tone: string }[] = [];
   const EMPTY_CARET = String.fromCharCode(8203);
 
@@ -165,7 +171,10 @@
     { label: "Code", prefix: "```", icon: Code2 },
   ];
 
-  $: matches = SLASH_COMMANDS.filter((command) =>
+  $: commands = drawings
+    ? [...SLASH_COMMANDS, { label: "Drawing", hint: "excalidraw", prefix: EMPTY_DRAWING }]
+    : SLASH_COMMANDS;
+  $: matches = commands.filter((command) =>
     command.label.toLowerCase().includes(slashQuery.toLowerCase()),
   );
   $: if (!slashCommands && slashStart !== null) {
@@ -176,6 +185,10 @@
   }
   $: if (element && renderedFancyTableEditor !== fancyTableEditor) {
     renderedFancyTableEditor = fancyTableEditor;
+    render(caretOffset());
+  }
+  $: if (element && renderedDrawings !== drawings) {
+    renderedDrawings = drawings;
     render(caretOffset());
   }
 
@@ -939,8 +952,9 @@
       return;
     }
 
-    element.innerHTML = renderDocument(value, resolveAsset ?? undefined, { fancyTableEditor });
+    element.innerHTML = renderDocument(value, resolveAsset ?? undefined, { fancyTableEditor, drawings });
     bindTableToolbars();
+    paintDrawingPreviews();
 
     if (!editable) {
       for (const cell of Array.from(element.querySelectorAll("[data-table-cell]"))) {
@@ -1583,8 +1597,141 @@
     onInput();
   }
 
+  /** Source lines of a fenced block, preview cards excluded. */
+  function codeSourceBlocks(preview: Element) {
+    const group = (preview as HTMLElement).dataset.code;
+
+    return (Array.from(element?.children ?? []) as HTMLElement[]).filter(
+      (block) => block.dataset.code === group && !block.classList.contains("md-preview"),
+    );
+  }
+
+  /** Exported thumbnails keyed by their scene JSON, so a re-render repaints without re-exporting. */
+  const drawingThumbnails = new Map<string, string>();
+  let darkMode = document.documentElement.classList.contains("dark");
+
+  // Thumbnails are baked for one theme, so a theme switch invalidates every one of them.
+  onMount(() => {
+    const observer = new MutationObserver(() => {
+      const dark = document.documentElement.classList.contains("dark");
+
+      if (dark !== darkMode) {
+        darkMode = dark;
+        drawingThumbnails.clear();
+        paintDrawingPreviews();
+      }
+    });
+
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+
+    return () => observer.disconnect();
+  });
+
+  function sceneOf(preview: Element) {
+    return codeSourceBlocks(preview).map(sourceText).slice(1, -1).join("\n");
+  }
+
+  async function exportThumbnail(scene: string) {
+    const cached = drawingThumbnails.get(scene);
+
+    if (cached !== undefined) {
+      return cached;
+    }
+
+    let svg = "";
+
+    try {
+      const parsed = JSON.parse(scene || "{}");
+      const elements = Array.isArray(parsed.elements) ? parsed.elements : [];
+
+      if (elements.length) {
+        const { exportToSvg } = await import("@excalidraw/excalidraw");
+        const node = await exportToSvg({
+          elements,
+          files: parsed.files ?? null,
+          appState: {
+            ...(parsed.appState ?? {}),
+            exportBackground: false,
+            exportWithDarkMode: darkMode,
+          },
+          exportPadding: 8,
+        });
+
+        svg = node.outerHTML;
+      }
+    } catch {
+      svg = "";
+    }
+
+    drawingThumbnails.set(scene, svg);
+
+    return svg;
+  }
+
+  function paintDrawingPreviews() {
+    for (const preview of Array.from(element?.querySelectorAll(".md-drawing-preview") ?? [])) {
+      const button = preview.querySelector(".md-drawing-open") as HTMLElement | null;
+
+      if (!button) {
+        continue;
+      }
+
+      const scene = sceneOf(preview);
+
+      void exportThumbnail(scene).then((svg) => {
+        // The document may have been re-rendered while the export was running.
+        if (!button.isConnected || sceneOf(preview) !== scene) {
+          return;
+        }
+
+        button.classList.toggle("md-drawing-thumbnail", Boolean(svg));
+        button.innerHTML = svg || "Edit drawing";
+      });
+    }
+  }
+
+  function openDrawing(preview: HTMLElement) {
+    const lines = codeSourceBlocks(preview).map(sourceText);
+
+    editingDrawing = { preview, scene: lines.slice(1, -1).join("\n") };
+  }
+
+  function saveDrawing(scene: string) {
+    const preview = editingDrawing?.preview;
+    editingDrawing = null;
+
+    if (!preview) {
+      return;
+    }
+
+    const sourceBlocks = codeSourceBlocks(preview);
+    const first = sourceBlocks[0];
+    const last = sourceBlocks[sourceBlocks.length - 1];
+    const start = first ? offsetForPosition(first, 0) : null;
+    const end = last ? offsetForPosition(last, sourceLength(last)) : null;
+
+    if (start === null || end === null) {
+      return;
+    }
+
+    value = value.slice(0, start) + `\`\`\`excalidraw\n${scene}\n\`\`\`` + value.slice(end);
+    render(null);
+    onInput();
+  }
+
   function handlePointerDown(event: PointerEvent) {
     const handle = event.target as HTMLElement;
+
+    if (handle.closest?.(".md-drawing-open")) {
+      const preview = handle.closest(".md-drawing-preview") as HTMLElement | null;
+
+      if (editable && preview) {
+        event.preventDefault();
+        openDrawing(preview);
+      }
+
+      return;
+    }
 
     if (!editable || !handle.classList?.contains("md-resize")) {
       return;
@@ -2316,6 +2463,14 @@
   </div>
 {/if}
 </div>
+
+{#if editingDrawing}
+  <DrawingModal
+    scene={editingDrawing.scene}
+    onSave={saveDrawing}
+    onClose={() => (editingDrawing = null)}
+  />
+{/if}
 
 {#if contextMenu}
   <ContextMenu

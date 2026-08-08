@@ -101,3 +101,15 @@ assert(withMediaOptions("![a|left|200](x.png)", { width: 50 }) === "![a|left|50]
 assert(withMediaOptions("plain", { width: 50 }) === "plain", "non-media line untouched");
 assert(renderDocument("![a|center|300](x.png)", (s) => s).includes("width:300px"), "preview uses the width option");
 assert(renderDocument("![a](x.png)", (s) => s).includes("md-resize"), "image preview gets a resize handle");
+
+const drawing = renderDocument('```excalidraw\n{"elements":[]}\n```', undefined, { drawings: true });
+assert(drawing.includes("md-drawing-preview"), "drawing fence gets a preview card");
+assert((drawing.match(/md-drawing-line/g) ?? []).length === 3, "fences and scene line are collapsed");
+assert(
+  !renderDocument('```excalidraw\n{}\n```').includes("md-drawing"),
+  "drawing block stays a plain code block while the feature is off",
+);
+assert(
+  !renderDocument("```js\nlet a\n```", undefined, { drawings: true }).includes("md-drawing"),
+  "other languages are untouched",
+);

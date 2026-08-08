@@ -337,6 +337,12 @@
             className="h-10 w-full"
             onChange={(fancyTableEditor) => updateFeatures({ fancyTableEditor })}
           />
+          <Switch
+            checked={settings.features.drawings}
+            label="Drawing blocks (Excalidraw)"
+            className="h-10 w-full"
+            onChange={(drawings) => updateFeatures({ drawings })}
+          />
         </section>
       </div>
     {:else if activeTab === "ai"}

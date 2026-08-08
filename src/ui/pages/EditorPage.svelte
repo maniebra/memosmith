@@ -955,6 +955,7 @@
           spellcheck={settings.spellcheck}
           slashCommands={settings.slashCommands}
           fancyTableEditor={settings.features.fancyTableEditor}
+          drawings={settings.features.drawings}
           editable={Boolean(path)}
           {noteTitle}
           pageMeta={activePageMeta}

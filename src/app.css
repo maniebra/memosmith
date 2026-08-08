@@ -430,4 +430,30 @@ body {
   .md-resize:active {
     @apply bg-stone-900/40 dark:bg-stone-100/50;
   }
+
+  /* Same collapse trick as block math: never `display: none`, or the caret jumps. */
+  .md-drawing-line:not([data-active]) {
+    font-size: 0;
+    line-height: 0;
+    letter-spacing: 0;
+    @apply my-0 overflow-hidden py-0;
+  }
+
+  .md-drawing-preview {
+    @apply my-3 flex;
+  }
+
+  .md-drawing-open {
+    @apply cursor-pointer rounded-md border border-stone-300 bg-stone-100 px-3 py-2 text-sm text-stone-700 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200;
+  }
+
+  /* A thumbnail card is the drawing itself, so it drops the button chrome. */
+  .md-drawing-open.md-drawing-thumbnail {
+    @apply max-w-full bg-transparent p-1;
+  }
+
+  /* The export carries its own pixel size; the card only caps it. */
+  .md-drawing-open.md-drawing-thumbnail svg {
+    @apply h-auto max-h-96 max-w-full;
+  }
 }

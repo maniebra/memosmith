@@ -13,6 +13,7 @@
   export let spellcheck: boolean;
   export let slashCommands: boolean;
   export let fancyTableEditor: boolean;
+  export let drawings: boolean;
   export let editable: boolean;
   export let noteTitle: string;
   export let showPageTitle: boolean;
@@ -58,6 +59,7 @@
       {spellcheck}
       {slashCommands}
       {fancyTableEditor}
+      {drawings}
       {editable}
       {onInput}
       {onAssets}

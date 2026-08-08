@@ -23,3 +23,4 @@ lerna-debug.log*
 
 .agents/
 .aider*
+public/fonts/

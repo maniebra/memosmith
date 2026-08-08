@@ -21,6 +21,7 @@ export type FeatureSettings = {
   grammarCheckMode: GrammarCheckMode;
   databases: boolean;
   fancyTableEditor: boolean;
+  drawings: boolean;
 };
 
 /** Every field is a string so an empty one simply means "leave it out of the request". */
@@ -114,6 +115,7 @@ export const defaultFeatureSettings: FeatureSettings = {
   grammarCheckMode: "auto-full",
   databases: true,
   fancyTableEditor: true,
+  drawings: false,
 };
 
 export const defaultSettings: AppSettings = {
@@ -253,6 +255,8 @@ function readFeatures(value: unknown): FeatureSettings {
       typeof parsed.fancyTableEditor === "boolean"
         ? parsed.fancyTableEditor
         : defaultFeatureSettings.fancyTableEditor,
+    drawings:
+      typeof parsed.drawings === "boolean" ? parsed.drawings : defaultFeatureSettings.drawings,
   };
 }
 

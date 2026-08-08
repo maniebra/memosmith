@@ -593,7 +593,17 @@ export function insideFence(text: string) {
 
 export type RenderDocumentOptions = {
   fancyTableEditor?: boolean;
+  drawings?: boolean;
 };
+
+/** Language of the fenced block that holds an Excalidraw scene as JSON. */
+export const DRAWING_LANGUAGE = "excalidraw";
+
+export const EMPTY_DRAWING = '```excalidraw\n{"elements":[]}\n```';
+
+function drawingPreview(group: number) {
+  return `<div class="md-preview md-drawing-preview" data-code="${group}" contenteditable="false"><button type="button" class="md-drawing-open">Edit drawing</button></div>`;
+}
 
 export function renderDocument(
   text: string,
@@ -601,6 +611,8 @@ export function renderDocument(
   options: RenderDocumentOptions = {},
 ) {
   const fancyTableEditor = options.fancyTableEditor ?? true;
+  const drawings = options.drawings ?? false;
+  let drawingGroup: number | null = null;
   let language: string | null = null;
   let codeGroup = 0;
   let mathGroup = 0;
@@ -645,13 +657,33 @@ export function renderDocument(
 
       language = isOpening ? fence[1].toLowerCase() : null;
       const index = isOpening ? codeGroup : codeGroup++;
+      const drawing: boolean =
+        drawings && (isOpening ? language === DRAWING_LANGUAGE : drawingGroup !== null);
+      drawingGroup = drawing && isOpening ? index : null;
 
-      output.push(`<div class="md-block ${className}" data-code="${index}">${escapeHtml(line)}</div>`);
+      output.push(
+        `<div class="md-block ${className}${drawing ? " md-drawing-line" : ""}" data-code="${index}">${escapeHtml(line)}</div>`,
+      );
+
+      // The scene lives behind the preview card, so the raw JSON is only shown while the caret is inside.
+      if (drawing && !isOpening) {
+        output.push(drawingPreview(index));
+      }
+
       i++;
       continue;
     }
 
     if (language !== null) {
+      // A drawing's JSON never wears the code slab: it sits collapsed behind the preview card.
+      if (drawings && language === DRAWING_LANGUAGE) {
+        output.push(
+          `<div class="md-block md-drawing-line" data-code="${codeGroup}">${escapeHtml(line)}</div>`,
+        );
+        i++;
+        continue;
+      }
+
       output.push(
         `<div class="md-block md-codeblock" data-code="${codeGroup}" data-language="${attribute(language)}">${renderCode(line, language)}</div>`,
       );
