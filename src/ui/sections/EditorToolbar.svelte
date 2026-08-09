@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Database, Link2, PanelLeftClose, PanelLeftOpen, Settings, ShieldCheck } from "@lucide/svelte";
+  import { Database, FileDown, Link2, PanelLeftClose, PanelLeftOpen, Settings, ShieldCheck } from "@lucide/svelte";
   import { cn } from "../../lib/utils/cn";
   import Button from "../components/Button.svelte";
 
@@ -24,6 +24,7 @@
   export let onToggleSettings: () => void;
   export let onToggleDatabases: () => void;
   export let onToggleGrammar: () => void;
+  export let onExportPdf: (() => void) | null = null;
 
   $: visibleBreadcrumbs = breadcrumbs.length ? breadcrumbs : [{ label: fileLabel }];
 </script>
@@ -106,6 +107,9 @@
         variant="ghost"
         size="sm"
       />
+    {/if}
+    {#if onExportPdf}
+      <Button label="Export PDF" icon={FileDown} onClick={onExportPdf} variant="ghost" size="sm" />
     {/if}
     {#if databasesEnabled}
       <Button

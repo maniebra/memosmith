@@ -79,6 +79,7 @@
   import DatabaseManager from "../sections/DatabaseManager.svelte";
   import DatabaseView from "../sections/DatabaseView.svelte";
   import NoteEditorForm from "../forms/NoteEditorForm.svelte";
+  import PdfExportModal from "../components/PdfExportModal.svelte";
   import EditorStatusBar from "../sections/EditorStatusBar.svelte";
   import EditorToolbar from "../sections/EditorToolbar.svelte";
   import SettingsPanel from "../sections/SettingsPanel.svelte";
@@ -114,6 +115,7 @@
   let characters = contents.length;
   let settings = loadSettings();
   let settingsOpen = false;
+  let pdfPreviewOpen = false;
   let grammarOpen = false;
   let grammarReport: GrammarReport | null = null;
   let grammarChecking = false;
@@ -154,7 +156,12 @@
   $: dirtyMarker = isDirty ? " *" : "";
   $: displayName = `${fileLabel}${dirtyMarker}`;
   $: document.title = `${displayName} - ${appTitle}`;
-  $: applyAppearanceTheme(settings.theme, settings.appearance, prefersDark);
+  // The PDF prints on white paper, so the preview pins the app to the light theme while it is open.
+  $: applyAppearanceTheme(
+    pdfPreviewOpen ? "light" : settings.theme,
+    settings.appearance,
+    prefersDark,
+  );
   $: saveSettings(settings);
   $: if (!settings.features.grammarPolice && grammarOpen) {
     grammarOpen = false;
@@ -1080,6 +1087,7 @@
       }
     }}
     onToggleGrammar={toggleGrammar}
+    onExportPdf={path ? () => (pdfPreviewOpen = true) : null}
   />
 
   <div class="flex min-h-0 min-w-0">
@@ -1296,3 +1304,12 @@
 
   <EditorStatusBar {statusMessage} {words} {characters} />
 </main>
+
+{#if pdfPreviewOpen}
+  <PdfExportModal
+    source={(editor?.closest(".ms-editor-frame") as HTMLElement | null) ?? undefined}
+    title={noteTitle}
+    onStatus={(message) => (statusMessage = message)}
+    onClose={() => (pdfPreviewOpen = false)}
+  />
+{/if}

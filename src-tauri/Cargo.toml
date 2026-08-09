@@ -19,3 +19,8 @@ rusqlite = { version = "0.32", features = ["bundled"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tauri-plugin-http = "2.5.9"
+
+# Printing the live webview to a PDF file; versions must match the ones wry links against.
+[target.'cfg(target_os = "linux")'.dependencies]
+webkit2gtk = "=2.0.2"
+gtk = "0.18"

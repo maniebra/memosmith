@@ -2,6 +2,7 @@ pub mod assets;
 pub mod databases;
 pub mod lsp;
 pub mod notes;
+pub mod pdf;
 pub mod plantuml;
 pub mod runner;
 pub mod utils;
@@ -40,7 +41,8 @@ pub fn run() {
             lsp::lsp_complete,
             lsp::reset_language_servers,
             lsp::detect_language_servers,
-            plantuml::render_plantuml
+            plantuml::render_plantuml,
+            pdf::export_pdf
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

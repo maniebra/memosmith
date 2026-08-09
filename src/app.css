@@ -860,3 +860,120 @@ body {
     animation: none;
   }
 }
+
+/* PDF export: the sheet is a page of paper — always light, and nothing runs off its edge. */
+.ms-print-sheet {
+  overflow-wrap: anywhere;
+  /* Paper is white: dark-theme text colours never reach the page, whatever the app theme does. */
+  color: #1c1917;
+  background: #ffffff;
+}
+
+.ms-print-sheet .md-editor-surface,
+.ms-print-sheet .md-block {
+  color: inherit;
+}
+
+/* Print has no horizontal scrollbar, so anything that scrolls on screen has to wrap or shrink. */
+.ms-print-sheet .md-codeblock,
+.ms-print-sheet pre {
+  white-space: pre-wrap;
+}
+
+.ms-print-sheet .md-table-scroll,
+.ms-print-sheet .md-run-output {
+  overflow: visible !important;
+  max-height: none !important;
+}
+
+.ms-print-sheet table {
+  width: 100% !important;
+  table-layout: fixed;
+}
+
+.ms-print-sheet img,
+.ms-print-sheet svg,
+.ms-print-sheet canvas,
+.ms-print-sheet video {
+  max-width: 100% !important;
+  height: auto;
+}
+
+/* Print only the cloned sheet, exactly as the preview shows it. */
+@media print {
+  @page {
+    margin: 10mm;
+  }
+
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+    background: transparent !important;
+  }
+
+  /* Everything but the sheet, its contents, and the elements it sits inside. */
+  body :not(:has(.ms-print-sheet)):not(.ms-print-sheet):not(.ms-print-sheet *) {
+    display: none !important;
+  }
+
+  /* Flex containers do not fragment in WebKit: the ancestors have to be plain blocks or every
+     break-inside rule below is ignored. */
+  body :has(.ms-print-sheet),
+  .ms-print-sheet {
+    display: block !important;
+  }
+
+  body :has(.ms-print-sheet) {
+    position: static !important;
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+  }
+
+  /* Width stays as laid out: absolutely positioned database embeds only line up there. */
+  .ms-print-sheet {
+    box-shadow: none !important;
+    max-width: 100% !important;
+  }
+
+  /* Colours, callout tints and code themes are part of "as rendered". */
+  .ms-print-sheet,
+  .ms-print-sheet * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Keep rendered blocks whole rather than sliced across a page break. WebKit only honours
+     the legacy property, so both are set. */
+  .ms-print-sheet .ms-print-group,
+  .ms-print-sheet .md-preview,
+  .ms-print-sheet .md-block,
+  .ms-print-sheet .md-codeblock,
+  .ms-print-sheet table,
+  .ms-print-sheet tr,
+  .ms-print-sheet img,
+  .ms-print-sheet svg {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* An embedded database is a card of rows: break it between rows rather than keep it whole,
+     since it is regularly taller than a page. */
+  .ms-print-sheet .md-database-preview {
+    page-break-inside: auto;
+    break-inside: auto;
+  }
+
+  /* An image taller than the page always splits, so it is capped to one page instead. */
+  .ms-print-sheet img,
+  .ms-print-sheet svg,
+  .ms-print-sheet .md-drawing-thumbnail,
+  .ms-print-sheet .md-diagram-thumbnail {
+    max-height: 240mm !important;
+  }
+}
