@@ -4,6 +4,7 @@ import { normalizeCalloutIcon } from "../utils/calloutIcons";
 import type { Kernel } from "../utils/runner";
 import {
   defaultAppearanceSettings,
+  normalizeFontStack,
   type AccentColor,
   type AppearanceSettings,
   type ColorMode,
@@ -366,9 +367,11 @@ function readAppearance(value: unknown): AppearanceSettings {
       ? parsed.accentColor
       : defaultAppearanceSettings.accentColor,
     uiFont: isFontChoice(parsed.uiFont) ? parsed.uiFont : defaultAppearanceSettings.uiFont,
+    uiFontStack: normalizeFontStack(parsed.uiFontStack),
     editorFont: isFontChoice(parsed.editorFont)
       ? parsed.editorFont
       : defaultAppearanceSettings.editorFont,
+    editorFontStack: normalizeFontStack(parsed.editorFontStack),
     cornerStyle: isCornerStyle(parsed.cornerStyle)
       ? parsed.cornerStyle
       : defaultAppearanceSettings.cornerStyle,

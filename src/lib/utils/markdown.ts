@@ -58,7 +58,7 @@ function renderInlineMath(source: string) {
 /** Source stays an ordinary editable line; the preview is a sibling the caret never enters. */
 function mathLine(line: string, group: number, closed: boolean) {
   // Only a closed block may hide its source, since only then is there a preview to hide behind.
-  return `<div class="md-block md-math-line" data-math="${group}"${closed ? " data-closed" : ""}>${escapeHtml(line) || "<br>"}</div>`;
+  return `<div dir="auto" class="md-block md-math-line" data-math="${group}"${closed ? " data-closed" : ""}>${escapeHtml(line) || "<br>"}</div>`;
 }
 
 function mathPreview(source: string, group: number) {
@@ -385,7 +385,7 @@ function isTableRow(line: string) {
 }
 
 function tableLine(line: string, group: number, options: RenderInlineOptions) {
-  return `<div class="md-block md-table-line" data-table="${group}">${renderLine(line, options)}</div>`;
+  return `<div dir="auto" class="md-block md-table-line" data-table="${group}">${renderLine(line, options)}</div>`;
 }
 
 function tablePreview(
@@ -836,7 +836,7 @@ function calloutLine(
     .filter(Boolean)
     .join(" ");
 
-  return `<div class="md-block md-quote md-callout-line ${position}" data-callout="${group}" style="--md-callout-rgb:${calloutRgb(
+  return `<div dir="auto" class="md-block md-quote md-callout-line ${position}" data-callout="${group}" style="--md-callout-rgb:${calloutRgb(
     definition.color,
   )};">${renderLine(line, options)}</div>`;
 }
@@ -967,7 +967,7 @@ export function renderDocument(
       const diagramClass = opensDiagram || (!isOpening && diagramLines) ? " md-livediagram-line" : "";
 
       output.push(
-        `<div class="md-block ${className}${embedClass}${diagramClass}"${
+        `<div dir="auto" class="md-block ${className}${embedClass}${diagramClass}"${
           embedded === DATABASE_LANGUAGE || (embedLanguage === DATABASE_LANGUAGE && !isOpening)
             ? ' contenteditable="false"'
             : ""
@@ -1020,7 +1020,7 @@ export function renderDocument(
 
         embedSourceLines?.push(line);
         output.push(
-          `<div class="md-block ${embedClass}"${
+          `<div dir="auto" class="md-block ${embedClass}"${
             embedLanguage === DATABASE_LANGUAGE ? ' contenteditable="false"' : ""
           } data-code="${codeGroup}">${escapeHtml(line)}</div>`,
         );
@@ -1030,7 +1030,7 @@ export function renderDocument(
 
       diagramLines?.push(line);
       output.push(
-        `<div class="md-block md-codeblock${diagramLines ? " md-livediagram-line" : ""}" data-code="${codeGroup}" data-language="${attribute(language)}">${renderCode(line, language)}</div>`,
+        `<div dir="auto" class="md-block md-codeblock${diagramLines ? " md-livediagram-line" : ""}" data-code="${codeGroup}" data-language="${attribute(language)}">${renderCode(line, language)}</div>`,
       );
       i++;
       continue;
@@ -1056,7 +1056,7 @@ export function renderDocument(
 
     if (wikilinkEmbed) {
       output.push(
-        `<div class="md-block md-wikilink-embed-line">${renderLine(line, inlineOptions)}</div>`,
+        `<div dir="auto" class="md-block md-wikilink-embed-line">${renderLine(line, inlineOptions)}</div>`,
         wikilinkEmbedPreview(wikilinkEmbed[2], options),
       );
       i++;
@@ -1089,7 +1089,7 @@ export function renderDocument(
 
     if (media) {
       output.push(
-        `<div class="md-block md-media-line">${renderLine(line, inlineOptions)}</div>`,
+        `<div dir="auto" class="md-block md-media-line">${renderLine(line, inlineOptions)}</div>`,
         mediaPreview(line, media[2], media[3], resolveAsset!),
       );
       i++;
@@ -1119,7 +1119,7 @@ export function renderDocument(
     const indent = / */.exec(line)![0].length;
     const style = indent ? ` style="padding-left:${indent * 0.75}rem"` : "";
 
-    output.push(`<div class="md-block ${lineClass(line)}"${style}>${renderLine(line, inlineOptions)}</div>`);
+    output.push(`<div dir="auto" class="md-block ${lineClass(line)}"${style}>${renderLine(line, inlineOptions)}</div>`);
     i++;
   }
 

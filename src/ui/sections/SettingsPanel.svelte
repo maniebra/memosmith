@@ -453,6 +453,29 @@
                   updateAppearance({ editorFont: editorFont as FontChoice })}
               />
             </label>
+            <label class="grid w-full gap-1.5 text-xs text-stone-500">
+              {$i18n.t("settings.interfaceStack")}
+              <Input
+                value={settings.appearance.uiFontStack}
+                className="h-9 font-mono text-xs"
+                placeholder={$i18n.t("settings.fontStackPlaceholder")}
+                oninput={(event) =>
+                  updateAppearance({ uiFontStack: (event.target as HTMLInputElement).value })}
+              />
+            </label>
+            <label class="grid w-full gap-1.5 text-xs text-stone-500">
+              {$i18n.t("settings.editorStack")}
+              <Input
+                value={settings.appearance.editorFontStack}
+                className="h-9 font-mono text-xs"
+                placeholder={$i18n.t("settings.fontStackPlaceholder")}
+                oninput={(event) =>
+                  updateAppearance({ editorFontStack: (event.target as HTMLInputElement).value })}
+              />
+            </label>
+            <span class="text-xs leading-relaxed text-stone-500 sm:col-span-2">
+              {$i18n.t("settings.fontStackHelp")}
+            </span>
           </div>
         </section>
 

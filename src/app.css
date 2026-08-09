@@ -84,7 +84,6 @@ textarea,
 @layer components {
   .md-block {
     @apply relative;
-    unicode-bidi: plaintext;
   }
 
   .md-block:hover,

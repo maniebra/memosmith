@@ -8,7 +8,9 @@ export type EditorLineHeight = "compact" | "comfortable" | "loose";
 export type AppearanceSettings = {
   accentColor: AccentColor;
   uiFont: FontChoice;
+  uiFontStack: string;
   editorFont: FontChoice;
+  editorFontStack: string;
   cornerStyle: CornerStyle;
   density: Density;
   editorLineHeight: EditorLineHeight;
@@ -17,7 +19,9 @@ export type AppearanceSettings = {
 export const defaultAppearanceSettings: AppearanceSettings = {
   accentColor: "emerald",
   uiFont: "system",
+  uiFontStack: "",
   editorFont: "system",
+  editorFontStack: "",
   cornerStyle: "soft",
   density: "comfortable",
   editorLineHeight: "comfortable",
@@ -125,12 +129,61 @@ const accentPalettes: Record<AccentColor, Record<string, string>> = {
 
 const fontStacks: Record<FontChoice, string> = {
   system:
-    'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
   inter:
     'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
   serif: 'Charter, "Bitstream Charter", "Sitka Text", Cambria, serif',
   mono: '"SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace',
 };
+
+const genericFontFamilies = new Set([
+  "serif",
+  "sans-serif",
+  "monospace",
+  "cursive",
+  "fantasy",
+  "system-ui",
+  "ui-serif",
+  "ui-sans-serif",
+  "ui-monospace",
+  "ui-rounded",
+  "emoji",
+  "math",
+  "fangsong",
+]);
+
+function cleanFontFamily(value: string) {
+  const family = value
+    .trim()
+    .replace(/^["']|["']$/g, "")
+    .replace(/[\u0000-\u001f\u007f]/g, "")
+    .trim();
+
+  if (!family || /[;{}]/.test(family)) {
+    return "";
+  }
+
+  return genericFontFamilies.has(family.toLowerCase()) ? family.toLowerCase() : JSON.stringify(family);
+}
+
+export function normalizeFontStack(value: unknown) {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  return value
+    .split(",")
+    .map(cleanFontFamily)
+    .filter(Boolean)
+    .slice(0, 12)
+    .join(", ");
+}
+
+function fontFamilyFor(choice: FontChoice, stack: string) {
+  const normalizedStack = normalizeFontStack(stack);
+
+  return normalizedStack ? `${normalizedStack}, ${fontStacks[choice]}` : fontStacks[choice];
+}
 
 const cornerVariables: Record<CornerStyle, Record<string, string>> = {
   soft: {
@@ -183,8 +236,8 @@ export function applyAppearanceTheme(
   root.style.setProperty("--ms-accent-color", `rgb(${palette["600"]})`);
   root.style.setProperty("--ms-accent-strong", `rgb(${palette["700"]})`);
   root.style.setProperty("--ms-accent-soft", `rgb(${palette["500"]})`);
-  root.style.setProperty("--ms-ui-font", fontStacks[appearance.uiFont]);
-  root.style.setProperty("--ms-editor-font", fontStacks[appearance.editorFont]);
+  root.style.setProperty("--ms-ui-font", fontFamilyFor(appearance.uiFont, appearance.uiFontStack));
+  root.style.setProperty("--ms-editor-font", fontFamilyFor(appearance.editorFont, appearance.editorFontStack));
   root.style.setProperty("--ms-editor-line-height", lineHeights[appearance.editorLineHeight]);
 
   for (const [name, value] of Object.entries(cornerVariables[appearance.cornerStyle])) {

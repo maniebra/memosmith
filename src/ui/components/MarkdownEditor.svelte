@@ -3781,7 +3781,6 @@
 <div
   bind:this={element}
   contenteditable={editable}
-  dir="auto"
   {spellcheck}
   role="textbox"
   tabindex="0"
