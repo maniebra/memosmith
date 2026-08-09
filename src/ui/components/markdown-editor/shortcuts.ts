@@ -3,6 +3,8 @@ import type { Editor } from "./types";
 type InlineMarker = "*" | "**";
 type SourceSelection = { start: number; end: number };
 
+const WORD_CHARACTER = /[\p{L}\p{N}_]/u;
+
 function prepareShortcut(event: KeyboardEvent, e: Editor) {
   event.preventDefault();
   event.stopPropagation();
@@ -15,6 +17,110 @@ function selectAll(event: KeyboardEvent, e: Editor) {
 
   if (e.value) {
     e.selectRange(0, e.value.length);
+  }
+
+  e.markActiveBlock();
+  return true;
+}
+
+function isWordCharacter(text: string, offset: number) {
+  const character = text.slice(offset, offset + 1);
+
+  return Boolean(character && WORD_CHARACTER.test(character));
+}
+
+function nextWordOffset(text: string, offset: number) {
+  let next = Math.min(offset, text.length);
+
+  while (next < text.length && isWordCharacter(text, next)) {
+    next += 1;
+  }
+
+  while (next < text.length && !isWordCharacter(text, next)) {
+    next += 1;
+  }
+
+  return next;
+}
+
+function previousWordOffset(text: string, offset: number) {
+  let previous = Math.max(0, offset);
+
+  while (previous > 0 && !isWordCharacter(text, previous - 1)) {
+    previous -= 1;
+  }
+
+  while (previous > 0 && isWordCharacter(text, previous - 1)) {
+    previous -= 1;
+  }
+
+  return previous;
+}
+
+function wordOffset(text: string, offset: number, direction: -1 | 1) {
+  return direction === 1
+    ? nextWordOffset(text, offset)
+    : previousWordOffset(text, offset);
+}
+
+function blockDirection(e: Editor, offset: number) {
+  const block = e.blockAtOffset(offset);
+
+  return block ? getComputedStyle(block).direction : "ltr";
+}
+
+function selectionAnchorOffset(e: Editor) {
+  const selection = getSelection();
+
+  return selection?.anchorNode
+    ? e.offsetForPosition(selection.anchorNode, selection.anchorOffset)
+    : null;
+}
+
+function selectToOffset(e: Editor, anchor: number, focus: number) {
+  const from = e.positionAtOffset(anchor);
+  const to = e.positionAtOffset(focus);
+  const selection = getSelection();
+
+  if (!from || !to || !selection) {
+    e.selectRange(Math.min(anchor, focus), Math.max(anchor, focus));
+    return;
+  }
+
+  const range = document.createRange();
+
+  range.setStart(from.node, from.offset);
+  range.collapse(true);
+  selection.removeAllRanges();
+  selection.addRange(range);
+
+  if (selection.extend) {
+    selection.extend(to.node, to.offset);
+  } else {
+    e.selectRange(Math.min(anchor, focus), Math.max(anchor, focus));
+  }
+}
+
+function handleRtlWordNavigation(event: KeyboardEvent, e: Editor) {
+  if (!event.ctrlKey || event.metaKey) {
+    return false;
+  }
+
+  const offset = e.caretOffset();
+
+  if (offset === null || blockDirection(e, offset) !== "rtl") {
+    return false;
+  }
+
+  const direction = event.key === "ArrowLeft" ? 1 : -1;
+  const next = wordOffset(e.value, offset, direction);
+
+  prepareShortcut(event, e);
+
+  if (event.shiftKey) {
+    selectToOffset(e, selectionAnchorOffset(e) ?? offset, next);
+  } else {
+    e.setCaret(next);
   }
 
   e.markActiveBlock();
@@ -122,7 +228,7 @@ function toggleInlineMark(
   return true;
 }
 
-export function handleFormattingShortcut(event: KeyboardEvent, e: Editor) {
+export function handleEditorShortcut(event: KeyboardEvent, e: Editor) {
   const shortcut = event.ctrlKey || event.metaKey;
 
   if (!shortcut || event.altKey) {
@@ -130,6 +236,10 @@ export function handleFormattingShortcut(event: KeyboardEvent, e: Editor) {
   }
 
   const key = event.key.toLowerCase();
+
+  if (key === "arrowleft" || key === "arrowright") {
+    return handleRtlWordNavigation(event, e);
+  }
 
   if (key === "a") {
     return selectAll(event, e);
