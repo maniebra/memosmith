@@ -1024,8 +1024,26 @@
     requestAnimationFrame(measureDecorations);
   }
 
-  $: decorations, element, value, textSize, scheduleMeasure();
-  $: element, editable, value, textSize, syncBlockToolbar();
+  function scheduleMeasureDependencyChange(
+    _decorations: Decoration[],
+    _element: HTMLElement | undefined,
+    _value: string,
+    _textSize: number,
+  ) {
+    scheduleMeasure();
+  }
+
+  function syncBlockToolbarDependencyChange(
+    _element: HTMLElement | undefined,
+    _editable: boolean,
+    _value: string,
+    _textSize: number,
+  ) {
+    syncBlockToolbar();
+  }
+
+  $: scheduleMeasureDependencyChange(decorations, element, value, textSize);
+  $: syncBlockToolbarDependencyChange(element, editable, value, textSize);
 
   onMount(() => {
     const observer = new ResizeObserver(() => {
@@ -2708,6 +2726,59 @@
     return host;
   }
 
+  function mountDatabaseEntry(anchor: HTMLElement, embed: DatabaseEmbed, key: string) {
+    if (!embed.database) {
+      return;
+    }
+
+    const databaseId = embed.database;
+    const host = createDatabaseHost(anchor);
+    const resizeObserver = new ResizeObserver(() => scheduleDatabaseLayout());
+
+    resizeObserver.observe(host);
+
+    databaseViews.set(key, {
+      card: anchor,
+      view: mount(DatabaseView, {
+        target: host,
+        props: databasePortalProps(anchor, host, embed, databaseId),
+      }),
+      host,
+      resizeObserver,
+    });
+    scheduleDatabaseLayout();
+  }
+
+  function databasePortalProps(anchor: HTMLElement, host: HTMLElement, embed: DatabaseEmbed, databaseId: string) {
+    return {
+      root: databaseRoot,
+      databaseId,
+      compact: true,
+      preloaded: databaseCache.get(databaseId) ?? null,
+      tableId: embed.table ?? null,
+      viewId: embed.view ?? null,
+      databaseOptions,
+      onStatus,
+      onRenamed: () => {},
+      onOpen: onOpenDatabase ? () => onOpenDatabase?.(databaseId) : null,
+      onChange: (database: Database) => databaseCache.set(database.id, database),
+      onNavigate: (tableId: string, viewId: string) => {
+        const current = databaseEntryForHost(host)?.card ?? anchor;
+
+        writeDatabaseEmbed(current, { database: databaseId, table: tableId, view: viewId });
+      },
+    };
+  }
+
+  function removeStaleDatabaseEntries(live: Set<string>) {
+    for (const [key, entry] of databaseViews) {
+      if (!live.has(key)) {
+        disposeDatabaseEntry(entry);
+        databaseViews.delete(key);
+      }
+    }
+  }
+
   function paintDatabaseEmbeds() {
     const focus = databaseFocus();
     const live = new Set<string>();
@@ -2735,50 +2806,10 @@
         continue;
       }
 
-      const databaseId = embed.database;
-      const host = createDatabaseHost(anchor);
-      const resizeObserver = new ResizeObserver(() => scheduleDatabaseLayout());
-
-      resizeObserver.observe(host);
-
-      const entry: DatabasePortal = {
-        card: anchor,
-        view: mount(DatabaseView, {
-          target: host,
-          props: {
-            root: databaseRoot,
-            databaseId,
-            compact: true,
-            preloaded: databaseCache.get(databaseId) ?? null,
-            tableId: embed.table ?? null,
-            viewId: embed.view ?? null,
-            databaseOptions,
-            onStatus,
-            onRenamed: () => {},
-            onOpen: onOpenDatabase ? () => onOpenDatabase?.(databaseId) : null,
-            onChange: (database: Database) => databaseCache.set(database.id, database),
-            onNavigate: (tableId: string, viewId: string) => {
-              const current = databaseEntryForHost(host)?.card ?? anchor;
-
-              writeDatabaseEmbed(current, { database: databaseId, table: tableId, view: viewId });
-            },
-          },
-        }),
-        host,
-        resizeObserver,
-      };
-
-      databaseViews.set(key, entry);
-      scheduleDatabaseLayout();
+      mountDatabaseEntry(anchor, embed, key);
     }
 
-    for (const [key, entry] of databaseViews) {
-      if (!live.has(key)) {
-        disposeDatabaseEntry(entry);
-        databaseViews.delete(key);
-      }
-    }
-
+    removeStaleDatabaseEntries(live);
     restoreDatabaseFocus(focus);
   }
 
@@ -2845,21 +2876,14 @@
     onInput();
   }
 
-  function handlePointerDown(event: PointerEvent) {
-    const handle = event.target as HTMLElement;
-
-    // pointerdown fires for the right button too, and a right click belongs to the context menu.
-    if (event.button !== 0) {
-      return;
-    }
-
+  function handleWikilinkPointer(event: PointerEvent, handle: HTMLElement) {
     const wikilink = handle.closest?.(".md-wikilink") as HTMLElement | null;
     const wikilinkEmbedOpen = handle.closest?.(".md-wikilink-embed-open") as HTMLElement | null;
 
     if (wikilinkEmbedOpen?.dataset.wikilinkTarget && onWikilink) {
       event.preventDefault();
       void onWikilink(wikilinkEmbedOpen.dataset.wikilinkTarget);
-      return;
+      return true;
     }
 
     if (
@@ -2869,32 +2893,30 @@
     ) {
       event.preventDefault();
       void onWikilink(wikilink.dataset.wikilinkTarget);
-      return;
+      return true;
     }
 
-    if (editable && handle.classList?.contains("md-resize") && handle.closest(EMBED_SELECTOR)) {
-      startEmbedResize(event, handle);
-      return;
-    }
+    return false;
+  }
 
+  function handleRunPointer(event: PointerEvent, handle: HTMLElement) {
     const runControl = handle.closest?.(".md-run-button, .md-run-restart") as HTMLElement | null;
 
-    if (runControl) {
-      const preview = runControl.closest(".md-run-preview") as HTMLElement | null;
-
-      if (preview) {
-        event.preventDefault();
-
-        if (runControl.classList.contains("md-run-restart")) {
-          void restartCell(preview);
-        } else {
-          void runCell(preview);
-        }
-      }
-
-      return;
+    if (!runControl) {
+      return false;
     }
 
+    const preview = runControl.closest(".md-run-preview") as HTMLElement | null;
+
+    if (preview) {
+      event.preventDefault();
+      void (runControl.classList.contains("md-run-restart") ? restartCell(preview) : runCell(preview));
+    }
+
+    return true;
+  }
+
+  function handleDiagramPointer(event: PointerEvent, handle: HTMLElement) {
     if (handle.closest?.(".md-diagram-open")) {
       const preview = handle.closest(".md-diagram-preview") as HTMLElement | null;
 
@@ -2903,7 +2925,7 @@
         openDiagram(preview);
       }
 
-      return;
+      return true;
     }
 
     if (handle.closest?.(".md-drawing-open")) {
@@ -2914,16 +2936,18 @@
         openDrawing(preview);
       }
 
-      return;
+      return true;
     }
 
+    return false;
+  }
+
+  function startMediaResize(event: PointerEvent, handle: HTMLElement) {
     if (!editable || !handle.classList?.contains("md-resize")) {
       return;
     }
 
-    const media = handle.parentElement?.querySelector(
-      ".md-media",
-    ) as HTMLElement | null;
+    const media = handle.parentElement?.querySelector(".md-media") as HTMLElement | null;
     const preview = handle.closest(".md-preview");
     const range = preview ? lineRangeFor(preview) : null;
 
@@ -2932,10 +2956,8 @@
     }
 
     event.preventDefault();
-
     const startX = event.clientX;
     const startWidth = media.getBoundingClientRect().width;
-    // A centered image grows from both edges, a right-aligned one grows leftwards.
     const align = mediaOptions(value.slice(range.start, range.end)).align;
     const factor = align === "center" ? 2 : align === "right" ? -1 : 1;
 
@@ -2946,13 +2968,31 @@
     const onUp = () => {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
-      setMediaOption(range, {
-        width: Math.round(media.getBoundingClientRect().width),
-      });
+      setMediaOption(range, { width: Math.round(media.getBoundingClientRect().width) });
     };
 
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
+  }
+
+  function handlePointerDown(event: PointerEvent) {
+    const handle = event.target as HTMLElement;
+
+    // pointerdown fires for the right button too, and a right click belongs to the context menu.
+    if (event.button !== 0 || handleWikilinkPointer(event, handle)) {
+      return;
+    }
+
+    if (editable && handle.classList?.contains("md-resize") && handle.closest(EMBED_SELECTOR)) {
+      startEmbedResize(event, handle);
+      return;
+    }
+
+    if (handleRunPointer(event, handle) || handleDiagramPointer(event, handle)) {
+      return;
+    }
+
+    startMediaResize(event, handle);
   }
 
   function placeCaretAtPoint(event: MouseEvent) {
@@ -3374,6 +3414,66 @@
     completionStart = null;
   }
 
+  function rescheduleCompletionAtCaret() {
+    const current = caretOffset();
+
+    if (current !== null) {
+      syncCompletions(current);
+    }
+  }
+
+  async function requestCompletionItems(context: NonNullable<ReturnType<typeof fenceContext>>) {
+    completionBusy = true;
+
+    try {
+      return await completeCode(
+        runSession || "scratch",
+        context.language,
+        context.code,
+        context.line,
+        context.character,
+        lspSettings,
+      );
+    } catch (error) {
+      console.warn("completions failed", error);
+      return [];
+    } finally {
+      completionBusy = false;
+    }
+  }
+
+  function showCompletions(items: Completion[], prefix: string, offset: number) {
+    completions = rankCompletions(items, prefix);
+    completionIndex = 0;
+    completionStart = completions.length ? offset - prefix.length : null;
+
+    const rect = getSelection()?.getRangeAt(0).getBoundingClientRect();
+
+    if (rect) {
+      completionPosition = { top: rect.bottom + 4, left: rect.left };
+    }
+  }
+
+  function scheduleCompletionRequest(
+    context: NonNullable<ReturnType<typeof fenceContext>>,
+    prefix: string,
+    offset: number,
+    request: number,
+  ) {
+    completionTimer = setTimeout(async () => {
+      if (completionBusy) {
+        rescheduleCompletionAtCaret();
+        return;
+      }
+
+      const items = await requestCompletionItems(context);
+
+      if (request === completionRequest && caretOffset() === offset) {
+        showCompletions(items, prefix, offset);
+      }
+    }, COMPLETION_DELAY);
+  }
+
   /** Completions come from a language server, so they are asked for after the typing pauses. */
   function syncCompletions(offset: number) {
     clearTimeout(completionTimer);
@@ -3400,51 +3500,7 @@
     const prefix = wordPrefix(line, context.character);
     const request = ++completionRequest;
 
-    completionTimer = setTimeout(async () => {
-      if (completionBusy) {
-        const current = caretOffset();
-
-        if (current !== null) {
-          syncCompletions(current);
-        }
-
-        return;
-      }
-
-      let items: Completion[] = [];
-
-      completionBusy = true;
-
-      try {
-        items = await completeCode(
-          runSession || "scratch",
-          context.language,
-          context.code,
-          context.line,
-          context.character,
-          lspSettings,
-        );
-      } catch (error) {
-        console.warn("completions failed", error);
-        items = [];
-      } finally {
-        completionBusy = false;
-      }
-
-      if (request !== completionRequest || caretOffset() !== offset) {
-        return;
-      }
-
-      completions = rankCompletions(items, prefix);
-      completionIndex = 0;
-      completionStart = completions.length ? offset - prefix.length : null;
-
-      const rect = getSelection()?.getRangeAt(0).getBoundingClientRect();
-
-      if (rect) {
-        completionPosition = { top: rect.bottom + 4, left: rect.left };
-      }
-    }, COMPLETION_DELAY);
+    scheduleCompletionRequest(context, prefix, offset, request);
   }
 
   function applyCompletion(item: Completion) {
@@ -3538,73 +3594,153 @@
     onInput();
   }
 
-  function handleKeydown(event: KeyboardEvent) {
-    if (insideDatabaseEmbed(event)) {
-      return;
+  function handleCompletionKeydown(event: KeyboardEvent) {
+    if (!completions.length) {
+      return false;
     }
 
-    const tableCell = tableCellForNode(event.target as Node | null);
-
-    if (tableCell && handleTableKeydown(event, tableCell)) {
-      return;
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      completionIndex =
+        (completionIndex + (event.key === "ArrowDown" ? 1 : completions.length - 1)) %
+        completions.length;
+      return true;
     }
 
-    if (completions.length) {
-      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-        event.preventDefault();
-        completionIndex =
-          (completionIndex + (event.key === "ArrowDown" ? 1 : completions.length - 1)) %
-          completions.length;
-        return;
-      }
-
-      if (event.key === "Enter" || event.key === "Tab") {
-        event.preventDefault();
-        applyCompletion(completions[completionIndex]);
-        return;
-      }
-
-      if (event.key === "Escape") {
-        closeCompletions();
-        return;
-      }
+    if (event.key === "Enter" || event.key === "Tab") {
+      event.preventDefault();
+      applyCompletion(completions[completionIndex]);
+      return true;
     }
 
-    if (slashCommands && slashStart !== null && matches.length) {
-      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-        event.preventDefault();
-        slashIndex =
-          (slashIndex + (event.key === "ArrowDown" ? 1 : matches.length - 1)) %
-          matches.length;
-        return;
-      }
-
-      if (event.key === "Enter" || event.key === "Tab") {
-        event.preventDefault();
-        runCommand(matches[slashIndex].prefix);
-        return;
-      }
-
-      if (event.key === "Escape") {
-        closeMenu();
-        return;
-      }
+    if (event.key === "Escape") {
+      closeCompletions();
+      return true;
     }
 
-    // Jupyter muscle memory: Ctrl/Cmd+Enter runs the cell holding the caret.
-    if (codeExecution && event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
-      const group = currentBlock()?.dataset.code;
-      const preview = group
-        ? (element?.querySelector(`.md-run-preview[data-code="${group}"]`) as HTMLElement | null)
-        : null;
+    return false;
+  }
 
-      if (preview) {
-        event.preventDefault();
-        void runCell(preview);
-        return;
-      }
+  function handleSlashKeydown(event: KeyboardEvent) {
+    if (!slashCommands || slashStart === null || !matches.length) {
+      return false;
     }
 
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      slashIndex =
+        (slashIndex + (event.key === "ArrowDown" ? 1 : matches.length - 1)) %
+        matches.length;
+      return true;
+    }
+
+    if (event.key === "Enter" || event.key === "Tab") {
+      event.preventDefault();
+      runCommand(matches[slashIndex].prefix);
+      return true;
+    }
+
+    if (event.key === "Escape") {
+      closeMenu();
+      return true;
+    }
+
+    return false;
+  }
+
+  function handleRunShortcut(event: KeyboardEvent) {
+    if (!codeExecution || event.key !== "Enter" || (!event.ctrlKey && !event.metaKey)) {
+      return false;
+    }
+
+    const group = currentBlock()?.dataset.code;
+    const preview = group
+      ? (element?.querySelector(`.md-run-preview[data-code="${group}"]`) as HTMLElement | null)
+      : null;
+
+    if (!preview) {
+      return false;
+    }
+
+    event.preventDefault();
+    void runCell(preview);
+    return true;
+  }
+
+  function handleAutoCloseKeydown(event: KeyboardEvent, offset: number, start: number) {
+    if (
+      event.key === "`" &&
+      /^[ \t]*``$/.test(value.slice(start, offset)) &&
+      !insideFence(value.slice(0, start))
+    ) {
+      event.preventDefault();
+      closeMenu();
+      replace(offset, offset, "`\n\n```", offset + 2);
+      return true;
+    }
+
+    if (
+      event.key === "Enter" &&
+      /^[ \t]*\$\$$/.test(value.slice(start, offset)) &&
+      mathUnclosed(value)
+    ) {
+      event.preventDefault();
+      closeMenu();
+      replace(offset, offset, "\n\n$$", offset + 1);
+      return true;
+    }
+
+    return false;
+  }
+
+  function handleEnterKeydown(event: KeyboardEvent, offset: number, start: number) {
+    if (event.key !== "Enter") {
+      return false;
+    }
+
+    event.preventDefault();
+    closeMenu();
+
+    if (blockAtOffset(offset)?.classList.contains("md-codeblock") && insideFence(value.slice(0, start))) {
+      replace(offset, offset, "\n");
+      return true;
+    }
+
+    const line = value.slice(start, offset);
+    const quotePrefix = continueQuote(line);
+    const prefix = quotePrefix || continueList(line);
+
+    if (!quotePrefix && /^\s*>\s?$/.test(line)) {
+      replace(start, offset, "");
+      return true;
+    }
+
+    if (!prefix && /^\s*([-*+]|\d+\.)( \[[ x]\])? $/.test(line)) {
+      replace(start, offset, "");
+      return true;
+    }
+
+    replace(offset, offset, `\n${prefix}`);
+    return true;
+  }
+
+  function handleTabKeydown(event: KeyboardEvent, offset: number, start: number) {
+    if (event.key !== "Tab") {
+      return false;
+    }
+
+    event.preventDefault();
+
+    if (event.shiftKey) {
+      replace(start, offset, value.slice(start, offset).replace(/^ {1,2}/, ""));
+    } else {
+      replace(offset, offset, "  ");
+    }
+
+    return true;
+  }
+
+  function handleMarkdownKeydown(event: KeyboardEvent) {
     const offset = caretOffset();
 
     if (offset === null || event.ctrlKey || event.metaKey || event.altKey) {
@@ -3618,70 +3754,29 @@
       return;
     }
 
-    // Third backtick opens a fenced block and closes it, caret on the line between.
-    if (
-      event.key === "`" &&
-      /^[ \t]*``$/.test(value.slice(start, offset)) &&
-      !insideFence(value.slice(0, start))
-    ) {
-      event.preventDefault();
-      closeMenu();
-      replace(offset, offset, "`\n\n```", offset + 2);
+    if (handleAutoCloseKeydown(event, offset, start) || handleEnterKeydown(event, offset, start)) {
       return;
     }
 
-    // Only close a `$$` that has no partner; inside an existing block Enter is just a new line.
-    if (
-      event.key === "Enter" &&
-      /^[ \t]*\$\$$/.test(value.slice(start, offset)) &&
-      mathUnclosed(value)
-    ) {
-      event.preventDefault();
-      closeMenu();
-      replace(offset, offset, "\n\n$$", offset + 1);
+    handleTabKeydown(event, offset, start);
+  }
+
+  function handleKeydown(event: KeyboardEvent) {
+    if (insideDatabaseEmbed(event)) {
       return;
     }
 
-    if (event.key === "Enter") {
-      event.preventDefault();
-      closeMenu();
+    const tableCell = tableCellForNode(event.target as Node | null);
 
-      if (blockAtOffset(offset)?.classList.contains("md-codeblock") && insideFence(value.slice(0, start))) {
-        replace(offset, offset, "\n");
-        return;
-      }
-
-      const line = value.slice(start, offset);
-      const quotePrefix = continueQuote(line);
-      const prefix = quotePrefix || continueList(line);
-
-      if (!quotePrefix && /^\s*>\s?$/.test(line)) {
-        replace(start, offset, "");
-        return;
-      }
-
-      if (!prefix && /^\s*([-*+]|\d+\.)( \[[ x]\])? $/.test(line)) {
-        replace(start, offset, "");
-        return;
-      }
-
-      replace(offset, offset, `\n${prefix}`);
+    if (tableCell && handleTableKeydown(event, tableCell)) {
       return;
     }
 
-    if (event.key === "Tab") {
-      event.preventDefault();
-
-      if (event.shiftKey) {
-        replace(
-          start,
-          offset,
-          value.slice(start, offset).replace(/^ {1,2}/, ""),
-        );
-      } else {
-        replace(offset, offset, "  ");
-      }
+    if (handleCompletionKeydown(event) || handleSlashKeydown(event) || handleRunShortcut(event)) {
+      return;
     }
+
+    handleMarkdownKeydown(event);
   }
 
   function handlePaste(event: ClipboardEvent) {

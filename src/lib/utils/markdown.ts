@@ -432,6 +432,63 @@ function ensureCell(table: MarkdownTable, row: number, column: number) {
   return normalized;
 }
 
+function mergeTableCellRight(table: MarkdownTable, row: number, column: number, cell: TableCell) {
+  const width = tableWidth(table);
+  const targetColumn = column + cell.colspan;
+  const target = tableCellAt(table, row, targetColumn);
+
+  if (!target || target.covered) {
+    return;
+  }
+
+  cell.text = [cell.text, target.text].filter(Boolean).join(" ");
+  cell.colspan += target.colspan;
+
+  for (let coveredColumn = targetColumn; coveredColumn < Math.min(width, targetColumn + target.colspan); coveredColumn++) {
+    table.rows[row][coveredColumn] = { ...emptyTableCell(), covered: true };
+  }
+}
+
+function mergeTableCellDown(table: MarkdownTable, row: number, column: number, cell: TableCell) {
+  const width = tableWidth(table);
+  const targetRow = row + cell.rowspan;
+
+  if (targetRow >= table.rows.length) {
+    return;
+  }
+
+  const target = tableCellAt(table, targetRow, column);
+
+  if (!target || target.covered) {
+    return;
+  }
+
+  cell.text = [cell.text, target.text].filter(Boolean).join(" ");
+  cell.rowspan += target.rowspan;
+
+  for (let coveredRow = targetRow; coveredRow < Math.min(table.rows.length, targetRow + target.rowspan); coveredRow++) {
+    for (let coveredColumn = column; coveredColumn < Math.min(width, column + cell.colspan); coveredColumn++) {
+      table.rows[coveredRow][coveredColumn] = { ...emptyTableCell(), covered: true };
+    }
+  }
+}
+
+function splitTableCell(table: MarkdownTable, row: number, column: number, cell: TableCell) {
+  const width = tableWidth(table);
+  const { colspan, rowspan } = cell;
+
+  cell.colspan = 1;
+  cell.rowspan = 1;
+
+  for (let splitRow = row; splitRow < Math.min(table.rows.length, row + rowspan); splitRow++) {
+    for (let splitColumn = column; splitColumn < Math.min(width, column + colspan); splitColumn++) {
+      if (splitRow !== row || splitColumn !== column) {
+        table.rows[splitRow][splitColumn] = emptyTableCell();
+      }
+    }
+  }
+}
+
 function applyTableEdit(table: MarkdownTable, edit: TableEdit): MarkdownTable {
   const row = "row" in edit ? Math.max(0, edit.row) : 0;
   const column = "column" in edit ? Math.max(0, edit.column) : 0;
@@ -455,47 +512,11 @@ function applyTableEdit(table: MarkdownTable, edit: TableEdit): MarkdownTable {
       tableRow.splice(insertionColumn, 0, emptyTableCell());
     }
   } else if (edit.type === "merge-right") {
-    const targetColumn = column + cell.colspan;
-    const target = tableCellAt(next, row, targetColumn);
-
-    if (target && !target.covered) {
-      cell.text = [cell.text, target.text].filter(Boolean).join(" ");
-      cell.colspan += target.colspan;
-
-      for (let coveredColumn = targetColumn; coveredColumn < Math.min(width, targetColumn + target.colspan); coveredColumn++) {
-        next.rows[row][coveredColumn] = { ...emptyTableCell(), covered: true };
-      }
-    }
+    mergeTableCellRight(next, row, column, cell);
   } else if (edit.type === "merge-down") {
-    const targetRow = row + cell.rowspan;
-
-    if (targetRow < next.rows.length) {
-      const target = tableCellAt(next, targetRow, column);
-
-      if (target && !target.covered) {
-        cell.text = [cell.text, target.text].filter(Boolean).join(" ");
-        cell.rowspan += target.rowspan;
-
-        for (let coveredRow = targetRow; coveredRow < Math.min(next.rows.length, targetRow + target.rowspan); coveredRow++) {
-          for (let coveredColumn = column; coveredColumn < Math.min(width, column + cell.colspan); coveredColumn++) {
-            next.rows[coveredRow][coveredColumn] = { ...emptyTableCell(), covered: true };
-          }
-        }
-      }
-    }
+    mergeTableCellDown(next, row, column, cell);
   } else if (edit.type === "split-cell") {
-    const { colspan, rowspan } = cell;
-
-    cell.colspan = 1;
-    cell.rowspan = 1;
-
-    for (let splitRow = row; splitRow < Math.min(next.rows.length, row + rowspan); splitRow++) {
-      for (let splitColumn = column; splitColumn < Math.min(width, column + colspan); splitColumn++) {
-        if (splitRow !== row || splitColumn !== column) {
-          next.rows[splitRow][splitColumn] = emptyTableCell();
-        }
-      }
-    }
+    splitTableCell(next, row, column, cell);
   } else if (edit.type === "set-cell-background") {
     cell.background = edit.background && TABLE_BACKGROUNDS.has(edit.background) ? edit.background : undefined;
   }
@@ -885,255 +906,324 @@ function embedLineClass(language: string) {
   return language === DATABASE_LANGUAGE ? "md-database-line" : "md-drawing-line";
 }
 
+class DocumentRenderer {
+  private readonly calloutDefinitions: CalloutDefinition[];
+  private readonly callouts: boolean;
+  private readonly codeExecution: boolean;
+  private readonly diagrams: boolean;
+  private readonly drawings: boolean;
+  private readonly fancyTableEditor: boolean;
+  private readonly inlineOptions: RenderInlineOptions;
+  private readonly output: string[] = [];
+  private calloutGroup = 0;
+  private codeGroup = 0;
+  private diagramEngine: LiveDiagramEngine | null = null;
+  private diagramInfo = "";
+  private diagramLines: string[] | null = null;
+  private embedGroup: number | null = null;
+  private embedLanguage: string | null = null;
+  private embedSourceLines: string[] | null = null;
+  private language: string | null = null;
+  private mathGroup = 0;
+  private mathLines: string[] | null = null;
+  private tableGroup = 0;
+  private runLanguage: string | null = null;
+
+  constructor(
+    private readonly text: string,
+    private readonly resolveAsset: ((source: string) => string) | undefined,
+    private readonly options: RenderDocumentOptions,
+  ) {
+    this.calloutDefinitions = options.calloutDefinitions ?? defaultCalloutDefinitions;
+    this.callouts = options.callouts ?? false;
+    this.codeExecution = options.codeExecution ?? false;
+    this.diagrams = options.diagrams ?? false;
+    this.drawings = options.drawings ?? false;
+    this.fancyTableEditor = options.fancyTableEditor ?? true;
+    this.inlineOptions = { resolveWikilink: options.resolveWikilink };
+  }
+
+  render() {
+    const lines = this.text.split("\n");
+
+    for (let i = 0; i < lines.length; ) {
+      i = this.renderNextLine(lines, i);
+    }
+
+    if (this.mathLines) {
+      this.pushMathLines(this.mathLines, false);
+    }
+
+    return this.output.join("");
+  }
+
+  private renderNextLine(lines: string[], index: number) {
+    const line = lines[index];
+
+    if (this.mathLines) {
+      return this.renderMathBlockLine(line, index);
+    }
+
+    const fence = FENCE.exec(line);
+
+    if (fence) {
+      return this.renderFenceLine(line, fence, index);
+    }
+
+    if (this.language !== null) {
+      return this.renderCodeLine(line, index);
+    }
+
+    return this.renderMarkdownLine(lines, index);
+  }
+
+  private pushMathLines(lines: string[], closed: boolean) {
+    const group = this.mathGroup++;
+
+    for (const line of lines) {
+      this.output.push(mathLine(line, group, closed));
+    }
+
+    if (closed) {
+      this.output.push(mathPreview(lines.slice(1, -1).join("\n"), group));
+    }
+  }
+
+  private renderMathBlockLine(line: string, index: number) {
+    this.mathLines?.push(line);
+
+    if (line.trim() === "$$" && this.mathLines) {
+      this.pushMathLines(this.mathLines, true);
+      this.mathLines = null;
+    }
+
+    return index + 1;
+  }
+
+  private embeddedLanguage(isOpening: boolean) {
+    if (!isOpening) {
+      return this.embedGroup !== null ? this.embedLanguage : null;
+    }
+
+    if (
+      (this.drawings && this.language === DRAWING_LANGUAGE) ||
+      (this.diagrams && this.language === DIAGRAM_LANGUAGE) ||
+      (this.options.databaseEmbeds && this.language === DATABASE_LANGUAGE)
+    ) {
+      return this.language;
+    }
+
+    return null;
+  }
+
+  private renderFenceLine(line: string, fence: RegExpExecArray, index: number) {
+    const isOpening = this.language === null;
+    const className = isOpening ? "md-fence md-fence-open" : "md-fence md-fence-close";
+
+    this.language = isOpening ? fence[1].toLowerCase() : null;
+    const codeIndex = isOpening ? this.codeGroup : this.codeGroup++;
+    const embedded = this.embeddedLanguage(isOpening);
+    const opensDiagram = isOpening && !embedded ? liveDiagramEngine(fence[1].toLowerCase(), this.options) : null;
+
+    this.setFenceState(line, isOpening, embedded, opensDiagram, fence[2]);
+    this.output.push(this.fenceLineHtml(line, className, embedded, opensDiagram, codeIndex));
+    this.closeFencePreviews(line, isOpening, embedded, codeIndex);
+
+    return index + 1;
+  }
+
+  private setFenceState(line: string, isOpening: boolean, embedded: string | null, opensDiagram: LiveDiagramEngine | null, info: string) {
+    this.embedLanguage = isOpening ? embedded : null;
+    this.embedGroup = embedded && isOpening ? this.codeGroup : null;
+    this.embedSourceLines = embedded && isOpening ? [line] : this.embedSourceLines;
+
+    if (isOpening) {
+      this.runLanguage = this.codeExecution && !embedded && isRunnable(this.language ?? "") ? this.language : null;
+      this.diagramLines = opensDiagram ? [] : null;
+      this.diagramEngine = opensDiagram;
+      this.diagramInfo = opensDiagram ? info : "";
+    }
+  }
+
+  private fenceLineHtml(line: string, className: string, embedded: string | null, opensDiagram: LiveDiagramEngine | null, index: number) {
+    const embedClass = embedded ? ` ${embedLineClass(embedded)}` : "";
+    const diagramClass = opensDiagram || this.diagramLines ? " md-livediagram-line" : "";
+    const editable = embedded === DATABASE_LANGUAGE || this.embedLanguage === DATABASE_LANGUAGE ? ' contenteditable="false"' : "";
+
+    return `<div dir="auto" class="md-block ${className}${embedClass}${diagramClass}"${editable} data-code="${index}">${escapeHtml(line)}</div>`;
+  }
+
+  private closeFencePreviews(line: string, isOpening: boolean, embedded: string | null, index: number) {
+    if (isOpening) {
+      return;
+    }
+
+    this.pushRunPreview(index);
+    this.pushLiveDiagramPreview(index);
+
+    if (embedded) {
+      this.pushEmbedPreview(line, embedded, index);
+    }
+  }
+
+  private pushRunPreview(index: number) {
+    if (this.runLanguage) {
+      this.output.push(runPreview(index, this.runLanguage));
+      this.runLanguage = null;
+    }
+  }
+
+  private pushLiveDiagramPreview(index: number) {
+    if (this.diagramLines && this.diagramEngine) {
+      this.output.push(liveDiagramPreview(index, this.diagramEngine, this.diagramLines.join("\n"), this.diagramInfo));
+      this.diagramLines = null;
+      this.diagramEngine = null;
+    }
+  }
+
+  private pushEmbedPreview(line: string, embedded: string, index: number) {
+    this.embedSourceLines?.push(line);
+    const embedSource = this.embedSourceLines?.slice(1, -1).join("\n") ?? "";
+
+    this.output.push(
+      embedded === DIAGRAM_LANGUAGE
+        ? diagramPreview(index, embedSource, this.options.staticDiagramPreviews)
+        : embedded === DATABASE_LANGUAGE
+          ? databasePreview(index, embedSource)
+          : drawingPreview(index),
+    );
+    this.embedSourceLines = null;
+  }
+
+  private renderCodeLine(line: string, index: number) {
+    if (this.embedLanguage) {
+      const embedClass = embedLineClass(this.embedLanguage);
+      const editable = this.embedLanguage === DATABASE_LANGUAGE ? ' contenteditable="false"' : "";
+
+      this.embedSourceLines?.push(line);
+      this.output.push(`<div dir="auto" class="md-block ${embedClass}"${editable} data-code="${this.codeGroup}">${escapeHtml(line)}</div>`);
+      return index + 1;
+    }
+
+    this.diagramLines?.push(line);
+    this.output.push(
+      `<div dir="auto" class="md-block md-codeblock${this.diagramLines ? " md-livediagram-line" : ""}" data-code="${this.codeGroup}" data-language="${attribute(this.language ?? "")}">${renderCode(line, this.language ?? "")}</div>`,
+    );
+    return index + 1;
+  }
+
+  private renderMarkdownLine(lines: string[], index: number) {
+    const line = lines[index];
+    const equation = EQUATION_BLOCK.exec(line);
+
+    if (equation) {
+      return this.renderEquationLine(line, equation[1], index);
+    }
+
+    if (line.trim() === "$$") {
+      this.mathLines = [line];
+      return index + 1;
+    }
+
+    return this.renderRichMarkdownLine(lines, index);
+  }
+
+  private renderEquationLine(line: string, source: string, index: number) {
+    const group = this.mathGroup++;
+
+    this.output.push(mathLine(line, group, true), mathPreview(source, group));
+    return index + 1;
+  }
+
+  private renderRichMarkdownLine(lines: string[], index: number) {
+    const line = lines[index];
+    const wikilinkEmbed = WIKILINK_EMBED_LINE.exec(line);
+
+    if (wikilinkEmbed) {
+      this.output.push(
+        `<div dir="auto" class="md-block md-wikilink-embed-line">${renderLine(line, this.inlineOptions)}</div>`,
+        wikilinkEmbedPreview(wikilinkEmbed[2], this.options),
+      );
+      return index + 1;
+    }
+
+    if (this.callouts && CALLOUT_START.test(line)) {
+      return this.renderCalloutLines(lines, index);
+    }
+
+    return this.renderMediaTableOrPlainLine(lines, index);
+  }
+
+  private renderCalloutLines(lines: string[], index: number) {
+    const calloutLines = [lines[index]];
+    let next = index + 1;
+
+    while (next < lines.length && CALLOUT_LINE.test(lines[next]) && !CALLOUT_START.test(lines[next])) {
+      calloutLines.push(lines[next]);
+      next++;
+    }
+
+    const group = this.calloutGroup++;
+    const start = CALLOUT_START.exec(calloutLines[0]);
+    const definition = calloutDefinition(start?.[1] ?? "note", this.calloutDefinitions);
+
+    for (const [lineIndex, sourceLine] of calloutLines.entries()) {
+      this.output.push(calloutLine(sourceLine, group, definition, lineIndex, calloutLines.length, this.inlineOptions));
+    }
+
+    this.output.push(calloutPreview(calloutLines, group, this.calloutDefinitions, this.inlineOptions));
+    return next;
+  }
+
+  private renderMediaTableOrPlainLine(lines: string[], index: number) {
+    const line = lines[index];
+    const media = this.resolveAsset ? MEDIA_LINE.exec(line) : null;
+
+    if (media && this.resolveAsset) {
+      this.output.push(
+        `<div dir="auto" class="md-block md-media-line">${renderLine(line, this.inlineOptions)}</div>`,
+        mediaPreview(line, media[2], media[3], this.resolveAsset),
+      );
+      return index + 1;
+    }
+
+    return isTableStart(lines, index) ? this.renderTableLines(lines, index) : this.renderPlainLine(line, index);
+  }
+
+  private renderTableLines(lines: string[], index: number) {
+    const tableLines = [lines[index], lines[index + 1]];
+    let next = index + 2;
+
+    while (next < lines.length && isTableRow(lines[next])) {
+      tableLines.push(lines[next]);
+      next++;
+    }
+
+    const group = this.tableGroup++;
+
+    for (const tableSourceLine of tableLines) {
+      this.output.push(tableLine(tableSourceLine, group, this.inlineOptions));
+    }
+
+    this.output.push(tablePreview(tableLines, group, this.fancyTableEditor, this.inlineOptions));
+    return next;
+  }
+
+  private renderPlainLine(line: string, index: number) {
+    const indent = / */.exec(line)![0].length;
+    const style = indent ? ` style="padding-left:${indent * 0.75}rem"` : "";
+
+    this.output.push(`<div dir="auto" class="md-block ${lineClass(line)}"${style}>${renderLine(line, this.inlineOptions)}</div>`);
+    return index + 1;
+  }
+}
+
 export function renderDocument(
   text: string,
   resolveAsset?: (source: string) => string,
   options: RenderDocumentOptions = {},
 ) {
-  const fancyTableEditor = options.fancyTableEditor ?? true;
-  const callouts = options.callouts ?? false;
-  const calloutDefinitions = options.calloutDefinitions ?? defaultCalloutDefinitions;
-  const drawings = options.drawings ?? false;
-  const diagrams = options.diagrams ?? false;
-  const codeExecution = options.codeExecution ?? false;
-  /** Language of the open fence when it is runnable, so its close can grow a run bar. */
-  let runLanguage: string | null = null;
-  /** Source of the open live-diagram fence, so its close can grow a preview. */
-  let diagramLines: string[] | null = null;
-  /** Engine and layout options from the opening fence, kept until its close builds the preview. */
-  let diagramEngine: LiveDiagramEngine | null = null;
-  let diagramInfo = "";
-  const inlineOptions = { resolveWikilink: options.resolveWikilink };
-  let embedGroup: number | null = null;
-  /** Non-null while inside a fenced block that renders as a preview card instead of code. */
-  let embedLanguage: string | null = null;
-  let embedSourceLines: string[] | null = null;
-  let language: string | null = null;
-  let codeGroup = 0;
-  let mathGroup = 0;
-  let tableGroup = 0;
-  let calloutGroup = 0;
-  let mathLines: string[] | null = null;
-  const output: string[] = [];
-
-  function pushMathLines(lines: string[], closed: boolean) {
-    const group = mathGroup++;
-
-    for (const line of lines) {
-      output.push(mathLine(line, group, closed));
-    }
-
-    // An unclosed block has no equation yet, so there is nothing to preview.
-    if (closed) {
-      output.push(mathPreview(lines.slice(1, -1).join("\n"), group));
-    }
-  }
-
-  const lines = text.split("\n");
-
-  for (let i = 0; i < lines.length; ) {
-    const line = lines[i];
-    const fence = FENCE.exec(line);
-
-    if (mathLines) {
-      mathLines.push(line);
-
-      if (line.trim() === "$$") {
-        pushMathLines(mathLines, true);
-        mathLines = null;
-      }
-
-      i++;
-      continue;
-    }
-
-    if (fence) {
-      const isOpening: boolean = language === null;
-      const className = isOpening ? "md-fence md-fence-open" : "md-fence md-fence-close";
-
-      language = isOpening ? fence[1].toLowerCase() : null;
-      const index = isOpening ? codeGroup : codeGroup++;
-      const embedded: string | null = isOpening
-        ? (drawings && language === DRAWING_LANGUAGE) ||
-          (diagrams && language === DIAGRAM_LANGUAGE) ||
-          (options.databaseEmbeds && language === DATABASE_LANGUAGE)
-          ? language
-          : null
-        : embedGroup !== null
-          ? embedLanguage
-          : null;
-
-      embedLanguage = isOpening ? embedded : null;
-      embedGroup = embedded && isOpening ? index : null;
-      embedSourceLines = embedded && isOpening ? [line] : embedSourceLines;
-      const embedClass = embedded ? ` ${embedLineClass(embedded)}` : "";
-      const opensDiagram =
-        isOpening && !embedded ? liveDiagramEngine(fence[1].toLowerCase(), options) : null;
-      // Source collapses behind the diagram unless the caret is inside the fence.
-      const diagramClass = opensDiagram || (!isOpening && diagramLines) ? " md-livediagram-line" : "";
-
-      output.push(
-        `<div dir="auto" class="md-block ${className}${embedClass}${diagramClass}"${
-          embedded === DATABASE_LANGUAGE || (embedLanguage === DATABASE_LANGUAGE && !isOpening)
-            ? ' contenteditable="false"'
-            : ""
-        } data-code="${index}">${escapeHtml(line)}</div>`,
-      );
-
-      if (isOpening) {
-        runLanguage = codeExecution && !embedded && isRunnable(language ?? "") ? language : null;
-        diagramLines = opensDiagram ? [] : null;
-        diagramEngine = opensDiagram;
-        diagramInfo = opensDiagram ? fence[2] : "";
-      } else {
-        if (runLanguage) {
-          output.push(runPreview(index, runLanguage));
-          runLanguage = null;
-        }
-
-        if (diagramLines && diagramEngine) {
-          output.push(
-            liveDiagramPreview(index, diagramEngine, diagramLines.join("\n"), diagramInfo),
-          );
-          diagramLines = null;
-          diagramEngine = null;
-        }
-      }
-
-      // The source lives behind the preview card, so the raw JSON is only shown while the caret is inside.
-      if (embedded && !isOpening) {
-        embedSourceLines?.push(line);
-        const embedSource = embedSourceLines?.slice(1, -1).join("\n") ?? "";
-
-        output.push(
-          embedded === DIAGRAM_LANGUAGE
-            ? diagramPreview(index, embedSource, options.staticDiagramPreviews)
-            : embedded === DATABASE_LANGUAGE
-              ? databasePreview(index, embedSource)
-              : drawingPreview(index),
-        );
-        embedSourceLines = null;
-      }
-
-      i++;
-      continue;
-    }
-
-    if (language !== null) {
-      // Embedded source never wears the code slab: it sits collapsed behind the preview card.
-      if (embedLanguage) {
-        const embedClass = embedLineClass(embedLanguage);
-
-        embedSourceLines?.push(line);
-        output.push(
-          `<div dir="auto" class="md-block ${embedClass}"${
-            embedLanguage === DATABASE_LANGUAGE ? ' contenteditable="false"' : ""
-          } data-code="${codeGroup}">${escapeHtml(line)}</div>`,
-        );
-        i++;
-        continue;
-      }
-
-      diagramLines?.push(line);
-      output.push(
-        `<div dir="auto" class="md-block md-codeblock${diagramLines ? " md-livediagram-line" : ""}" data-code="${codeGroup}" data-language="${attribute(language)}">${renderCode(line, language)}</div>`,
-      );
-      i++;
-      continue;
-    }
-
-    const equation = EQUATION_BLOCK.exec(line);
-
-    if (equation) {
-      const group = mathGroup++;
-
-      output.push(mathLine(line, group, true), mathPreview(equation[1], group));
-      i++;
-      continue;
-    }
-
-    if (line.trim() === "$$") {
-      mathLines = [line];
-      i++;
-      continue;
-    }
-
-    const wikilinkEmbed = WIKILINK_EMBED_LINE.exec(line);
-
-    if (wikilinkEmbed) {
-      output.push(
-        `<div dir="auto" class="md-block md-wikilink-embed-line">${renderLine(line, inlineOptions)}</div>`,
-        wikilinkEmbedPreview(wikilinkEmbed[2], options),
-      );
-      i++;
-      continue;
-    }
-
-    if (callouts && CALLOUT_START.test(line)) {
-      const calloutLines = [line];
-      let j = i + 1;
-
-      while (j < lines.length && CALLOUT_LINE.test(lines[j]) && !CALLOUT_START.test(lines[j])) {
-        calloutLines.push(lines[j]);
-        j++;
-      }
-
-      const group = calloutGroup++;
-      const start = CALLOUT_START.exec(calloutLines[0]);
-      const definition = calloutDefinition(start?.[1] ?? "note", calloutDefinitions);
-
-      for (const [index, calloutSourceLine] of calloutLines.entries()) {
-        output.push(calloutLine(calloutSourceLine, group, definition, index, calloutLines.length, inlineOptions));
-      }
-
-      output.push(calloutPreview(calloutLines, group, calloutDefinitions, inlineOptions));
-      i = j;
-      continue;
-    }
-
-    const media = resolveAsset ? MEDIA_LINE.exec(line) : null;
-
-    if (media) {
-      output.push(
-        `<div dir="auto" class="md-block md-media-line">${renderLine(line, inlineOptions)}</div>`,
-        mediaPreview(line, media[2], media[3], resolveAsset!),
-      );
-      i++;
-      continue;
-    }
-
-    if (isTableStart(lines, i)) {
-      const tableLines = [line, lines[i + 1]];
-      let j = i + 2;
-
-      while (j < lines.length && isTableRow(lines[j])) {
-        tableLines.push(lines[j]);
-        j++;
-      }
-
-      const group = tableGroup++;
-
-      for (const tableSourceLine of tableLines) {
-        output.push(tableLine(tableSourceLine, group, inlineOptions));
-      }
-
-      output.push(tablePreview(tableLines, group, fancyTableEditor, inlineOptions));
-      i = j;
-      continue;
-    }
-
-    const indent = / */.exec(line)![0].length;
-    const style = indent ? ` style="padding-left:${indent * 0.75}rem"` : "";
-
-    output.push(`<div dir="auto" class="md-block ${lineClass(line)}"${style}>${renderLine(line, inlineOptions)}</div>`);
-    i++;
-  }
-
-  if (mathLines) {
-    pushMathLines(mathLines, false);
-  }
-
-  return output.join("");
+  return new DocumentRenderer(text, resolveAsset, options).render();
 }
 
 /** Prefix to start the next line with when Enter is pressed inside a list. */

@@ -196,6 +196,61 @@ function asNumber(value: CellValue | undefined) {
   return Number.isFinite(number) ? number : null;
 }
 
+function matchesNumberCondition(condition: FilterCondition, cell: CellValue | undefined) {
+  const cellNumber = asNumber(cell);
+  const targetNumber = asNumber(condition.value);
+
+  if (cellNumber === null || targetNumber === null) {
+    return false;
+  }
+
+  switch (condition.operator) {
+    case "is":
+      return cellNumber === targetNumber;
+    case "is_not":
+      return cellNumber !== targetNumber;
+    case "greater_than":
+      return cellNumber > targetNumber;
+    case "less_than":
+      return cellNumber < targetNumber;
+    default:
+      return true;
+  }
+}
+
+function matchesMultiValueCondition(condition: FilterCondition, cell: CellValue | undefined) {
+  const values = (Array.isArray(cell) ? cell : []).map((entry) => String(entry).toLowerCase());
+  const wanted = String(condition.value).toLowerCase();
+
+  return condition.operator === "does_not_contain" ? !values.includes(wanted) : values.includes(wanted);
+}
+
+function matchesTextCondition(condition: FilterCondition, cell: CellValue | undefined) {
+  const cellText = asText(cell);
+  const targetText = asText(condition.value);
+
+  switch (condition.operator) {
+    case "is":
+      return cellText === targetText;
+    case "is_not":
+      return cellText !== targetText;
+    case "contains":
+      return cellText.includes(targetText);
+    case "does_not_contain":
+      return !cellText.includes(targetText);
+    case "starts_with":
+      return cellText.startsWith(targetText);
+    case "ends_with":
+      return cellText.endsWith(targetText);
+    case "on_or_after":
+      return cellText >= targetText;
+    case "on_or_before":
+      return cellText <= targetText;
+    default:
+      return true;
+  }
+}
+
 function matchesCondition(condition: FilterCondition, column: Column | undefined, row: Row) {
   const cell = row.data[condition.column];
 
@@ -218,59 +273,15 @@ function matchesCondition(condition: FilterCondition, column: Column | undefined
   }
 
   if (column?.type === "number") {
-    const cellNumber = asNumber(cell);
-    const targetNumber = asNumber(target);
-
-    if (cellNumber === null || targetNumber === null) {
-      return false;
-    }
-
-    switch (condition.operator) {
-      case "is":
-        return cellNumber === targetNumber;
-      case "is_not":
-        return cellNumber !== targetNumber;
-      case "greater_than":
-        return cellNumber > targetNumber;
-      case "less_than":
-        return cellNumber < targetNumber;
-      default:
-        return true;
-    }
+    return matchesNumberCondition(condition, cell);
   }
 
   // Relations hold linked row ids, so membership works the same as multi-select.
   if (column?.type === "multi_select" || column?.type === "relation") {
-    const values = (Array.isArray(cell) ? cell : []).map((entry) => String(entry).toLowerCase());
-    const wanted = String(target).toLowerCase();
-
-    return condition.operator === "does_not_contain" ? !values.includes(wanted) : values.includes(wanted);
+    return matchesMultiValueCondition(condition, cell);
   }
 
-  const cellText = asText(cell);
-  const targetText = asText(target);
-
-  switch (condition.operator) {
-    case "is":
-      return cellText === targetText;
-    case "is_not":
-      return cellText !== targetText;
-    case "contains":
-      return cellText.includes(targetText);
-    case "does_not_contain":
-      return !cellText.includes(targetText);
-    case "starts_with":
-      return cellText.startsWith(targetText);
-    case "ends_with":
-      return cellText.endsWith(targetText);
-    // Dates are ISO strings, so lexical comparison is chronological.
-    case "on_or_after":
-      return cellText >= targetText;
-    case "on_or_before":
-      return cellText <= targetText;
-    default:
-      return true;
-  }
+  return matchesTextCondition(condition, cell);
 }
 
 export function matchesFilter(node: FilterNode, columns: Column[], row: Row): boolean {
