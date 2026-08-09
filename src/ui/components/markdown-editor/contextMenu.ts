@@ -145,15 +145,11 @@ class EditorContextMenu {
       return;
     }
 
-    if (!this.e.element) {
+    if (!this.e.element || !this.e.value) {
       return;
     }
 
-    const range = document.createRange();
-    range.selectNodeContents(this.e.element);
-    const selection = getSelection();
-    selection?.removeAllRanges();
-    selection?.addRange(range);
+    this.e.selectRange(0, this.e.value.length);
     this.e.markActiveBlock();
   }
 

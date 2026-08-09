@@ -5,6 +5,7 @@ import {
   mathUnclosed,
 } from "../../../lib/utils/markdown";
 import { EMBED_SELECTOR } from "./embedLayout";
+import { handleFormattingShortcut } from "./shortcuts";
 import type { Editor, EventApi } from "./types";
 
 export function createEvents(e: Editor): EventApi {
@@ -286,6 +287,7 @@ class EditorEvents {
     }
 
     if (
+      handleFormattingShortcut(event, e) ||
       this.handleCompletionKeydown(event) ||
       this.handleSlashKeydown(event) ||
       this.handleRunShortcut(event)

@@ -174,6 +174,7 @@ export type DomApi = {
   tableCellForNode: (node: Node | null) => HTMLElement | null;
   offsetForPosition: (node: Node, nodeOffset: number) => number | null;
   selectionOffsets: () => { start: number; end: number } | null;
+  selectRange: (start: number, end: number) => void;
   setCaret: (offset: number) => void;
   positionAtOffset: (offset: number) => { node: Node; offset: number } | null;
   lineStartAt: (offset: number) => number;

@@ -257,6 +257,11 @@
 
   function handleShortcut(event: KeyboardEvent) {
     const isPrimaryShortcut = event.ctrlKey || event.metaKey;
+
+    if (event.defaultPrevented) {
+      return;
+    }
+
     if (event.key === "Escape" && (settingsOpen || databasesOpen)) {
       settingsOpen = false;
       databasesOpen = false;

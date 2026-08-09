@@ -23,6 +23,7 @@ export function createDom(e: Editor): DomApi {
     positionAtOffset: service.positionAtOffset.bind(service),
     previewForNode: service.previewForNode.bind(service),
     selectionOffsets: service.selectionOffsets.bind(service),
+    selectRange: service.selectRange.bind(service),
     setCaret: service.setCaret.bind(service),
     sourceLength: service.sourceLength.bind(service),
     sourceText: service.sourceText.bind(service),
@@ -260,6 +261,24 @@ class EditorDom {
       start: Math.min(anchor, focus),
       end: Math.max(anchor, focus),
     };
+  }
+
+  selectRange(start: number, end: number) {
+    const from = this.positionAtOffset(start);
+    const to = this.positionAtOffset(end);
+
+    if (!from || !to) {
+      return;
+    }
+
+    const range = document.createRange();
+
+    range.setStart(from.node, from.offset);
+    range.setEnd(to.node, to.offset);
+
+    const selection = getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
   }
 
   setCaret(offset: number) {

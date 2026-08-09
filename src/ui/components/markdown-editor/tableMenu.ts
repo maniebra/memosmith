@@ -89,6 +89,16 @@ class EditorTableMenu {
       return true;
     }
 
+    if (key === "b") {
+      this.toggleTableInlineMark(event, cell, "**");
+      return true;
+    }
+
+    if (key === "i") {
+      this.toggleTableInlineMark(event, cell, "*");
+      return true;
+    }
+
     if (key === "c") {
       event.preventDefault();
       void this.e.copySelection();
@@ -108,6 +118,29 @@ class EditorTableMenu {
     }
 
     return false;
+  }
+
+  private toggleTableInlineMark(
+    event: KeyboardEvent,
+    cell: HTMLElement,
+    marker: "*" | "**",
+  ) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const selection = this.e.tableSelection();
+
+    if (!selection || selection.cell !== cell || !selection.hasSelection) {
+      return;
+    }
+
+    const selected = selection.text;
+    const marked =
+      selected.startsWith(marker) && selected.endsWith(marker)
+        ? selected.slice(marker.length, selected.length - marker.length)
+        : `${marker}${selected}${marker}`;
+
+    this.e.replaceTableCellSelection(cell, marked);
   }
 
   handleTableKeydown(event: KeyboardEvent, cell: HTMLElement) {
