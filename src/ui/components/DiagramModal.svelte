@@ -26,7 +26,10 @@
   }
 
   function handleMessage(event: MessageEvent) {
-    if (event.source !== frame?.contentWindow || typeof event.data !== "string") {
+    if (
+      event.source !== frame?.contentWindow ||
+      typeof event.data !== "string"
+    ) {
       return;
     }
 
@@ -91,16 +94,30 @@
     <div
       class="flex items-center justify-between gap-3 border-b border-stone-200 px-4 py-2 dark:border-stone-700"
     >
-      <span class="text-sm font-medium text-stone-700 dark:text-stone-200">{$i18n.t("modal.diagram")}</span>
+      <span class="text-sm font-medium text-stone-700 dark:text-stone-200"
+        >{$i18n.t("modal.diagram")}</span
+      >
       {#if error}
         <span class="text-sm text-rose-500">{error}</span>
       {/if}
       <div class="flex gap-2">
-        <Button label={$i18n.t("common.cancel")} variant="ghost" onClick={onClose} />
-        <Button label={$i18n.t("common.save")} variant="primary" onClick={save} />
+        <Button
+          label={$i18n.t("common.cancel")}
+          variant="ghost"
+          onClick={onClose}
+        />
+        <Button
+          label={$i18n.t("common.save")}
+          variant="primary"
+          onClick={save}
+        />
       </div>
     </div>
-    <iframe class="min-h-0 flex-1 border-0" title={$i18n.t("modal.diagramEditor")} src={source} bind:this={frame}
+    <iframe
+      class="min-h-0 flex-1 border-0"
+      title={$i18n.t("modal.diagramEditor")}
+      src={source}
+      bind:this={frame}
     ></iframe>
   </div>
 </div>

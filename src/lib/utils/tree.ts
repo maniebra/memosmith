@@ -55,7 +55,11 @@ function sortNodes(nodes: TreeNode[]): TreeNode[] {
     }
   }
 
-  nodes.sort((a, b) => Number(Boolean(b.children)) - Number(Boolean(a.children)) || a.name.localeCompare(b.name));
+  nodes.sort(
+    (a, b) =>
+      Number(Boolean(b.children)) - Number(Boolean(a.children)) ||
+      a.name.localeCompare(b.name),
+  );
 
   return nodes;
 }

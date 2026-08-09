@@ -1,6 +1,10 @@
 import { fetch } from "@tauri-apps/plugin-http";
 import { translate } from "../i18n";
-import { mergeLlm, type GrammarProfile, type LlmSettings } from "../storage/settings";
+import {
+  mergeLlm,
+  type GrammarProfile,
+  type LlmSettings,
+} from "../storage/settings";
 import {
   checkPrompt,
   EXPLAIN_SYSTEM_PROMPT,
@@ -28,7 +32,9 @@ async function chat(llm: LlmSettings, system: string, prompt: string) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(llm.apiKey.trim() ? { Authorization: `Bearer ${llm.apiKey.trim()}` } : {}),
+      ...(llm.apiKey.trim()
+        ? { Authorization: `Bearer ${llm.apiKey.trim()}` }
+        : {}),
     },
     body: JSON.stringify({
       model: llm.model.trim(),
@@ -43,7 +49,9 @@ async function chat(llm: LlmSettings, system: string, prompt: string) {
   const payload = await response.json();
 
   if (!response.ok) {
-    throw new Error(payload?.error?.message ?? `LLM request failed (${response.status})`);
+    throw new Error(
+      payload?.error?.message ?? `LLM request failed (${response.status})`,
+    );
   }
 
   const content = payload?.choices?.[0]?.message?.content;
@@ -74,6 +82,14 @@ export async function checkGrammar(
   );
 }
 
-export function explainIssue(llm: LlmSettings, issue: GrammarIssue, profile: GrammarProfile) {
-  return chat(mergeLlm(llm, profile.llm), EXPLAIN_SYSTEM_PROMPT, explainPrompt(issue));
+export function explainIssue(
+  llm: LlmSettings,
+  issue: GrammarIssue,
+  profile: GrammarProfile,
+) {
+  return chat(
+    mergeLlm(llm, profile.llm),
+    EXPLAIN_SYSTEM_PROMPT,
+    explainPrompt(issue),
+  );
 }

@@ -1,5 +1,13 @@
 <script lang="ts">
-  import { Database, FileDown, Link2, PanelLeftClose, PanelLeftOpen, Settings, ShieldCheck } from "@lucide/svelte";
+  import {
+    Database,
+    FileDown,
+    Link2,
+    PanelLeftClose,
+    PanelLeftOpen,
+    Settings,
+    ShieldCheck,
+  } from "@lucide/svelte";
   import { i18n } from "../../lib/i18n";
   import { cn } from "../../lib/utils/cn";
   import Button from "../components/Button.svelte";
@@ -27,7 +35,9 @@
   export let onToggleGrammar: () => void;
   export let onExportPdf: (() => void) | null = null;
 
-  $: visibleBreadcrumbs = breadcrumbs.length ? breadcrumbs : [{ label: fileLabel }];
+  $: visibleBreadcrumbs = breadcrumbs.length
+    ? breadcrumbs
+    : [{ label: fileLabel }];
 </script>
 
 <header
@@ -49,17 +59,25 @@
     {/if}
   </button>
 
-  <nav class="flex min-w-0 items-center gap-0 text-sm font-medium leading-none" aria-label={$i18n.t("toolbar.currentNote")}>
+  <nav
+    class="flex min-w-0 items-center gap-0 text-sm font-medium leading-none"
+    aria-label={$i18n.t("toolbar.currentNote")}
+  >
     <span class="shrink-0 text-stone-500 dark:text-stone-400">
       {title}
     </span>
     {#each visibleBreadcrumbs as crumb, index}
-      <span class="mx-1.5 shrink-0 text-stone-300 dark:text-stone-600" aria-hidden="true">/</span>
+      <span
+        class="mx-1.5 shrink-0 text-stone-300 dark:text-stone-600"
+        aria-hidden="true">/</span
+      >
       {#if crumb.path}
         <button
           type="button"
           class="min-w-0 truncate rounded-sm text-left text-stone-700 transition-colors hover:text-stone-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 dark:text-stone-200 dark:hover:text-white"
-          aria-current={index === visibleBreadcrumbs.length - 1 ? "page" : undefined}
+          aria-current={index === visibleBreadcrumbs.length - 1
+            ? "page"
+            : undefined}
           onclick={() => onSelectBreadcrumb(crumb.path!)}
         >
           {crumb.label}
@@ -67,8 +85,9 @@
       {:else}
         <span
           class="min-w-0 truncate text-stone-700 dark:text-stone-200"
-          aria-current={index === visibleBreadcrumbs.length - 1 ? "page" : undefined}
-          >{crumb.label}</span
+          aria-current={index === visibleBreadcrumbs.length - 1
+            ? "page"
+            : undefined}>{crumb.label}</span
         >
       {/if}
     {/each}
@@ -87,15 +106,22 @@
         type="button"
         class={cn(
           "relative inline-flex size-8 items-center justify-center rounded-lg border border-transparent text-stone-500 transition-colors hover:bg-stone-500/10 hover:text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/40 dark:text-stone-400 dark:hover:text-stone-100",
-          backlinksOpen && "bg-emerald-600/10 text-emerald-700 dark:text-emerald-300",
+          backlinksOpen &&
+            "bg-emerald-600/10 text-emerald-700 dark:text-emerald-300",
         )}
-        aria-label={backlinksOpen ? $i18n.t("toolbar.hideBacklinks") : $i18n.t("toolbar.showBacklinks")}
+        aria-label={backlinksOpen
+          ? $i18n.t("toolbar.hideBacklinks")
+          : $i18n.t("toolbar.showBacklinks")}
         aria-pressed={backlinksOpen}
-        title={backlinksOpen ? $i18n.t("toolbar.hideBacklinks") : $i18n.t("toolbar.showBacklinks")}
+        title={backlinksOpen
+          ? $i18n.t("toolbar.hideBacklinks")
+          : $i18n.t("toolbar.showBacklinks")}
         onclick={onToggleBacklinks}
       >
         <Link2 class="size-4 shrink-0" strokeWidth={1.8} aria-hidden="true" />
-        <span class="absolute -top-0.5 -right-0.5 min-w-4 rounded bg-stone-500/10 px-1 text-[0.6rem] leading-4 text-stone-500 dark:text-stone-300">
+        <span
+          class="absolute -top-0.5 -right-0.5 min-w-4 rounded bg-stone-500/10 px-1 text-[0.6rem] leading-4 text-stone-500 dark:text-stone-300"
+        >
           {backlinksCount}
         </span>
       </button>
@@ -110,7 +136,13 @@
       />
     {/if}
     {#if onExportPdf}
-      <Button label={$i18n.t("toolbar.exportPdf")} icon={FileDown} onClick={onExportPdf} variant="ghost" size="sm" />
+      <Button
+        label={$i18n.t("toolbar.exportPdf")}
+        icon={FileDown}
+        onClick={onExportPdf}
+        variant="ghost"
+        size="sm"
+      />
     {/if}
     {#if databasesEnabled}
       <Button

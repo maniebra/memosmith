@@ -48,7 +48,9 @@ export const emojiIconChoices = [
   "🧪",
 ] as const;
 
-const lucideLookup = new Map(lucideIconNames.map((name) => [normalizeLucideName(name), name]));
+const lucideLookup = new Map(
+  lucideIconNames.map((name) => [normalizeLucideName(name), name]),
+);
 
 export function cleanPageMeta(meta: PageMeta): PageMeta {
   const next: PageMeta = {};
@@ -76,7 +78,9 @@ export function parsePageIcon(input: string): PageIcon | null {
   }
 
   const lucideMatch = value.match(/^lucide:(.+)$/i);
-  const lucideName = lucideLookup.get(normalizeLucideName(lucideMatch?.[1] ?? value));
+  const lucideName = lucideLookup.get(
+    normalizeLucideName(lucideMatch?.[1] ?? value),
+  );
 
   if (lucideName) {
     return { type: "lucide", value: lucideName };

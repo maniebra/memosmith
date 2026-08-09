@@ -27,7 +27,11 @@ export type Backlink = {
 const WIKILINK = /\[\[([^\]\n]+)\]\]/g;
 
 function normalizedPath(path: string) {
-  return path.replace(/\\/g, "/").replace(/^\/+/, "").replace(/\/+/g, "/").trim();
+  return path
+    .replace(/\\/g, "/")
+    .replace(/^\/+/, "")
+    .replace(/\/+/g, "/")
+    .trim();
 }
 
 function currentDir(currentNote: string | null) {
@@ -84,7 +88,10 @@ function hasUnsafePathSegment(path: string) {
     .some((segment) => !segment || segment === "." || segment === "..");
 }
 
-export function wikilinkCreatePath(rawTarget: string, currentNote: string | null) {
+export function wikilinkCreatePath(
+  rawTarget: string,
+  currentNote: string | null,
+) {
   const link = parseWikilink(rawTarget);
 
   if (!link.target) {
@@ -95,7 +102,9 @@ export function wikilinkCreatePath(rawTarget: string, currentNote: string | null
     ? link.target
     : [currentDir(currentNote), link.target].filter(Boolean).join("/");
 
-  return hasUnsafePathSegment(targetPath) ? null : withNoteExtension(targetPath);
+  return hasUnsafePathSegment(targetPath)
+    ? null
+    : withNoteExtension(targetPath);
 }
 
 export function resolveWikilinkTarget(

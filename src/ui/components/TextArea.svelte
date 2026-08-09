@@ -29,5 +29,4 @@
     sizeClass,
     className,
   )}
-  oninput={onInput}
-></textarea>
+  oninput={onInput}></textarea>

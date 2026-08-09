@@ -30,7 +30,9 @@ export function isDirNotePath(notePath: string): boolean {
 }
 
 export function entryPathFromNote(notePath: string): string {
-  return isDirNotePath(notePath) ? notePath.split("/").slice(0, -1).join("/") : notePath;
+  return isDirNotePath(notePath)
+    ? notePath.split("/").slice(0, -1).join("/")
+    : notePath;
 }
 
 export function displayNotePath(notePath: string): string {

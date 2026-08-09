@@ -14,7 +14,11 @@ export type GrammarReport = {
 
 export type GrammarMode = "normal" | "ielts" | "toefl" | "beginner";
 
-export const GRAMMAR_MODES: { id: GrammarMode; label: string; brief: string }[] = [
+export const GRAMMAR_MODES: {
+  id: GrammarMode;
+  label: string;
+  brief: string;
+}[] = [
   {
     id: "normal",
     label: "Normal",
@@ -43,7 +47,9 @@ Set "rating" to a rough CEFR level, like "A2". Be encouraging, report the cleare
 ];
 
 export function systemPromptFor(mode: GrammarMode) {
-  const brief = (GRAMMAR_MODES.find((entry) => entry.id === mode) ?? GRAMMAR_MODES[0]).brief;
+  const brief = (
+    GRAMMAR_MODES.find((entry) => entry.id === mode) ?? GRAMMAR_MODES[0]
+  ).brief;
 
   return `You are Grammar Police, a proofreader for markdown notes.
 Reply with JSON only, no prose and no code fence, shaped like:
@@ -127,7 +133,12 @@ function toIssue(value: unknown): GrammarIssue | null {
 }
 
 export function parseReport(raw: string): GrammarReport {
-  let parsed: { score?: unknown; rating?: unknown; summary?: unknown; issues?: unknown };
+  let parsed: {
+    score?: unknown;
+    rating?: unknown;
+    summary?: unknown;
+    issues?: unknown;
+  };
 
   try {
     parsed = JSON.parse(jsonPayload(raw));
@@ -141,7 +152,9 @@ export function parseReport(raw: string): GrammarReport {
     .filter((issue): issue is GrammarIssue => issue !== null);
 
   return {
-    score: Number.isFinite(score) ? Math.min(100, Math.max(0, Math.round(score))) : 0,
+    score: Number.isFinite(score)
+      ? Math.min(100, Math.max(0, Math.round(score)))
+      : 0,
     rating: typeof parsed.rating === "string" ? parsed.rating.trim() : "",
     summary: typeof parsed.summary === "string" ? parsed.summary : "",
     issues,
@@ -152,7 +165,11 @@ export function parseReport(raw: string): GrammarReport {
 export function applyIssue(text: string, issue: GrammarIssue) {
   const at = text.indexOf(issue.excerpt);
 
-  return at === -1 ? null : text.slice(0, at) + issue.replacement + text.slice(at + issue.excerpt.length);
+  return at === -1
+    ? null
+    : text.slice(0, at) +
+        issue.replacement +
+        text.slice(at + issue.excerpt.length);
 }
 
 export function issueRange(text: string, issue: GrammarIssue) {
@@ -162,5 +179,11 @@ export function issueRange(text: string, issue: GrammarIssue) {
 }
 
 export function scoreLabel(score: number) {
-  return score >= 90 ? "Excellent" : score >= 75 ? "Good" : score >= 50 ? "Needs work" : "Rough";
+  return score >= 90
+    ? "Excellent"
+    : score >= 75
+      ? "Good"
+      : score >= 50
+        ? "Needs work"
+        : "Rough";
 }

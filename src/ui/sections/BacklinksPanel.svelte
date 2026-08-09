@@ -26,7 +26,9 @@
     />
     <Link2 class="size-3.5" strokeWidth={1.8} aria-hidden="true" />
     <span>{$i18n.t("backlinks.title")}</span>
-    <span class="ml-auto rounded bg-stone-500/10 px-1.5 py-0.5 text-[0.65rem] leading-none">
+    <span
+      class="ml-auto rounded bg-stone-500/10 px-1.5 py-0.5 text-[0.65rem] leading-none"
+    >
       {backlinks.length}
     </span>
   </button>
@@ -52,18 +54,23 @@
             class="w-full rounded-md border border-stone-200 bg-white/70 px-3 py-2 text-left transition-colors hover:border-emerald-600/30 hover:bg-emerald-50/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 dark:border-stone-800 dark:bg-stone-900/45 dark:hover:border-emerald-400/30 dark:hover:bg-emerald-950/20"
             onclick={() => onSelect(backlink.path)}
           >
-            <span class="block truncate text-sm font-medium text-stone-800 dark:text-stone-200">
+            <span
+              class="block truncate text-sm font-medium text-stone-800 dark:text-stone-200"
+            >
               {backlink.title}
             </span>
             <span class="mt-1 grid gap-1">
               {#each backlink.matches.slice(0, 2) as match}
-                <span class="block truncate text-xs text-stone-500 dark:text-stone-400">
+                <span
+                  class="block truncate text-xs text-stone-500 dark:text-stone-400"
+                >
                   {match.line}: {match.snippet}
                 </span>
               {/each}
               {#if backlink.matches.length > 2}
                 <span class="text-xs text-stone-400">
-                  +{backlink.matches.length - 2} {$i18n.t("common.more")}
+                  +{backlink.matches.length - 2}
+                  {$i18n.t("common.more")}
                 </span>
               {/if}
             </span>

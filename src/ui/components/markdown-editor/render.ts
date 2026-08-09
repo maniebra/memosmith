@@ -1,0 +1,283 @@
+import { renderDocument } from "../../../lib/utils/markdown";
+import type { Editor, RenderApi } from "./types";
+
+export function createRender(e: Editor): RenderApi {
+  const service = new EditorRender(e);
+
+  return {
+    insertAssets: service.insertAssets.bind(service),
+    render: service.render.bind(service),
+    renderPreservingScroll: service.renderPreservingScroll.bind(service),
+    replace: service.replace.bind(service),
+    replaceSelection: service.replaceSelection.bind(service),
+    restoreScrollSnapshot: service.restoreScrollSnapshot.bind(service),
+    scrollSnapshot: service.scrollSnapshot.bind(service),
+    syncDiagramSettings: service.syncDiagramSettings.bind(service),
+    syncFeatures: service.syncFeatures.bind(service),
+    syncValue: service.syncValue.bind(service),
+  };
+}
+
+type ScrollSnapshot = { node: HTMLElement; top: number; left: number }[];
+
+/** Rendering the note, moving the caret with it, and keeping the view still. */
+class EditorRender {
+  private renderedCalloutDefinitions = "";
+  private renderedWikilinkKey = "";
+  /** Filled on the first sync: props are not assigned yet at build time. */
+  private rendered: Record<string, boolean> | null = null;
+
+  constructor(private e: Editor) {}
+
+  private featureFlags() {
+    const props = this.e.props;
+
+    return {
+      fancyTableEditor: props.fancyTableEditor,
+      callouts: props.callouts,
+      drawings: props.drawings,
+      diagrams: props.diagrams,
+      codeExecution: props.codeExecution,
+      plantuml: props.plantuml,
+      mermaid: props.mermaid,
+    };
+  }
+
+  private documentOptions() {
+    const props = this.e.props;
+
+    return {
+      fancyTableEditor: props.fancyTableEditor,
+      callouts: props.callouts,
+      calloutDefinitions: props.calloutDefinitions,
+      drawings: props.drawings,
+      diagrams: props.diagrams,
+      codeExecution: props.codeExecution,
+      resolveWikilink: props.resolveWikilink,
+      renderWikilinkEmbed: props.renderWikilinkEmbed,
+      databaseEmbeds: Boolean(props.databaseRoot),
+      plantuml: props.plantuml,
+      mermaid: props.mermaid,
+    };
+  }
+
+  render(offset: number | null) {
+    const e = this.e;
+
+    if (!e.element) {
+      return;
+    }
+
+    e.element.innerHTML = renderDocument(
+      e.value,
+      e.props.resolveAsset ?? undefined,
+      this.documentOptions(),
+    );
+    e.bindTableToolbars();
+    e.paintDatabaseEmbeds();
+    e.paintDrawingPreviews();
+    e.paintDiagramPreviews();
+    e.paintRunPreviews();
+    e.paintDiagramLivePreviews();
+
+    if (!e.props.editable) {
+      for (const cell of Array.from(
+        e.element.querySelectorAll("[data-table-cell]"),
+      )) {
+        (cell as HTMLElement).contentEditable = "false";
+      }
+    }
+
+    if (offset !== null) {
+      e.setActiveBlock(e.blockAtOffset(offset));
+      e.setCaret(offset);
+    }
+
+    e.markActiveBlock();
+    e.markSelectedTableCell();
+    e.syncTailAdd();
+  }
+
+  replace(
+    start: number,
+    end: number,
+    text: string,
+    caret = start + text.length,
+  ) {
+    const e = this.e;
+
+    e.value = e.value.slice(0, start) + text + e.value.slice(end);
+    this.render(caret);
+    e.props.onInput();
+  }
+
+  replaceSelection(text: string) {
+    const selection = this.e.selectionOffsets();
+    const start = selection?.start ?? this.e.caretOffset();
+
+    if (start === null) {
+      return;
+    }
+
+    this.replace(start, selection?.end ?? start, text);
+  }
+
+  scrollSnapshot() {
+    const containers: ScrollSnapshot = [];
+    let node = this.e.element?.parentElement;
+
+    while (node) {
+      const style = getComputedStyle(node);
+
+      if (
+        /(auto|scroll|overlay)/.test(style.overflowY) &&
+        node.scrollHeight > node.clientHeight
+      ) {
+        containers.push({
+          node,
+          top: node.scrollTop,
+          left: node.scrollLeft,
+        });
+      }
+
+      node = node.parentElement;
+    }
+
+    return containers;
+  }
+
+  restoreScrollSnapshot(snapshot: ScrollSnapshot) {
+    for (const entry of snapshot) {
+      entry.node.scrollTop = entry.top;
+      entry.node.scrollLeft = entry.left;
+    }
+  }
+
+  private caretRectForOffset(offset: number) {
+    const position = this.e.positionAtOffset(offset);
+
+    if (!position) {
+      return null;
+    }
+
+    const range = document.createRange();
+
+    try {
+      range.setStart(position.node, position.offset);
+      range.collapse(true);
+    } catch {
+      return null;
+    }
+
+    const rect = range.getBoundingClientRect();
+
+    if (rect.height > 0) {
+      return rect;
+    }
+
+    return this.e.blockAtOffset(offset)?.getBoundingClientRect() ?? null;
+  }
+
+  private revealCaretIfNeeded(offset: number) {
+    const caret = this.caretRectForOffset(offset);
+
+    if (!caret) {
+      return;
+    }
+
+    for (const { node } of this.scrollSnapshot()) {
+      const viewport = node.getBoundingClientRect();
+      const padding = 12;
+
+      if (caret.top < viewport.top + padding) {
+        node.scrollTop -= viewport.top + padding - caret.top;
+      } else if (caret.bottom > viewport.bottom - padding) {
+        node.scrollTop += caret.bottom - (viewport.bottom - padding);
+      }
+    }
+  }
+
+  renderPreservingScroll(
+    offset: number | null,
+    revealOffset: number | null = offset,
+  ) {
+    const snapshot = this.scrollSnapshot();
+
+    this.render(offset);
+    this.restoreScrollSnapshot(snapshot);
+
+    if (revealOffset !== null) {
+      this.revealCaretIfNeeded(revealOffset);
+    }
+
+    requestAnimationFrame(() => {
+      this.restoreScrollSnapshot(snapshot);
+
+      if (revealOffset !== null) {
+        this.revealCaretIfNeeded(revealOffset);
+      }
+    });
+  }
+
+  /** Media wants its own line, so it lands after the current one. */
+  insertAssets(markdown: string) {
+    const e = this.e;
+
+    if (!markdown) {
+      return;
+    }
+
+    const offset = e.caretOffset() ?? e.value.length;
+    const newline = e.value.indexOf("\n", offset);
+    const lineEnd = newline === -1 ? e.value.length : newline;
+    const lead = e.value.slice(e.lineStartAt(lineEnd), lineEnd) ? "\n" : "";
+
+    this.replace(lineEnd, lineEnd, `${lead}${markdown}\n`);
+  }
+
+  /** The note's text changed underneath the editor, so the DOM catches up. */
+  syncValue() {
+    const e = this.e;
+
+    if (!e.element || e.ui.composing || e.getText() === e.value) {
+      return;
+    }
+
+    this.render(e.caretOffset());
+  }
+
+  /** A toggled feature has to enter or leave the rendered document. */
+  syncFeatures() {
+    const e = this.e;
+
+    if (!e.element) {
+      return;
+    }
+
+    const flags = this.featureFlags();
+    const calloutDefinitions = JSON.stringify(e.props.calloutDefinitions);
+    const wikilinkKey =
+      e.props.resolveWikilink && e.props.wikilinkKey ? e.props.wikilinkKey : "";
+    const rendered = this.rendered;
+    const changed =
+      (rendered !== null &&
+        Object.entries(flags).some(([key, on]) => rendered[key] !== on)) ||
+      this.renderedCalloutDefinitions !== calloutDefinitions ||
+      (Boolean(wikilinkKey) && this.renderedWikilinkKey !== wikilinkKey);
+
+    this.rendered = flags;
+    this.renderedCalloutDefinitions = calloutDefinitions;
+    this.renderedWikilinkKey = wikilinkKey;
+
+    if (changed) {
+      this.render(e.caretOffset());
+    }
+  }
+
+  /** Switching binary, server, or output format invalidates every diagram. */
+  syncDiagramSettings() {
+    if (this.e.element && (this.e.props.plantuml || this.e.props.mermaid)) {
+      this.e.paintDiagramLivePreviews();
+    }
+  }
+}

@@ -34,7 +34,9 @@
     const parts =
       ":is(.md-codeblock, .md-fence, .md-run-preview, .md-preview):not(.md-database-anchor)";
 
-    for (const start of Array.from(copy.querySelectorAll(".md-fence-open, .md-codeblock"))) {
+    for (const start of Array.from(
+      copy.querySelectorAll(".md-fence-open, .md-codeblock"),
+    )) {
       if (start.closest(".ms-print-group")) {
         continue;
       }
@@ -60,7 +62,9 @@
    * else.
    */
   function inlineDatabaseEmbeds(copy: HTMLElement) {
-    const portals = Array.from(copy.querySelectorAll(".md-database-portal")) as HTMLElement[];
+    const portals = Array.from(
+      copy.querySelectorAll(".md-database-portal"),
+    ) as HTMLElement[];
     const anchors = Array.from(
       copy.querySelectorAll(".md-database-preview:not(.md-database-portal)"),
     ) as HTMLElement[];
@@ -70,7 +74,9 @@
       // `data-code` pairs the two; position is the fallback, since a re-render can renumber it.
       const anchor =
         anchors.find(
-          (candidate) => candidate.dataset.code === portal.dataset.code && !taken.has(candidate),
+          (candidate) =>
+            candidate.dataset.code === portal.dataset.code &&
+            !taken.has(candidate),
         ) ?? (taken.has(anchors[index]) ? undefined : anchors[index]);
 
       // No anchor to drop into: leave the floating card where it is rather than lose the table.
@@ -103,12 +109,16 @@
 
     // Editing affordances are part of the live DOM, never part of the document.
     for (const chrome of Array.from(
-      copy.querySelectorAll(".md-block-toolbar, .md-block-drop-indicator, .md-tail-add"),
+      copy.querySelectorAll(
+        ".md-block-toolbar, .md-block-drop-indicator, .md-tail-add",
+      ),
     )) {
       chrome.remove();
     }
 
-    for (const editable of Array.from(copy.querySelectorAll("[contenteditable]"))) {
+    for (const editable of Array.from(
+      copy.querySelectorAll("[contenteditable]"),
+    )) {
       (editable as HTMLElement).contentEditable = "false";
     }
 
@@ -134,7 +144,9 @@
 
     try {
       const path = await exportPdf(title);
-      onStatus(path ? $i18n.t("pdf.saved", { path }) : $i18n.t("pdf.cancelled"));
+      onStatus(
+        path ? $i18n.t("pdf.saved", { path }) : $i18n.t("pdf.cancelled"),
+      );
 
       if (path) {
         onClose();
@@ -176,7 +188,9 @@
     <span class="text-sm font-medium text-stone-700">PDF preview</span>
     <span class="min-w-0 truncate text-sm text-stone-400">{title}</span>
     {#if error}
-      <span class="min-w-0 truncate text-sm text-rose-600" role="alert">{error}</span>
+      <span class="min-w-0 truncate text-sm text-rose-600" role="alert"
+        >{error}</span
+      >
     {/if}
     <div class="ml-auto flex items-center gap-1">
       <Button
@@ -194,7 +208,13 @@
           size="sm"
         />
       {/if}
-      <Button label={$i18n.t("common.close")} icon={X} onClick={onClose} variant="ghost" size="sm" />
+      <Button
+        label={$i18n.t("common.close")}
+        icon={X}
+        onClick={onClose}
+        variant="ghost"
+        size="sm"
+      />
     </div>
   </header>
 

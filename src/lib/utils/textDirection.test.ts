@@ -1,7 +1,12 @@
-const assert = (ok: unknown, msg: string) => { if (!ok) throw new Error(msg); };
+const assert = (ok: unknown, msg: string) => {
+  if (!ok) throw new Error(msg);
+};
 import { preferredTextDirection } from "./textDirection.ts";
 
-assert(preferredTextDirection("UML درسنامه") === "rtl", "mixed Latin and Farsi prefers rtl");
+assert(
+  preferredTextDirection("UML درسنامه") === "rtl",
+  "mixed Latin and Farsi prefers rtl",
+);
 assert(preferredTextDirection("نکته") === "rtl", "Farsi prefers rtl");
 assert(preferredTextDirection("Heads up") === "ltr", "English stays ltr");
 assert(preferredTextDirection("") === "ltr", "empty text falls back to ltr");

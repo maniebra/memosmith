@@ -41,11 +41,17 @@
   export let showPageTitle: boolean;
   export let pageMeta: PageMeta = {};
   export let placeholder = "Select or create a note";
-  export let onAssets: (source: { files?: File[]; paths?: string[] }) => Promise<string>;
+  export let onAssets: (source: {
+    files?: File[];
+    paths?: string[];
+  }) => Promise<string>;
   export let onPickAssets: () => Promise<string>;
   export let onGenerate: ((prompt: string) => Promise<string>) | null = null;
-  export let onWikilink: ((target: string) => void | Promise<void>) | null = null;
-  export let resolveWikilink: ((target: string) => WikilinkResolution) | undefined = undefined;
+  export let onWikilink: ((target: string) => void | Promise<void>) | null =
+    null;
+  export let resolveWikilink:
+    | ((target: string) => WikilinkResolution)
+    | undefined = undefined;
   export let renderWikilinkEmbed:
     | ((target: string, depth: number) => WikilinkEmbed | null)
     | undefined = undefined;
@@ -54,7 +60,11 @@
   export let databaseOptions: { id: string; name: string }[] = [];
   export let onOpenDatabase: ((databaseId: string) => void) | null = null;
   export let onStatus: (message: string) => void = () => {};
-  export let decorations: { start: number; end: number; tone: "mistake" | "suggestion" }[] = [];
+  export let decorations: {
+    start: number;
+    end: number;
+    tone: "mistake" | "suggestion";
+  }[] = [];
   export let onIconChange: (icon: PageIcon | null) => void | Promise<void>;
   export let onCoverChange: (cover: string | null) => void | Promise<void>;
   export let onPickCover: () => void | Promise<void>;
@@ -71,8 +81,16 @@
 </script>
 
 <!-- overflow-x-hidden so a wide equation scrolls inside its own box instead of widening the app. -->
-<section class="h-full min-h-0 overflow-x-hidden overflow-y-auto" aria-label={$i18n.t("editor.aria")}>
-  <div class={cn("ms-editor-frame mx-auto w-full px-6 pt-14 pb-32 sm:px-10", editorClass)}>
+<section
+  class="h-full min-h-0 overflow-x-hidden overflow-y-auto"
+  aria-label={$i18n.t("editor.aria")}
+>
+  <div
+    class={cn(
+      "ms-editor-frame mx-auto w-full px-6 pt-14 pb-32 sm:px-10",
+      editorClass,
+    )}
+  >
     <PageIdentity
       title={noteTitle}
       meta={pageMeta}

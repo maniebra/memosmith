@@ -7,7 +7,12 @@ export function listDatabases(root: string) {
   return invoke<DatabaseSummary[]>("list_databases", { root });
 }
 
-export function createDatabase(root: string, id: string, name: string, tables: Table[]) {
+export function createDatabase(
+  root: string,
+  id: string,
+  name: string,
+  tables: Table[],
+) {
   return invoke("create_database", { root, id, name, tables });
 }
 
@@ -15,7 +20,12 @@ export function loadDatabase(root: string, id: string) {
   return invoke<Database>("load_database", { root, id });
 }
 
-export function saveDatabaseMeta(root: string, id: string, name: string, tables: Table[]) {
+export function saveDatabaseMeta(
+  root: string,
+  id: string,
+  name: string,
+  tables: Table[],
+) {
   return invoke("save_database_meta", { root, id, name, tables });
 }
 

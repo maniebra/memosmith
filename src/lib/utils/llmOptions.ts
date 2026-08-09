@@ -9,7 +9,14 @@ const NUMBER_FIELDS = [
   ["seed", "seed"],
 ] as const;
 
-export const REASONING_LEVELS = ["", "none", "minimal", "low", "medium", "high"] as const;
+export const REASONING_LEVELS = [
+  "",
+  "none",
+  "minimal",
+  "low",
+  "medium",
+  "high",
+] as const;
 
 /**
  * Empty fields are left out entirely: endpoints differ on which knobs they accept,

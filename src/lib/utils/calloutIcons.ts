@@ -14,7 +14,9 @@ export const CALLOUT_ICON_OPTIONS = [
   { value: "Zap", label: "Zap" },
 ];
 
-const CALLOUT_ICON_NAMES = new Set(CALLOUT_ICON_OPTIONS.map((icon) => icon.value));
+const CALLOUT_ICON_NAMES = new Set(
+  CALLOUT_ICON_OPTIONS.map((icon) => icon.value),
+);
 
 const LEGACY_ICON_NAMES: Record<string, string> = {
   i: "Info",
@@ -53,7 +55,9 @@ const ICON_NODES: Record<string, IconNodeElement[]> = {
   TriangleAlert: [
     {
       tag: "path",
-      attrs: { d: "m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" },
+      attrs: {
+        d: "m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3",
+      },
     },
     { tag: "path", attrs: { d: "M12 9v4" } },
     { tag: "path", attrs: { d: "M12 17h.01" } },
@@ -98,7 +102,8 @@ export function normalizeCalloutIcon(value: unknown) {
   }
 
   const trimmed = value.trim();
-  const legacy = LEGACY_ICON_NAMES[trimmed.toLowerCase()] ?? LEGACY_ICON_NAMES[trimmed];
+  const legacy =
+    LEGACY_ICON_NAMES[trimmed.toLowerCase()] ?? LEGACY_ICON_NAMES[trimmed];
 
   if (legacy) {
     return legacy;
@@ -110,7 +115,9 @@ export function normalizeCalloutIcon(value: unknown) {
 export function calloutIconSvg(value: string) {
   const name = normalizeCalloutIcon(value);
   const nodes = ICON_NODES[name] ?? ICON_NODES.Info;
-  const body = nodes.map((node) => `<${node.tag} ${svgAttrs(node.attrs)} />`).join("");
+  const body = nodes
+    .map((node) => `<${node.tag} ${svgAttrs(node.attrs)} />`)
+    .join("");
 
   return `<svg class="md-callout-lucide lucide lucide-${name}" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
 }

@@ -16,7 +16,10 @@
   type="button"
   role="switch"
   aria-checked={checked}
-  class={cn("inline-flex items-center gap-3 text-sm text-stone-800 dark:text-stone-200", className)}
+  class={cn(
+    "inline-flex items-center gap-3 text-sm text-stone-800 dark:text-stone-200",
+    className,
+  )}
   onclick={toggle}
 >
   <span

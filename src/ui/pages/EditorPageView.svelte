@@ -1,0 +1,327 @@
+<script lang="ts">
+  import { scale, slide } from "svelte/transition";
+  import { i18n } from "../../lib/i18n";
+  import BacklinksPanel from "../sections/BacklinksPanel.svelte";
+  import DatabaseManager from "../sections/DatabaseManager.svelte";
+  import DatabaseView from "../sections/DatabaseView.svelte";
+  import EditorStatusBar from "../sections/EditorStatusBar.svelte";
+  import EditorToolbar from "../sections/EditorToolbar.svelte";
+  import GrammarPolice from "../sections/GrammarPolice.svelte";
+  import NoteEditorForm from "../forms/NoteEditorForm.svelte";
+  import PdfExportModal from "../components/PdfExportModal.svelte";
+  import SettingsPanel from "../sections/SettingsPanel.svelte";
+  import SpaceSidebar from "../sections/SpaceSidebar.svelte";
+  import type { EditorPageActions } from "./editorPageContext";
+
+  export let activeDatabaseId: string | null;
+  export let activePageMeta: any;
+  export let activeRelativePath: string | null;
+  export let appTitle: string;
+  export let backlinks: any[];
+  export let breadcrumbs: any[];
+  export let characters: number;
+  export let contents: string;
+  export let databases: any[];
+  export let databasesOpen: boolean;
+  export let editor: HTMLElement | undefined;
+  export let fileLabel: string;
+  export let grammarChecking: boolean;
+  export let grammarDecorations: any[];
+  export let grammarError: string;
+  export let grammarOpen: boolean;
+  export let grammarProfile: any;
+  export let grammarReport: any;
+  export let isDirty: boolean;
+  export let noteTitle: string;
+  export let paneSlide: any;
+  export let path: string | null;
+  export let pdfPreviewOpen: boolean;
+  export let settings: any;
+  export let settingsOpen: boolean;
+  export let spaceMeta: any;
+  export let spaceNotes: string[];
+  export let spaceRoot: string | null;
+  export let statusMessage: string;
+  export let wikilinkKey: string;
+  export let words: number;
+  export let explainGrammarIssue: (issue: any) => Promise<string>;
+  export let actions: EditorPageActions;
+</script>
+
+<svelte:window
+  onbeforeunload={() => void actions.flushNoteSave()}
+  onkeydown={actions.handleShortcut}
+  onpointermove={actions.handleResize}
+  onpointerup={actions.stopResize}
+/>
+<main
+  class="grid h-screen overflow-hidden bg-[#fffdfa] text-stone-900 dark:bg-[#1a1917] dark:text-stone-100"
+  style="grid-template-rows: auto minmax(0, 1fr) auto; grid-template-columns: minmax(0, 1fr);"
+>
+  <EditorToolbar
+    title={appTitle}
+    {fileLabel}
+    {breadcrumbs}
+    {isDirty}
+    spacePaneOpen={settings.spacePaneOpen}
+    grammarEnabled={settings.features.grammarPolice}
+    databasesEnabled={settings.features.databases}
+    backlinksAvailable={Boolean(backlinks.length) && !activeDatabaseId}
+    backlinksOpen={settings.backlinksPaneOpen}
+    backlinksCount={backlinks.length}
+    onSelectBreadcrumb={(relativePath) =>
+      actions.runWithStatus(() => actions.selectSpaceNote(relativePath))}
+    onToggleSpacePane={actions.toggleSpacePane}
+    onToggleBacklinks={() =>
+      (settings = {
+        ...settings,
+        backlinksPaneOpen: !settings.backlinksPaneOpen,
+      })}
+    onToggleSettings={() => (settingsOpen = !settingsOpen)}
+    onToggleDatabases={() => {
+      if (settings.features.databases) {
+        databasesOpen = !databasesOpen;
+      }
+    }}
+    onToggleGrammar={actions.toggleGrammar}
+    onExportPdf={path ? () => (pdfPreviewOpen = true) : null}
+  />
+  <div class="flex min-h-0 min-w-0">
+    {#if settings.spacePaneOpen}
+      <div class="flex min-h-0 shrink-0" transition:slide={paneSlide}>
+        <SpaceSidebar
+          width={settings.spacePaneWidth}
+          root={spaceRoot}
+          notes={spaceNotes}
+          meta={spaceMeta}
+          activePath={activeRelativePath}
+          onChooseSpace={() => actions.runWithStatus(actions.chooseSpace)}
+          onRefresh={() => actions.runWithStatus(actions.refreshSpace)}
+          onSelect={(relativePath) =>
+            actions.runWithStatus(() =>
+              actions.selectSpaceNote(relativePath),
+            )}
+          onCreate={(parentPath, name, folder) =>
+            actions.runWithStatus(() =>
+              actions.createSpaceNote(parentPath, name, folder),
+            )}
+          onRename={(relativePath, name) =>
+            actions.runWithStatus(() =>
+              actions.renameSpaceEntry(relativePath, name),
+            )}
+          onDelete={(relativePath) =>
+            actions.runWithStatus(() =>
+              actions.deleteSpaceEntry(relativePath),
+            )}
+        />
+        <button
+          type="button"
+          class="z-10 w-1.5 shrink-0 cursor-col-resize bg-transparent transition-colors hover:bg-emerald-600/20 focus-visible:bg-emerald-600/20 focus-visible:outline-none"
+          aria-label={$i18n.t("sidebar.resize")}
+          title={$i18n.t("sidebar.resize")}
+          onpointerdown={(event) => actions.startResize(event, "space")}
+          onkeydown={(event) => actions.resizeWithKeyboard(event, "space")}
+        ></button>
+      </div>
+    {/if}
+    <div class="min-w-0 flex-1">
+      {#if settings.features.databases && activeDatabaseId && spaceRoot}
+        <DatabaseView
+          root={spaceRoot}
+          databaseId={activeDatabaseId}
+          databaseOptions={databases}
+          onStatus={(message) => (statusMessage = message)}
+          onRenamed={(name) =>
+            (databases = databases.map((entry) =>
+              entry.id === activeDatabaseId ? { ...entry, name } : entry,
+            ))}
+        />
+      {:else}
+        <NoteEditorForm
+          bind:contents
+          bind:editor
+          editorWidth={settings.editorWidth}
+          textSize={settings.textSize}
+          spellcheck={settings.spellcheck}
+          slashCommands={settings.slashCommands}
+          fancyTableEditor={settings.features.fancyTableEditor}
+          callouts={settings.features.callouts}
+          calloutDefinitions={settings.callouts}
+          drawings={settings.features.drawings}
+          diagrams={settings.features.diagrams}
+          codeExecution={settings.features.codeExecution}
+          plantuml={settings.features.plantuml}
+          plantumlSettings={settings.plantuml}
+          mermaid={settings.features.mermaid}
+          mermaidSettings={settings.mermaid}
+          runSession={path ?? ""}
+          runner={settings.runner}
+          lsp={settings.features.lsp}
+          lspSettings={settings.lsp}
+          editable={Boolean(path)}
+          {noteTitle}
+          pageMeta={activePageMeta}
+          showPageTitle={settings.showPageTitle}
+          placeholder={spaceRoot
+            ? $i18n.t("app.selectOrCreateNote")
+            : $i18n.t("app.chooseSpaceFromSidebar")}
+          onInput={actions.updateNote}
+          onIconChange={(icon) =>
+            actions.runWithStatus(() => actions.updateActiveIcon(icon))}
+          onCoverChange={(cover) =>
+            actions.runWithStatus(() => actions.updateActiveCover(cover))}
+          onPickCover={() => actions.runWithStatus(actions.pickActiveCover)}
+          onAssets={(source) =>
+            actions.storeAssets(source).catch((error) => {
+              statusMessage =
+                error instanceof Error ? error.message : String(error);
+              return "";
+            })}
+          onPickAssets={() =>
+            actions.pickAssets().catch((error) => {
+              statusMessage =
+                error instanceof Error ? error.message : String(error);
+              return "";
+            })}
+          onGenerate={actions.generateFromPrompt}
+          onWikilink={(target) =>
+            actions.runWithStatus(() => actions.openWikilink(target))}
+          resolveWikilink={actions.resolveActiveWikilink}
+          renderWikilinkEmbed={actions.renderActiveWikilinkEmbed}
+          databaseRoot={settings.features.databases ? (spaceRoot ?? "") : ""}
+          databaseOptions={databases}
+          onOpenDatabase={(id) =>
+            actions.runWithStatus(() => actions.selectDatabase(id))}
+          onStatus={(message) => (statusMessage = message)}
+          {wikilinkKey}
+          decorations={settings.features.grammarPolice && grammarOpen
+            ? grammarDecorations
+            : []}
+          resolveAsset={actions.resolveAsset}
+        />
+      {/if}
+    </div>
+    {#if backlinks.length && !activeDatabaseId}
+      {#if settings.backlinksPaneOpen}
+        <div class="flex min-h-0 shrink-0" transition:slide={paneSlide}>
+          <button
+            type="button"
+            class="z-10 w-1.5 shrink-0 cursor-col-resize bg-transparent transition-colors hover:bg-emerald-600/20 focus-visible:bg-emerald-600/20 focus-visible:outline-none"
+            aria-label={$i18n.t("backlinks.resize")}
+            title={$i18n.t("backlinks.resize")}
+            onpointerdown={(event) => actions.startResize(event, "backlinks")}
+            onkeydown={(event) => actions.resizeWithKeyboard(event, "backlinks")}
+          ></button>
+          <div
+            class="flex min-h-0 shrink-0 border-l border-stone-200/70 bg-[#fbf8f1] dark:border-stone-800 dark:bg-[#181714]"
+            style={`width: ${settings.backlinksPaneWidth}px`}
+          >
+            <BacklinksPanel
+              {backlinks}
+              onSelect={(relativePath) =>
+                actions.runWithStatus(() =>
+                  actions.selectSpaceNote(relativePath),
+                )}
+              onClose={() =>
+                (settings = {
+                  ...settings,
+                  backlinksPaneOpen: false,
+                })}
+              className="h-full w-full overflow-y-auto px-5 py-6"
+            />
+          </div>
+        </div>
+      {:else}
+        <button
+          type="button"
+          class="flex w-9 shrink-0 items-center justify-center border-l border-stone-200/70 bg-[#fbf8f1] text-xs font-semibold tracking-wide text-stone-500 uppercase transition-colors hover:bg-emerald-50/70 hover:text-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600/25 dark:border-stone-800 dark:bg-[#181714] dark:text-stone-400 dark:hover:bg-emerald-950/20 dark:hover:text-emerald-300"
+          title={$i18n.t("toolbar.showBacklinks")}
+          aria-label={$i18n.t("toolbar.showBacklinks")}
+          onclick={() => (settings = { ...settings, backlinksPaneOpen: true })}
+          transition:slide={paneSlide}
+        >
+          <span class="rotate-90 whitespace-nowrap"
+            >{$i18n.t("backlinks.title")} {backlinks.length}</span
+          >
+        </button>
+      {/if}
+    {/if}
+    {#if settings.features.grammarPolice && grammarOpen && !activeDatabaseId}
+      <div class="flex min-h-0" transition:slide={paneSlide}>
+        <GrammarPolice
+          report={grammarReport}
+          checking={grammarChecking}
+          error={grammarError}
+          canCheck={Boolean(path) && Boolean(contents.trim())}
+          mode={settings.grammarMode}
+          onModeChange={actions.setGrammarMode}
+          onCheck={actions.runGrammarCheck}
+          onApply={actions.applyGrammarIssue}
+          onDismiss={actions.dismissGrammarIssue}
+          onExplain={explainGrammarIssue}
+          profile={grammarProfile}
+          onProfileChange={actions.updateGrammarProfile}
+          {words}
+          onClose={() => (grammarOpen = false)}
+        />
+      </div>
+    {/if}
+    {#if settings.features.databases && databasesOpen}
+      <div
+        class="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/40 backdrop-blur-sm"
+        role="presentation"
+        onclick={() => (databasesOpen = false)}
+      >
+        <div
+          class="relative z-50 overflow-hidden rounded-xl border border-stone-200/50 shadow-xl dark:border-stone-800/50"
+          role="presentation"
+          transition:scale={{ duration: 150, start: 0.95 }}
+          onclick={(event) => event.stopPropagation()}
+        >
+          <DatabaseManager
+            {databases}
+            {activeDatabaseId}
+            onSelect={(id) =>
+              actions.runWithStatus(() => actions.selectDatabase(id))}
+            onCreate={(name) =>
+              actions.runWithStatus(() => actions.createSpaceDatabase(name))}
+            onDelete={(id) =>
+              actions.runWithStatus(() => actions.deleteSpaceDatabase(id))}
+            onClose={() => (databasesOpen = false)}
+          />
+        </div>
+      </div>
+    {/if}
+    {#if settingsOpen}
+      <div
+        class="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/40 backdrop-blur-sm"
+        role="presentation"
+        onclick={() => (settingsOpen = false)}
+      >
+        <div
+          class="relative z-50 overflow-hidden rounded-xl border border-stone-200/50 shadow-xl dark:border-stone-800/50"
+          role="presentation"
+          transition:scale={{ duration: 150, start: 0.95 }}
+          onclick={(e) => e.stopPropagation()}
+        >
+          <SettingsPanel
+            {settings}
+            onClose={() => (settingsOpen = false)}
+            onReset={actions.resetSettings}
+            onChange={actions.updateSettings}
+          />
+        </div>
+      </div>
+    {/if}
+  </div>
+  <EditorStatusBar {statusMessage} {words} {characters} />
+</main>
+{#if pdfPreviewOpen}
+  <PdfExportModal
+    source={(editor?.closest(".ms-editor-frame") as HTMLElement | null) ??
+      undefined}
+    title={noteTitle}
+    onStatus={(message) => (statusMessage = message)}
+    onClose={() => (pdfPreviewOpen = false)}
+  />
+{/if}

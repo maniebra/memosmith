@@ -1,0 +1,140 @@
+import { GRAMMAR_MODES, type GrammarMode } from "../utils/grammar";
+import { defaultAppearanceSettings } from "../utils/theme";
+import type {
+  AppSettings,
+  CalloutDefinition,
+  FeatureSettings,
+  GrammarProfile,
+  LlmSettings,
+  LspSettings,
+  MermaidSettings,
+  PlantumlSettings,
+  RunnerSettings,
+} from "./settingsTypes";
+export const defaultLlmSettings: LlmSettings = {
+  baseUrl: "https://api.openai.com/v1",
+  apiKey: "",
+  model: "",
+  systemPrompt:
+    "You write markdown notes. Answer with markdown content only, no preamble.",
+  reasoningEffort: "",
+  temperature: "",
+  topP: "",
+  maxTokens: "",
+  presencePenalty: "",
+  frequencyPenalty: "",
+  seed: "",
+  stop: "",
+  extraBody: "",
+};
+/** An override field only counts when it is filled in, so a blank profile inherits everything. */
+export const emptyLlmSettings: LlmSettings = Object.fromEntries(
+  Object.keys(defaultLlmSettings).map((key) => [key, ""]),
+) as LlmSettings;
+export const emptyGrammarProfile: GrammarProfile = {
+  task: "",
+  wordTarget: "",
+  llm: emptyLlmSettings,
+};
+export function mergeLlm(
+  base: LlmSettings,
+  override: LlmSettings,
+): LlmSettings {
+  const merged = { ...base };
+  for (const key of Object.keys(merged) as (keyof LlmSettings)[]) {
+    if (override[key].trim()) {
+      merged[key] = override[key];
+    }
+  }
+  return merged;
+}
+export function defaultProfiles(): Record<GrammarMode, GrammarProfile> {
+  return Object.fromEntries(
+    GRAMMAR_MODES.map((mode) => [mode.id, { ...emptyGrammarProfile }]),
+  ) as Record<GrammarMode, GrammarProfile>;
+}
+export const defaultFeatureSettings: FeatureSettings = {
+  grammarPolice: true,
+  grammarCheckMode: "auto-full",
+  databases: true,
+  fancyTableEditor: true,
+  callouts: true,
+  drawings: false,
+  diagrams: false,
+  codeExecution: false,
+  lsp: false,
+  plantuml: false,
+  mermaid: false,
+};
+export const defaultPlantumlSettings: PlantumlSettings = {
+  command: "",
+  server: "",
+  format: "svg",
+  theme: "",
+};
+export const defaultMermaidSettings: MermaidSettings = { theme: "default" };
+export const defaultRunnerSettings: RunnerSettings = {
+  commands: {
+    bash: "",
+    python: "",
+    node: "",
+    java: "",
+    kotlin: "",
+    r: "",
+    cpp: "",
+    rust: "",
+  },
+  timeoutMs: 30000,
+};
+export const defaultLspSettings: LspSettings = {
+  commands: {
+    bash: "",
+    python: "",
+    node: "",
+    java: "",
+    kotlin: "",
+    r: "",
+    cpp: "",
+    rust: "",
+  },
+};
+export const defaultCalloutDefinitions: CalloutDefinition[] = [
+  { id: "note", label: "Note", color: "#2563eb", icon: "Info" },
+  { id: "tip", label: "Tip", color: "#059669", icon: "Lightbulb" },
+  { id: "important", label: "Important", color: "#7c3aed", icon: "BadgeAlert" },
+  { id: "warning", label: "Warning", color: "#d97706", icon: "TriangleAlert" },
+  { id: "danger", label: "Danger", color: "#dc2626", icon: "CircleX" },
+  {
+    id: "question",
+    label: "Question",
+    color: "#0891b2",
+    icon: "CircleQuestionMark",
+  },
+];
+export const defaultSettings: AppSettings = {
+  locale: "en",
+  theme: "system",
+  appearance: { ...defaultAppearanceSettings },
+  features: { ...defaultFeatureSettings },
+  callouts: defaultCalloutDefinitions.map((callout) => ({ ...callout })),
+  runner: {
+    commands: { ...defaultRunnerSettings.commands },
+    timeoutMs: defaultRunnerSettings.timeoutMs,
+  },
+  lsp: { commands: { ...defaultLspSettings.commands } },
+  plantuml: { ...defaultPlantumlSettings },
+  mermaid: { ...defaultMermaidSettings },
+  editorWidth: "comfortable",
+  textSize: 17,
+  spellcheck: true,
+  slashCommands: true,
+  showPageTitle: true,
+  spacePaneWidth: 240,
+  settingsPaneWidth: 320,
+  backlinksPaneWidth: 288,
+  spacePaneOpen: true,
+  backlinksPaneOpen: true,
+  grammarMode: "normal",
+  grammarProfiles: defaultProfiles(),
+  llm: defaultLlmSettings,
+};

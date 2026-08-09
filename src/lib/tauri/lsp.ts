@@ -29,5 +29,7 @@ export function resetLanguageServers() {
 
 /** Resolved server command per language, empty when the server is missing. */
 export function detectLanguageServers(lsp: LspSettings) {
-  return invoke<Record<string, string>>("detect_language_servers", { commands: lsp.commands });
+  return invoke<Record<string, string>>("detect_language_servers", {
+    commands: lsp.commands,
+  });
 }

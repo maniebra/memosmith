@@ -7,11 +7,18 @@ export type DiagramOutput = PlantumlOutput;
 let mermaidCount = 0;
 
 /** Mermaid ships with the app and draws in the page, so it needs nothing installed. */
-async function renderMermaid(source: string, settings: MermaidSettings): Promise<DiagramOutput> {
+async function renderMermaid(
+  source: string,
+  settings: MermaidSettings,
+): Promise<DiagramOutput> {
   const { default: mermaid } = await import("mermaid");
   const id = `md-mermaid-${mermaidCount++}`;
 
-  mermaid.initialize({ startOnLoad: false, theme: settings.theme, securityLevel: "strict" });
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: settings.theme,
+    securityLevel: "strict",
+  });
 
   try {
     return { format: "svg", content: (await mermaid.render(id, source)).svg };

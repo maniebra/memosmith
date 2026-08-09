@@ -31,5 +31,7 @@ export function resetSession(session: string, language: string) {
 
 /** Resolved command per kernel, empty when the runtime is missing. */
 export function detectRuntimes(runner: RunnerSettings) {
-  return invoke<Record<string, string>>("detect_runtimes", { commands: runner.commands });
+  return invoke<Record<string, string>>("detect_runtimes", {
+    commands: runner.commands,
+  });
 }

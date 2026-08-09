@@ -72,7 +72,12 @@ export function savePageMeta(root: string, path: string, meta: PageMeta) {
   return invoke("save_page_meta", { root, path, meta });
 }
 
-export function renamePageMeta(root: string, from: string, to: string, folder: boolean) {
+export function renamePageMeta(
+  root: string,
+  from: string,
+  to: string,
+  folder: boolean,
+) {
   return invoke("rename_page_meta", { root, from, to, folder });
 }
 

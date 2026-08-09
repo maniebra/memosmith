@@ -80,7 +80,11 @@
   }
 
   function toggleChoice(choice: string) {
-    onChange(selected.includes(choice) ? selected.filter((entry) => entry !== choice) : [...selected, choice]);
+    onChange(
+      selected.includes(choice)
+        ? selected.filter((entry) => entry !== choice)
+        : [...selected, choice],
+    );
   }
 
   onDestroy(commitDraft);
@@ -114,7 +118,9 @@
     {#each choices as choice}
       <button
         type="button"
-        class="rounded-full border px-2 py-0.5 text-[0.6875rem] transition-colors {selected.includes(choice.value)
+        class="rounded-full border px-2 py-0.5 text-[0.6875rem] transition-colors {selected.includes(
+          choice.value,
+        )
           ? 'border-emerald-600/40 bg-emerald-600/15 text-emerald-700 dark:text-emerald-300'
           : 'border-stone-200 text-stone-500 hover:bg-stone-500/10 dark:border-stone-700'}"
         onclick={() => toggleChoice(choice.value)}

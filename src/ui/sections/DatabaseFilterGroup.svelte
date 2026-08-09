@@ -31,11 +31,17 @@
     "h-7 rounded-md border border-stone-200 bg-white px-1.5 text-xs text-stone-700 outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/30 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200";
 
   function replaceChild(index: number, child: FilterNode) {
-    onChange({ ...group, children: group.children.map((entry, i) => (i === index ? child : entry)) });
+    onChange({
+      ...group,
+      children: group.children.map((entry, i) => (i === index ? child : entry)),
+    });
   }
 
   function removeChild(index: number) {
-    onChange({ ...group, children: group.children.filter((_, i) => i !== index) });
+    onChange({
+      ...group,
+      children: group.children.filter((_, i) => i !== index),
+    });
   }
 
   function addCondition() {
@@ -58,24 +64,35 @@
   function addGroup() {
     onChange({
       ...group,
-      children: [...group.children, { id: newId(), conjunction: "and", children: [] }],
+      children: [
+        ...group.children,
+        { id: newId(), conjunction: "and", children: [] },
+      ],
     });
   }
 
-  function changeColumn(index: number, condition: FilterCondition, columnId: string) {
+  function changeColumn(
+    index: number,
+    condition: FilterCondition,
+    columnId: string,
+  ) {
     const column = columns.find((entry) => entry.id === columnId);
     const operators = operatorsFor(column?.type ?? "text");
 
     replaceChild(index, {
       ...condition,
       column: columnId,
-      operator: operators.includes(condition.operator) ? condition.operator : operators[0],
+      operator: operators.includes(condition.operator)
+        ? condition.operator
+        : operators[0],
       value: column?.type === "checkbox" ? true : "",
     });
   }
 
   function conditionValue(condition: FilterCondition): string {
-    return condition.value === null || condition.value === undefined ? "" : String(condition.value);
+    return condition.value === null || condition.value === undefined
+      ? ""
+      : String(condition.value);
   }
 
   function parseValue(column: Column | undefined, raw: string): CellValue {
@@ -94,7 +111,9 @@
 >
   {#each group.children as child, index (child.id)}
     <div class="flex items-start gap-1.5">
-      <div class="w-14 shrink-0 pt-1 text-right text-[0.6875rem] text-stone-500">
+      <div
+        class="w-14 shrink-0 pt-1 text-right text-[0.6875rem] text-stone-500"
+      >
         {#if index === 0}
           {$i18n.t("filter.where")}
         {:else if index === 1}
@@ -105,10 +124,13 @@
               { value: "or", label: $i18n.t("filter.or") },
             ]}
             className="{controlClass} w-full px-1"
-            onChange={(conjunction) => onChange({ ...group, conjunction: conjunction as "and" | "or" })}
+            onChange={(conjunction) =>
+              onChange({ ...group, conjunction: conjunction as "and" | "or" })}
           />
         {:else}
-          {group.conjunction === "and" ? $i18n.t("filter.and") : $i18n.t("filter.or")}
+          {group.conjunction === "and"
+            ? $i18n.t("filter.and")
+            : $i18n.t("filter.or")}
         {/if}
       </div>
 
@@ -127,20 +149,28 @@
         <div class="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
           <Select
             value={child.column}
-            options={columns.map((column) => ({ value: column.id, label: column.name }))}
+            options={columns.map((column) => ({
+              value: column.id,
+              label: column.name,
+            }))}
             className="{controlClass} w-32"
             onChange={(columnId) => changeColumn(index, child, columnId)}
           />
 
           <Select
             value={child.operator}
-            options={operatorsFor(columnOf(child)?.type ?? "text").map((operator) => ({
-              value: operator,
-              label: operatorLabels[operator],
-            }))}
+            options={operatorsFor(columnOf(child)?.type ?? "text").map(
+              (operator) => ({
+                value: operator,
+                label: operatorLabels[operator],
+              }),
+            )}
             className="{controlClass} w-36"
             onChange={(operator) =>
-              replaceChild(index, { ...child, operator: operator as FilterCondition["operator"] })}
+              replaceChild(index, {
+                ...child,
+                operator: operator as FilterCondition["operator"],
+              })}
           />
 
           {#if needsValue(child.operator)}
@@ -152,25 +182,36 @@
                   { value: "false", label: $i18n.t("filter.unchecked") },
                 ]}
                 className="{controlClass} w-28"
-                onChange={(checked) => replaceChild(index, { ...child, value: checked === "true" })}
+                onChange={(checked) =>
+                  replaceChild(index, { ...child, value: checked === "true" })}
               />
             {:else if choices[child.column]?.length}
               <Select
                 value={conditionValue(child)}
-                options={[{ value: "", label: $i18n.t("common.select") }, ...choices[child.column]]}
+                options={[
+                  { value: "", label: $i18n.t("common.select") },
+                  ...choices[child.column],
+                ]}
                 className="{controlClass} w-32"
                 onChange={(value) => replaceChild(index, { ...child, value })}
               />
             {:else}
               <input
                 class="{controlClass} w-32"
-                type={columnOf(child)?.type === "date" ? "date" : columnOf(child)?.type === "number" ? "number" : "text"}
+                type={columnOf(child)?.type === "date"
+                  ? "date"
+                  : columnOf(child)?.type === "number"
+                    ? "number"
+                    : "text"}
                 value={conditionValue(child)}
                 placeholder={$i18n.t("filter.value")}
                 oninput={(event) =>
                   replaceChild(index, {
                     ...child,
-                    value: parseValue(columnOf(child), event.currentTarget.value),
+                    value: parseValue(
+                      columnOf(child),
+                      event.currentTarget.value,
+                    ),
                   })}
               />
             {/if}

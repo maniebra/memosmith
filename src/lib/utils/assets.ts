@@ -37,7 +37,11 @@ export function extension(name: string) {
 }
 
 export function assetFolder(name: string, mime = ""): AssetFolder {
-  return MIME_FOLDERS[mime.split("/")[0]] ?? EXTENSION_FOLDERS[extension(name)] ?? "misc";
+  return (
+    MIME_FOLDERS[mime.split("/")[0]] ??
+    EXTENSION_FOLDERS[extension(name)] ??
+    "misc"
+  );
 }
 
 /** Embed media so the editor can preview it; anything else stays a plain link. */

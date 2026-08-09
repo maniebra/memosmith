@@ -17,7 +17,10 @@ export type FenceContext = {
 
 const FENCE = /^[ \t]*```(.*)$/;
 
-export function fenceContext(value: string, offset: number): FenceContext | null {
+export function fenceContext(
+  value: string,
+  offset: number,
+): FenceContext | null {
   const before = value.slice(0, offset);
   const lines = value.split("\n");
   const lineIndex = before.split("\n").length - 1;
@@ -81,7 +84,11 @@ export function shouldComplete(line: string, character: number) {
   return Boolean(wordPrefix(line, character)) || /[.:>]$/.test(before);
 }
 
-export function rankCompletions(items: Completion[], prefix: string, limit = 40) {
+export function rankCompletions(
+  items: Completion[],
+  prefix: string,
+  limit = 40,
+) {
   if (!prefix) {
     return items.slice(0, limit);
   }
@@ -93,8 +100,16 @@ export function rankCompletions(items: Completion[], prefix: string, limit = 40)
 
   return matching
     .sort((left, right) => {
-      const leftFirst = (left.filter || left.label).toLowerCase().startsWith(query) ? 0 : 1;
-      const rightFirst = (right.filter || right.label).toLowerCase().startsWith(query) ? 0 : 1;
+      const leftFirst = (left.filter || left.label)
+        .toLowerCase()
+        .startsWith(query)
+        ? 0
+        : 1;
+      const rightFirst = (right.filter || right.label)
+        .toLowerCase()
+        .startsWith(query)
+        ? 0
+        : 1;
 
       return leftFirst - rightFirst;
     })

@@ -59,7 +59,10 @@
 
     menu = {
       left: bounds.left,
-      top: below < height && bounds.top > height ? bounds.top - height - 4 : bounds.bottom + 4,
+      top:
+        below < height && bounds.top > height
+          ? bounds.top - height - 4
+          : bounds.bottom + 4,
       width: bounds.width,
     };
   }
@@ -80,7 +83,9 @@
   function openMenu() {
     placeMenu();
     open = true;
-    window.dispatchEvent(new CustomEvent("memosmith:select-opened", { detail: selectId }));
+    window.dispatchEvent(
+      new CustomEvent("memosmith:select-opened", { detail: selectId }),
+    );
   }
 
   function toggle() {

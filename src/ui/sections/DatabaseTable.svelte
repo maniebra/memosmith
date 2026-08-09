@@ -2,16 +2,24 @@
   import { GripVertical, Plus, Settings2, Trash2 } from "@lucide/svelte";
   import { i18n } from "../../lib/i18n";
   import { columnTypes } from "../../lib/utils/database";
-  import type { CellValue, Choice, Column, ColumnType, Row } from "../../lib/utils/database";
+  import type {
+    CellValue,
+    Choice,
+    Column,
+    Row,
+  } from "../../lib/utils/database";
+  import DatabaseColumnEditor from "./DatabaseColumnEditor.svelte";
   import DatabaseCell from "../components/DatabaseCell.svelte";
-  import Select from "../components/Select.svelte";
-
   export let columns: Column[];
   export let rows: Row[];
   /** Column id -> selectable values, already resolved for relation columns. */
   export let choices: Record<string, Choice[]> = {};
   export let databaseOptions: { id: string; name: string }[] = [];
-  export let onCell: (rowId: string, columnId: string, value: CellValue) => void;
+  export let onCell: (
+    rowId: string,
+    columnId: string,
+    value: CellValue,
+  ) => void;
   export let onAddRow: () => void;
   export let onDeleteRow: (rowId: string) => void;
   export let onColumnsChange: (columns: Column[]) => void;
@@ -20,22 +28,26 @@
   export let onReorderRows: (rowIds: string[]) => void = () => {};
   /** Embedded tables delay text-like cell commits so the note editor keeps focus stable. */
   export let commitCellsOnInput = true;
-
   const panelWidth = 240;
   const MIN_WIDTH = 80;
-
   /** Width being dragged right now; committed to the column on pointerup. */
-  let resizing: { id: string; startX: number; startWidth: number; width: number; x: number } | null =
-    null;
-
+  let resizing: {
+    id: string;
+    startX: number;
+    startWidth: number;
+    width: number;
+    x: number;
+  } | null = null;
   function widthOf(column: Column) {
     return resizing?.id === column.id ? resizing.width : column.width;
   }
-
-  function startResize(event: PointerEvent, column: Column, header: HTMLElement) {
+  function startResize(
+    event: PointerEvent,
+    column: Column,
+    header: HTMLElement,
+  ) {
     event.preventDefault();
     (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
-
     resizing = {
       id: column.id,
       startX: event.clientX,
@@ -44,88 +56,82 @@
       x: event.clientX,
     };
   }
-
   function moveResize(event: PointerEvent) {
     if (resizing) {
-      const width = Math.max(MIN_WIDTH, Math.round(resizing.startWidth + event.clientX - resizing.startX));
-
+      const width = Math.max(
+        MIN_WIDTH,
+        Math.round(resizing.startWidth + event.clientX - resizing.startX),
+      );
       // The guide sticks to the column edge, so it stops where the minimum width does.
-      resizing = { ...resizing, width, x: resizing.startX + width - resizing.startWidth };
+      resizing = {
+        ...resizing,
+        width,
+        x: resizing.startX + width - resizing.startWidth,
+      };
     }
   }
-
   function endResize() {
     if (resizing) {
       updateColumn(resizing.id, { width: resizing.width });
       resizing = null;
     }
   }
-
   /** Fixed-positioned: the table scrolls under `overflow-auto`, which would clip an absolute panel. */
   let editingColumn: { id: string; x: number; y: number } | null = null;
-
   function toggleEditor(id: string, event: MouseEvent) {
     if (editingColumn?.id === id) {
       editingColumn = null;
       return;
     }
-
     const bounds = (event.currentTarget as HTMLElement).getBoundingClientRect();
-
     editingColumn = {
       id,
-      x: Math.max(8, Math.min(bounds.right - panelWidth, window.innerWidth - panelWidth - 8)),
+      x: Math.max(
+        8,
+        Math.min(bounds.right - panelWidth, window.innerWidth - panelWidth - 8),
+      ),
       y: bounds.bottom + 4,
     };
   }
-
   let headers: Record<string, HTMLElement> = {};
   let draggedRow: string | null = null;
   let dropRow: string | null = null;
   let draggedColumn: string | null = null;
   let dropColumn: string | null = null;
-
   function moved<T>(entries: T[], from: number, to: number) {
     const next = [...entries];
-
     next.splice(to, 0, ...next.splice(from, 1));
-
     return next;
   }
-
   function dropRowOn(targetId: string) {
     const from = rows.findIndex((row) => row.id === draggedRow);
     const to = rows.findIndex((row) => row.id === targetId);
-
     draggedRow = null;
     dropRow = null;
-
     if (from !== -1 && to !== -1 && from !== to) {
       onReorderRows(moved(rows, from, to).map((row) => row.id));
     }
   }
-
   function dropColumnOn(targetId: string) {
     const from = columns.findIndex((column) => column.id === draggedColumn);
     const to = columns.findIndex((column) => column.id === targetId);
-
     draggedColumn = null;
     dropColumn = null;
-
     if (from !== -1 && to !== -1 && from !== to) {
       onColumnsChange(moved(columns, from, to));
     }
   }
-
   function updateColumn(id: string, patch: Partial<Column>) {
-    onColumnsChange(columns.map((column) => (column.id === id ? { ...column, ...patch } : column)));
+    onColumnsChange(
+      columns.map((column) =>
+        column.id === id ? { ...column, ...patch } : column,
+      ),
+    );
   }
-
   function deleteColumn(id: string) {
     editingColumn = null;
     onColumnsChange(columns.filter((column) => column.id !== id));
   }
-
   $: translatedColumnTypes = columnTypes.map((type) => ({
     ...type,
     label:
@@ -146,16 +152,15 @@
                     : $i18n.t("database.columnRelation"),
   }));
 </script>
-
-<svelte:window onkeydown={(event) => event.key === "Escape" && (editingColumn = null)} />
-
+<svelte:window
+  onkeydown={(event) => event.key === "Escape" && (editingColumn = null)}
+/>
 {#if resizing}
   <div
     class="pointer-events-none fixed inset-y-0 z-50 w-px bg-emerald-500"
     style="left: {resizing.x}px"
   ></div>
 {/if}
-
 <div class="min-w-0 overflow-auto" onscroll={() => (editingColumn = null)}>
   <table class="w-max min-w-full border-collapse text-sm">
     <thead>
@@ -167,11 +172,7 @@
             class="relative border-r border-stone-200/70 px-2 py-1.5 text-left font-medium dark:border-stone-800 {dropColumn ===
             column.id
               ? 'bg-emerald-600/10'
-              : ''} {widthOf(
-              column,
-            )
-              ? ''
-              : 'min-w-44'}"
+              : ''} {widthOf(column) ? '' : 'min-w-44'}"
             style={widthOf(column)
               ? `width:${widthOf(column)}px;min-width:${widthOf(column)}px;max-width:${widthOf(column)}px`
               : ""}
@@ -184,7 +185,8 @@
                   dropColumn = column.id;
                 }
               }}
-              ondragleave={() => dropColumn === column.id && (dropColumn = null)}
+              ondragleave={() =>
+                dropColumn === column.id && (dropColumn = null)}
               ondrop={(event) => {
                 event.preventDefault();
                 dropColumnOn(column.id);
@@ -203,90 +205,51 @@
                   draggedColumn = null;
                   dropColumn = null;
                 }}
-                role="none"
-              >{column.name}</span>
+                role="none">{column.name}</span
+              >
               <button
                 type="button"
                 class="flex size-6 shrink-0 items-center justify-center rounded-md text-stone-400 hover:bg-stone-500/10 hover:text-stone-700 dark:hover:text-stone-200"
-                aria-label={$i18n.t("database.editColumn", { name: column.name })}
+                aria-label={$i18n.t("database.editColumn", {
+                  name: column.name,
+                })}
                 onclick={(event) => toggleEditor(column.id, event)}
               >
-                <Settings2 class="size-3.5" strokeWidth={1.8} aria-hidden="true" />
+                <Settings2
+                  class="size-3.5"
+                  strokeWidth={1.8}
+                  aria-hidden="true"
+                />
               </button>
             </div>
-
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div
               class="absolute inset-y-0 -right-1 z-10 w-2 cursor-col-resize hover:bg-emerald-600/30 {resizing?.id ===
               column.id
                 ? 'bg-emerald-600/40'
                 : ''}"
-              onpointerdown={(event) => startResize(event, column, headers[column.id])}
+              onpointerdown={(event) =>
+                startResize(event, column, headers[column.id])}
               onpointermove={moveResize}
               onpointerup={endResize}
               onpointercancel={endResize}
               ondblclick={() => updateColumn(column.id, { width: undefined })}
               title={$i18n.t("database.resizeColumn")}
             ></div>
-
             {#if editingColumn?.id === column.id}
-              <div
-                class="fixed z-50 flex flex-col gap-2 rounded-lg border border-stone-200 bg-white p-2 shadow-lg dark:border-stone-700 dark:bg-stone-900"
-                style="left: {editingColumn.x}px; top: {editingColumn.y}px; width: {panelWidth}px;"
-              >
-                <input
-                  class="h-8 rounded-md border border-stone-200 bg-transparent px-2 text-sm font-normal outline-none dark:border-stone-700"
-                  value={column.name}
-                  oninput={(event) => updateColumn(column.id, { name: event.currentTarget.value })}
-                />
-
-                <Select
-                  value={column.type}
-                  options={translatedColumnTypes.map((type) => ({ value: type.value, label: type.label }))}
-                  className="h-8 rounded-md font-normal"
-                  onChange={(type) => updateColumn(column.id, { type: type as ColumnType })}
-                />
-
-                {#if column.type === "select" || column.type === "multi_select"}
-                  <textarea
-                    rows="3"
-                    placeholder={$i18n.t("database.oneOptionPerLine")}
-                    class="rounded-md border border-stone-200 bg-transparent px-2 py-1 text-sm font-normal outline-none dark:border-stone-700"
-                    value={(column.options ?? []).join("\n")}
-                    oninput={(event) =>
-                      updateColumn(column.id, {
-                        options: event.currentTarget.value
-                          .split("\n")
-                          .map((option) => option.trim())
-                          .filter(Boolean),
-                      })}
-                  ></textarea>
-                {/if}
-
-                {#if column.type === "relation"}
-                  <Select
-                    value={column.relationDatabase ?? ""}
-                    options={[
-                      { value: "", label: $i18n.t("database.linkedDatabase") },
-                      ...databaseOptions.map((option) => ({ value: option.id, label: option.name })),
-                    ]}
-                    className="h-8 rounded-md font-normal"
-                    onChange={(id) => updateColumn(column.id, { relationDatabase: id || undefined })}
-                  />
-                {/if}
-
-                <button
-                  type="button"
-                  class="rounded-md px-2 py-1 text-left text-xs font-normal text-rose-600 hover:bg-rose-500/10"
-                  onclick={() => deleteColumn(column.id)}
-                >
-                  {$i18n.t("database.deleteColumn")}
-                </button>
-              </div>
+              <DatabaseColumnEditor
+                {column}
+                {databaseOptions}
+                left={editingColumn.x}
+                top={editingColumn.y}
+                width={panelWidth}
+                columnTypes={translatedColumnTypes}
+                onUpdate={(patch) => updateColumn(column.id, patch)}
+                onDelete={() => deleteColumn(column.id)}
+              />
             {/if}
           </th>
         {/each}
-
         <th class="w-10 px-1 py-1.5">
           <button
             type="button"
@@ -300,7 +263,6 @@
         </th>
       </tr>
     </thead>
-
     <tbody>
       {#each rows as row (row.id)}
         <tr
@@ -335,10 +297,13 @@
               role="none"
               title={$i18n.t("database.dragReorder")}
             >
-              <GripVertical class="size-3.5" strokeWidth={1.8} aria-hidden="true" />
+              <GripVertical
+                class="size-3.5"
+                strokeWidth={1.8}
+                aria-hidden="true"
+              />
             </div>
           </td>
-
           {#each columns as column (column.id)}
             <td
               data-row={row.id}
@@ -357,7 +322,6 @@
               />
             </td>
           {/each}
-
           <td class="px-1 align-top">
             <button
               type="button"
@@ -372,7 +336,6 @@
       {/each}
     </tbody>
   </table>
-
   <button
     type="button"
     class="flex w-full items-center gap-1.5 px-2 py-2 text-left text-xs text-stone-500 hover:bg-stone-500/5 hover:text-stone-800 dark:hover:text-stone-200"
@@ -381,8 +344,9 @@
     <Plus class="size-3.5" strokeWidth={1.8} aria-hidden="true" />
     {$i18n.t("database.newRow")}
   </button>
-
   {#if !rows.length}
-    <p class="px-2 py-4 text-center text-xs text-stone-400">{$i18n.t("database.noRows")}</p>
+    <p class="px-2 py-4 text-center text-xs text-stone-400">
+      {$i18n.t("database.noRows")}
+    </p>
   {/if}
 </div>

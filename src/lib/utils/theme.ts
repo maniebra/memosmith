@@ -27,7 +27,11 @@ export const defaultAppearanceSettings: AppearanceSettings = {
   editorLineHeight: "comfortable",
 };
 
-export const accentOptions: { label: string; value: AccentColor; preview: string }[] = [
+export const accentOptions: {
+  label: string;
+  value: AccentColor;
+  preview: string;
+}[] = [
   { label: "Emerald", value: "emerald", preview: "rgb(5 150 105)" },
   { label: "Sky", value: "sky", preview: "rgb(2 132 199)" },
   { label: "Violet", value: "violet", preview: "rgb(124 58 237)" },
@@ -53,7 +57,10 @@ export const densityOptions: { label: string; value: Density }[] = [
   { label: "Compact", value: "compact" },
 ];
 
-export const editorLineHeightOptions: { label: string; value: EditorLineHeight }[] = [
+export const editorLineHeightOptions: {
+  label: string;
+  value: EditorLineHeight;
+}[] = [
   { label: "Compact", value: "compact" },
   { label: "Comfortable", value: "comfortable" },
   { label: "Loose", value: "loose" },
@@ -163,7 +170,9 @@ function cleanFontFamily(value: string) {
     return "";
   }
 
-  return genericFontFamilies.has(family.toLowerCase()) ? family.toLowerCase() : JSON.stringify(family);
+  return genericFontFamilies.has(family.toLowerCase())
+    ? family.toLowerCase()
+    : JSON.stringify(family);
 }
 
 export function normalizeFontStack(value: unknown) {
@@ -182,7 +191,9 @@ export function normalizeFontStack(value: unknown) {
 function fontFamilyFor(choice: FontChoice, stack: string) {
   const normalizedStack = normalizeFontStack(stack);
 
-  return normalizedStack ? `${normalizedStack}, ${fontStacks[choice]}` : fontStacks[choice];
+  return normalizedStack
+    ? `${normalizedStack}, ${fontStacks[choice]}`
+    : fontStacks[choice];
 }
 
 const cornerVariables: Record<CornerStyle, Record<string, string>> = {
@@ -236,11 +247,22 @@ export function applyAppearanceTheme(
   root.style.setProperty("--ms-accent-color", `rgb(${palette["600"]})`);
   root.style.setProperty("--ms-accent-strong", `rgb(${palette["700"]})`);
   root.style.setProperty("--ms-accent-soft", `rgb(${palette["500"]})`);
-  root.style.setProperty("--ms-ui-font", fontFamilyFor(appearance.uiFont, appearance.uiFontStack));
-  root.style.setProperty("--ms-editor-font", fontFamilyFor(appearance.editorFont, appearance.editorFontStack));
-  root.style.setProperty("--ms-editor-line-height", lineHeights[appearance.editorLineHeight]);
+  root.style.setProperty(
+    "--ms-ui-font",
+    fontFamilyFor(appearance.uiFont, appearance.uiFontStack),
+  );
+  root.style.setProperty(
+    "--ms-editor-font",
+    fontFamilyFor(appearance.editorFont, appearance.editorFontStack),
+  );
+  root.style.setProperty(
+    "--ms-editor-line-height",
+    lineHeights[appearance.editorLineHeight],
+  );
 
-  for (const [name, value] of Object.entries(cornerVariables[appearance.cornerStyle])) {
+  for (const [name, value] of Object.entries(
+    cornerVariables[appearance.cornerStyle],
+  )) {
     root.style.setProperty(name, value);
   }
 }

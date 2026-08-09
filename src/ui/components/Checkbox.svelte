@@ -6,7 +6,12 @@
   export let className = "";
 </script>
 
-<label class={cn("inline-flex items-center gap-2 text-sm text-stone-800 dark:text-stone-200", className)}>
+<label
+  class={cn(
+    "inline-flex items-center gap-2 text-sm text-stone-800 dark:text-stone-200",
+    className,
+  )}
+>
   <input
     type="checkbox"
     bind:checked

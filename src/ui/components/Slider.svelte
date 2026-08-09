@@ -13,7 +13,9 @@
 
 <label class="grid gap-2">
   {#if label}
-    <span class="flex items-center justify-between text-sm font-medium text-stone-800 dark:text-stone-200">
+    <span
+      class="flex items-center justify-between text-sm font-medium text-stone-800 dark:text-stone-200"
+    >
       <span>{label}</span>
       <span class="text-stone-500 dark:text-stone-400">{value}</span>
     </span>

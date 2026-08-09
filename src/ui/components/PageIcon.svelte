@@ -51,12 +51,16 @@
     Users,
   };
 
-  $: component = icon?.type === "lucide" ? (lucideIcons[icon.value] ?? fallback) : fallback;
+  $: component =
+    icon?.type === "lucide" ? (lucideIcons[icon.value] ?? fallback) : fallback;
 </script>
 
 {#if icon?.type === "emoji"}
   <span
-    class={cn("inline-flex shrink-0 items-center justify-center leading-none", className)}
+    class={cn(
+      "inline-flex shrink-0 items-center justify-center leading-none",
+      className,
+    )}
     aria-hidden="true"
   >
     {icon.value}

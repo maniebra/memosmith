@@ -40,6 +40,27 @@ export default defineConfig(
           IIFEs: true,
         },
       ],
+      "max-lines": [
+        "error",
+        {
+          max: 400,
+          skipBlankLines: false,
+          skipComments: false,
+        },
+      ],
+      "max-len": [
+        "error",
+        {
+          code: 80,
+          tabWidth: 2,
+          ignoreComments: true,
+          ignorePattern:
+            "^\\s*(?:<!--|(?:class|className|placeholder|style)=)",
+          ignoreRegExpLiterals: true,
+          ignoreStrings: true,
+          ignoreTemplateLiterals: true,
+        },
+      ],
       "no-control-regex": "off",
       "no-useless-assignment": "off",
       "svelte/infinite-reactive-loop": "off",

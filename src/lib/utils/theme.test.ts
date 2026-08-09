@@ -1,13 +1,17 @@
-const assert = (ok: unknown, msg: string) => { if (!ok) throw new Error(msg); };
+const assert = (ok: unknown, msg: string) => {
+  if (!ok) throw new Error(msg);
+};
 import { normalizeFontStack } from "./theme.ts";
 
 assert(
-  normalizeFontStack("Vazirmatn, IRANSans, system-ui") === '"Vazirmatn", "IRANSans", system-ui',
+  normalizeFontStack("Vazirmatn, IRANSans, system-ui") ===
+    '"Vazirmatn", "IRANSans", system-ui',
   "custom font stacks quote local family names and keep generic families bare",
 );
 
 assert(
-  normalizeFontStack('"SF Pro Text", Segoe UI, sans-serif') === '"SF Pro Text", "Segoe UI", sans-serif',
+  normalizeFontStack('"SF Pro Text", Segoe UI, sans-serif') ===
+    '"SF Pro Text", "Segoe UI", sans-serif',
   "quoted input is normalized without losing multi-word names",
 );
 

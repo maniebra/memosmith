@@ -1,15 +1,11 @@
 <script lang="ts">
-  import {
-    Check,
-    FileText,
-    Image,
-    Link,
-    Trash2,
-    Upload,
-  } from "@lucide/svelte";
+  import { Check, FileText, Image, Link, Trash2, Upload } from "@lucide/svelte";
   import { i18n } from "../../lib/i18n";
   import { cn } from "../../lib/utils/cn";
-  import { preferredTextDirection, type StrongTextDirection } from "../../lib/utils/textDirection";
+  import {
+    preferredTextDirection,
+    type StrongTextDirection,
+  } from "../../lib/utils/textDirection";
   import {
     emojiIconChoices,
     lucideIconNames,
@@ -38,7 +34,8 @@
 
   $: coverSource = meta.cover ? resolveAsset(meta.cover) : "";
   $: titleDirection = preferredTextDirection(title);
-  $: pageChromeDirection = titleDirection === "rtl" || $i18n.dir === "rtl" ? "rtl" : "ltr";
+  $: pageChromeDirection =
+    titleDirection === "rtl" || $i18n.dir === "rtl" ? "rtl" : "ltr";
 
   function selectIcon(icon: PageIconType | null) {
     iconInput = "";
@@ -111,8 +108,20 @@
             )}
           >
             <div class="flex gap-2">
-              <Button label={$i18n.t("common.upload")} icon={Upload} size="sm" variant="secondary" onClick={pickCover} />
-              <Button label={$i18n.t("common.remove")} icon={Trash2} size="sm" variant="ghost" onClick={removeCover} />
+              <Button
+                label={$i18n.t("common.upload")}
+                icon={Upload}
+                size="sm"
+                variant="secondary"
+                onClick={pickCover}
+              />
+              <Button
+                label={$i18n.t("common.remove")}
+                icon={Trash2}
+                size="sm"
+                variant="ghost"
+                onClick={removeCover}
+              />
             </div>
 
             <form
@@ -122,8 +131,19 @@
                 applyCoverUrl();
               }}
             >
-              <Input bind:value={coverUrl} type="url" placeholder={$i18n.t("page.pasteImageUrl")} className="h-8" />
-              <Button label={$i18n.t("page.setUrl")} icon={Link} size="sm" variant="ghost" onClick={applyCoverUrl} />
+              <Input
+                bind:value={coverUrl}
+                type="url"
+                placeholder={$i18n.t("page.pasteImageUrl")}
+                className="h-8"
+              />
+              <Button
+                label={$i18n.t("page.setUrl")}
+                icon={Link}
+                size="sm"
+                variant="ghost"
+                onClick={applyCoverUrl}
+              />
             </form>
           </div>
         {/if}
@@ -155,7 +175,13 @@
           )}
         >
           <div class="flex gap-2">
-            <Button label={$i18n.t("common.upload")} icon={Upload} size="sm" variant="secondary" onClick={pickCover} />
+            <Button
+              label={$i18n.t("common.upload")}
+              icon={Upload}
+              size="sm"
+              variant="secondary"
+              onClick={pickCover}
+            />
           </div>
 
           <form
@@ -165,8 +191,19 @@
               applyCoverUrl();
             }}
           >
-            <Input bind:value={coverUrl} type="url" placeholder={$i18n.t("page.pasteImageUrl")} className="h-8" />
-            <Button label={$i18n.t("page.setUrl")} icon={Link} size="sm" variant="ghost" onClick={applyCoverUrl} />
+            <Input
+              bind:value={coverUrl}
+              type="url"
+              placeholder={$i18n.t("page.pasteImageUrl")}
+              className="h-8"
+            />
+            <Button
+              label={$i18n.t("page.setUrl")}
+              icon={Link}
+              size="sm"
+              variant="ghost"
+              onClick={applyCoverUrl}
+            />
           </form>
         </div>
       {/if}
@@ -185,8 +222,12 @@
             "text-stone-500 hover:bg-stone-500/10 hover:text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25",
             "dark:text-stone-400 dark:hover:text-stone-100",
           )}
-          title={meta.icon ? $i18n.t("page.changeIcon") : $i18n.t("page.addIcon")}
-          aria-label={meta.icon ? $i18n.t("page.changeIcon") : $i18n.t("page.addIcon")}
+          title={meta.icon
+            ? $i18n.t("page.changeIcon")
+            : $i18n.t("page.addIcon")}
+          aria-label={meta.icon
+            ? $i18n.t("page.changeIcon")
+            : $i18n.t("page.addIcon")}
           onclick={() => (iconOpen = !iconOpen)}
         >
           <PageIcon icon={meta.icon} fallback={FileText} className="size-7" />
@@ -230,7 +271,10 @@
                 aria-label={$i18n.t("page.use", { name })}
                 onclick={() => selectIcon({ type: "lucide", value: name })}
               >
-                <PageIcon icon={{ type: "lucide", value: name }} className="size-4" />
+                <PageIcon
+                  icon={{ type: "lucide", value: name }}
+                  className="size-4"
+                />
               </button>
             {/each}
           </div>
@@ -242,10 +286,26 @@
               applyIconInput();
             }}
           >
-            <Input bind:value={iconInput} placeholder={$i18n.t("page.iconPlaceholder")} className="h-8 min-w-0 flex-1" />
-            <Button label={$i18n.t("page.setIcon")} icon={Check} size="sm" variant="primary" onClick={applyIconInput} />
+            <Input
+              bind:value={iconInput}
+              placeholder={$i18n.t("page.iconPlaceholder")}
+              className="h-8 min-w-0 flex-1"
+            />
+            <Button
+              label={$i18n.t("page.setIcon")}
+              icon={Check}
+              size="sm"
+              variant="primary"
+              onClick={applyIconInput}
+            />
             {#if meta.icon}
-              <Button label={$i18n.t("page.removeIcon")} icon={Trash2} size="sm" variant="ghost" onClick={() => selectIcon(null)} />
+              <Button
+                label={$i18n.t("page.removeIcon")}
+                icon={Trash2}
+                size="sm"
+                variant="ghost"
+                onClick={() => selectIcon(null)}
+              />
             {/if}
           </form>
         </div>

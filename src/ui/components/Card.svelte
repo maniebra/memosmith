@@ -15,11 +15,17 @@
   {#if title || description}
     <header class="mb-4">
       {#if title}
-        <h2 class="m-0 text-base font-semibold text-stone-950 dark:text-stone-50">{title}</h2>
+        <h2
+          class="m-0 text-base font-semibold text-stone-950 dark:text-stone-50"
+        >
+          {title}
+        </h2>
       {/if}
 
       {#if description}
-        <p class="mt-1 text-sm text-stone-500 dark:text-stone-400">{description}</p>
+        <p class="mt-1 text-sm text-stone-500 dark:text-stone-400">
+          {description}
+        </p>
       {/if}
     </header>
   {/if}

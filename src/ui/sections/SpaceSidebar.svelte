@@ -1,13 +1,19 @@
 <script lang="ts">
-import { FolderOpen, FolderPlus, Plus, RotateCcw, Search } from "@lucide/svelte";
-import { i18n } from "../../lib/i18n";
-import { basename } from "../../lib/utils/path";
-import type { SpaceMeta } from "../../lib/utils/pageMeta";
-import { buildTree } from "../../lib/utils/tree";
-import type { TreeNode } from "../../lib/utils/tree";
-import { searchNotes } from "../../lib/tauri/files";
-import Input from "../components/Input.svelte";
-import ContextMenu, {
+  import {
+    FolderOpen,
+    FolderPlus,
+    Plus,
+    RotateCcw,
+    Search,
+  } from "@lucide/svelte";
+  import { i18n } from "../../lib/i18n";
+  import { basename } from "../../lib/utils/path";
+  import type { SpaceMeta } from "../../lib/utils/pageMeta";
+  import { buildTree } from "../../lib/utils/tree";
+  import type { TreeNode } from "../../lib/utils/tree";
+  import { searchNotes } from "../../lib/tauri/files";
+  import Input from "../components/Input.svelte";
+  import ContextMenu, {
     type ContextMenuItem,
   } from "../components/ContextMenu.svelte";
   import SpaceTree from "./SpaceTree.svelte";
@@ -173,7 +179,9 @@ import ContextMenu, {
     <button
       type="button"
       class="min-w-0 flex-1 truncate rounded-md px-1 py-1 text-left text-xs font-semibold tracking-wide text-stone-500 uppercase hover:bg-stone-500/10 hover:text-stone-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 dark:hover:text-stone-300"
-      title={root ? $i18n.t("sidebar.changeSpace") : $i18n.t("sidebar.chooseSpace")}
+      title={root
+        ? $i18n.t("sidebar.changeSpace")
+        : $i18n.t("sidebar.chooseSpace")}
       onclick={onChooseSpace}
     >
       {root ? basename(root) : $i18n.t("app.noSpace")}
@@ -237,7 +245,7 @@ import ContextMenu, {
         </p>
       {/if}
 
-        <SpaceTree
+      <SpaceTree
         nodes={displayTree}
         {meta}
         {activePath}

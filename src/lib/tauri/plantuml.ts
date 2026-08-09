@@ -7,7 +7,10 @@ import { themedSource } from "../utils/plantuml";
 export type PlantumlOutput = { format: PlantumlFormat; content: string };
 
 function serverBase(server: string) {
-  return server.trim().replace(/\/+$/, "").replace(/\/(svg|png|txt)$/, "");
+  return server
+    .trim()
+    .replace(/\/+$/, "")
+    .replace(/\/(svg|png|txt)$/, "");
 }
 
 /** `~h` + hex is the encoding PlantUML servers accept without a deflate implementation. */
@@ -17,7 +20,10 @@ function hexEncoded(source: string) {
     .join("")}`;
 }
 
-async function readResponse(response: Response, format: PlantumlFormat): Promise<PlantumlOutput> {
+async function readResponse(
+  response: Response,
+  format: PlantumlFormat,
+): Promise<PlantumlOutput> {
   if (format === "png") {
     const bytes = new Uint8Array(await response.arrayBuffer());
     let binary = "";
@@ -33,11 +39,17 @@ async function readResponse(response: Response, format: PlantumlFormat): Promise
 }
 
 function looksRendered(output: PlantumlOutput) {
-  return output.format === "svg" ? output.content.includes("<svg") : Boolean(output.content.trim());
+  return output.format === "svg"
+    ? output.content.includes("<svg")
+    : Boolean(output.content.trim());
 }
 
 /** POST keeps the source out of the URL; older servers answer 405, so the GET form is the fallback. */
-async function renderOnServer(server: string, source: string, format: PlantumlFormat) {
+async function renderOnServer(
+  server: string,
+  source: string,
+  format: PlantumlFormat,
+) {
   const base = serverBase(server);
   const post = await fetch(`${base}/${format}`, {
     method: "POST",
