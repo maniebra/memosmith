@@ -78,6 +78,12 @@
       }
 
       taken.add(anchor);
+
+      // Tabs, "Add board view", "Filter", "New row": controls that do nothing on paper.
+      for (const control of Array.from(portal.querySelectorAll("button"))) {
+        control.remove();
+      }
+
       portal.removeAttribute("style");
       portal.classList.remove("md-database-portal");
       // The anchor is only a hidden spacer sized to the floating card, so the card takes its
