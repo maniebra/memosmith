@@ -9,6 +9,7 @@
   } from "@lucide/svelte";
   import { i18n } from "../../lib/i18n";
   import { cn } from "../../lib/utils/cn";
+  import { preferredTextDirection, type StrongTextDirection } from "../../lib/utils/textDirection";
   import {
     emojiIconChoices,
     lucideIconNames,
@@ -33,8 +34,11 @@
   let coverMenuOpen = false;
   let coverUrl = "";
   let iconInput = "";
+  let pageChromeDirection: StrongTextDirection = "ltr";
 
   $: coverSource = meta.cover ? resolveAsset(meta.cover) : "";
+  $: titleDirection = preferredTextDirection(title);
+  $: pageChromeDirection = titleDirection === "rtl" || $i18n.dir === "rtl" ? "rtl" : "ltr";
 
   function selectIcon(icon: PageIconType | null) {
     iconInput = "";
@@ -87,7 +91,10 @@
         />
         <button
           type="button"
-          class="absolute top-3 right-3 inline-flex h-8 items-center gap-1.5 rounded-md border border-stone-200/80 bg-stone-50/90 px-2.5 text-[0.8125rem] font-medium text-stone-700 opacity-0 shadow-sm backdrop-blur transition-opacity hover:bg-white focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/30 group-hover/cover:opacity-100 dark:border-stone-700/80 dark:bg-stone-900/90 dark:text-stone-200 dark:hover:bg-stone-800"
+          class={cn(
+            "absolute top-3 inline-flex h-8 items-center gap-1.5 rounded-md border border-stone-200/80 bg-stone-50/90 px-2.5 text-[0.8125rem] font-medium text-stone-700 opacity-0 shadow-sm backdrop-blur transition-opacity hover:bg-white focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/30 group-hover/cover:opacity-100 dark:border-stone-700/80 dark:bg-stone-900/90 dark:text-stone-200 dark:hover:bg-stone-800",
+            pageChromeDirection === "rtl" ? "left-3" : "right-3",
+          )}
           aria-haspopup="menu"
           aria-expanded={coverMenuOpen}
           onclick={() => (coverMenuOpen = !coverMenuOpen)}
@@ -98,7 +105,10 @@
 
         {#if coverMenuOpen}
           <div
-            class="absolute top-12 right-3 z-50 w-80 rounded-xl border border-stone-200/80 bg-stone-50/95 p-3 shadow-lg shadow-stone-900/8 backdrop-blur dark:border-stone-700/80 dark:bg-stone-900/95 dark:shadow-black/20"
+            class={cn(
+              "absolute top-12 z-50 w-80 rounded-xl border border-stone-200/80 bg-stone-50/95 p-3 shadow-lg shadow-stone-900/8 backdrop-blur dark:border-stone-700/80 dark:bg-stone-900/95 dark:shadow-black/20",
+              pageChromeDirection === "rtl" ? "left-3" : "right-3",
+            )}
           >
             <div class="flex gap-2">
               <Button label={$i18n.t("common.upload")} icon={Upload} size="sm" variant="secondary" onClick={pickCover} />
@@ -124,7 +134,10 @@
       {#if !meta.cover}
         <button
           type="button"
-          class="absolute top-1 right-0 inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-[0.8125rem] font-medium text-stone-500 opacity-0 transition-opacity hover:bg-stone-500/10 hover:text-stone-900 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 group-hover/page:opacity-100 dark:text-stone-400 dark:hover:text-stone-100"
+          class={cn(
+            "absolute top-1 inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-[0.8125rem] font-medium text-stone-500 opacity-0 transition-opacity hover:bg-stone-500/10 hover:text-stone-900 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 group-hover/page:opacity-100 dark:text-stone-400 dark:hover:text-stone-100",
+            pageChromeDirection === "rtl" ? "left-0" : "right-0",
+          )}
           aria-haspopup="menu"
           aria-expanded={coverMenuOpen}
           onclick={() => (coverMenuOpen = !coverMenuOpen)}
@@ -136,7 +149,10 @@
 
       {#if coverMenuOpen && !meta.cover}
         <div
-          class="absolute top-10 right-0 z-50 w-80 rounded-xl border border-stone-200/80 bg-stone-50/95 p-3 shadow-lg shadow-stone-900/8 backdrop-blur dark:border-stone-700/80 dark:bg-stone-900/95 dark:shadow-black/20"
+          class={cn(
+            "absolute top-10 z-50 w-80 rounded-xl border border-stone-200/80 bg-stone-50/95 p-3 shadow-lg shadow-stone-900/8 backdrop-blur dark:border-stone-700/80 dark:bg-stone-900/95 dark:shadow-black/20",
+            pageChromeDirection === "rtl" ? "left-0" : "right-0",
+          )}
         >
           <div class="flex gap-2">
             <Button label={$i18n.t("common.upload")} icon={Upload} size="sm" variant="secondary" onClick={pickCover} />
@@ -155,7 +171,13 @@
         </div>
       {/if}
 
-      <div class="mb-3 flex items-start gap-3 pr-24">
+      <div
+        dir={pageChromeDirection}
+        class={cn(
+          "mb-3 flex items-start gap-3",
+          pageChromeDirection === "rtl" ? "pl-24" : "pr-24",
+        )}
+      >
         <button
           type="button"
           class={cn(
@@ -172,7 +194,10 @@
 
         <div class="min-w-0 flex-1">
           {#if showTitle}
-            <h1 class="min-w-0 text-[2.5rem] leading-tight font-bold tracking-normal break-words text-stone-900 dark:text-stone-100">
+            <h1
+              dir={titleDirection}
+              class="min-w-0 text-start text-[2.5rem] leading-tight font-bold tracking-normal break-words text-stone-900 dark:text-stone-100"
+            >
               {title}
             </h1>
           {/if}

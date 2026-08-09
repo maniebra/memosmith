@@ -227,6 +227,10 @@ textarea,
     user-select: none;
   }
 
+  .md-callout-preview:dir(rtl) {
+    box-shadow: inset -3px 0 0 rgb(var(--md-callout-rgb) / 0.78);
+  }
+
   .md-callout-preview[data-active] {
     @apply hidden;
   }

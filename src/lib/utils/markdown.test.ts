@@ -2,8 +2,10 @@ const assert = (ok: unknown, msg: string) => { if (!ok) throw new Error(msg); };
 import { liveDiagramFenceLine, applyPrefix, continueList, continueQuote, DEFAULT_TABLE_MARKDOWN, editMarkdownTable, insideFence, isMediaLine, lineClass, mathUnclosed, mediaOptions, renderDocument, renderLine, withMediaOptions } from "./markdown";
 
 // The caret maps by counting source blocks, so previews must never be counted as lines.
+const sourceBlocksFromHtml = (html: string) =>
+  (html.match(/class="[^"]*\bmd-block\b[^"]*"/g) ?? []).length;
 const sourceBlocks = (text: string) =>
-  (renderDocument(text).match(/<div class="md-block/g) ?? []).length;
+  sourceBlocksFromHtml(renderDocument(text));
 
 assert(lineClass("# Title") === "md-h1", "h1 class");
 assert(lineClass("#NoSpace") === "", "hash without space is not a heading");
@@ -30,7 +32,10 @@ assert(callout.includes("md-callout-start") && callout.includes("md-callout-end"
 assert(callout.includes("md-callout-lucide"), "callout preview renders a Lucide icon");
 assert(callout.includes("Heads up"), "callout title renders");
 assert(callout.includes("md-bold"), "callout body renders inline markdown");
-assert((callout.match(/<div class="md-block/g) ?? []).length === 2, "callout preview does not add a source block");
+assert(sourceBlocksFromHtml(callout) === 2, "callout preview does not add a source block");
+const rtlCallout = renderDocument("> [!tip] نکته\n> مثل گرا از ساختاری برای رفتار استفاده کنید", undefined, { callouts: true });
+assert(rtlCallout.includes('<div dir="rtl" class="md-preview md-callout-preview"'), "rtl callout preview direction is explicit");
+assert(rtlCallout.includes('<div dir="rtl" class="md-callout-heading"'), "rtl callout heading direction is explicit");
 assert(
   renderDocument("> [!custom] Mine", undefined, {
     callouts: true,
@@ -181,7 +186,7 @@ const runBars = (text: string, codeExecution: boolean) =>
 
 assert(runBars("```python\nprint(1)\n```", true) === 1, "runnable fence gets a run bar");
 assert(runBars("```python\nprint(1)\n```", false) === 0, "run bars need the feature on");
-assert(runBars("```rust\nfn main() {}\n```", true) === 0, "unrunnable language gets no run bar");
+assert(runBars("```not-a-kernel\ntext\n```", true) === 0, "unrunnable language gets no run bar");
 assert(runBars("```bash\necho hi\n", true) === 0, "an unclosed fence gets no run bar");
 assert(sourceBlocks("```python\nprint(1)\n```") === 3, "the run bar is not a source block");
 

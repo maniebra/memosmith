@@ -4,6 +4,7 @@ import { isRunnable, kernelFor, KERNEL_LABELS } from "./runner";
 import { defaultCalloutDefinitions, type CalloutDefinition } from "../storage/settings";
 import { assetFolder } from "./assets";
 import { calloutIconSvg } from "./calloutIcons";
+import { preferredTextDirection } from "./textDirection";
 import { parseWikilink, type WikilinkResolution } from "./wikilinks";
 
 type BlockRule = {
@@ -829,6 +830,7 @@ function calloutLine(
   count: number,
   options: RenderInlineOptions,
 ) {
+  const direction = preferredTextDirection(line);
   const position = [
     index === 0 ? "md-callout-start" : "",
     index === count - 1 ? "md-callout-end" : "",
@@ -836,7 +838,7 @@ function calloutLine(
     .filter(Boolean)
     .join(" ");
 
-  return `<div dir="auto" class="md-block md-quote md-callout-line ${position}" data-callout="${group}" style="--md-callout-rgb:${calloutRgb(
+  return `<div dir="${direction}" class="md-block md-quote md-callout-line ${position}" data-callout="${group}" style="--md-callout-rgb:${calloutRgb(
     definition.color,
   )};">${renderLine(line, options)}</div>`;
 }
@@ -852,20 +854,24 @@ function calloutPreview(
   const definition = calloutDefinition(type, definitions);
   const title = start?.[2]?.trim() || definition.label;
   const body = lines.slice(1).map((line) => CALLOUT_LINE.exec(line)?.[1] ?? "");
+  const previewDirection = preferredTextDirection([title, ...body].join("\n"));
+  const titleDirection = preferredTextDirection(title);
   const bodyHtml = body
     .map((line) => {
       const indent = / */.exec(line)![0].length;
-      const style = indent ? ` style="padding-left:${indent * 0.75}rem"` : "";
+      const direction = preferredTextDirection(line);
+      const padding = direction === "rtl" ? "padding-right" : "padding-left";
+      const style = indent ? ` style="${padding}:${indent * 0.75}rem"` : "";
 
-      return `<div class="md-callout-body-line ${lineClass(line)}"${style}>${renderLine(line, options)}</div>`;
+      return `<div dir="${direction}" class="md-callout-body-line ${lineClass(line)}"${style}>${renderLine(line, options)}</div>`;
     })
     .join("");
 
-  return `<div class="md-preview md-callout-preview" data-callout="${group}" style="--md-callout-rgb:${calloutRgb(
+  return `<div dir="${previewDirection}" class="md-preview md-callout-preview" data-callout="${group}" style="--md-callout-rgb:${calloutRgb(
     definition.color,
-  )};" contenteditable="false"><div class="md-callout-heading"><span class="md-callout-icon">${calloutIconSvg(
+  )};" contenteditable="false"><div dir="${previewDirection}" class="md-callout-heading"><span class="md-callout-icon">${calloutIconSvg(
     definition.icon,
-  )}</span><span class="md-callout-title">${renderInline(escapeHtml(title), options)}</span></div>${
+  )}</span><span dir="${titleDirection}" class="md-callout-title">${renderInline(escapeHtml(title), options)}</span></div>${
     bodyHtml ? `<div class="md-callout-body">${bodyHtml}</div>` : ""
   }</div>`;
 }
