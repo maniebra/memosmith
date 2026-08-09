@@ -27,6 +27,40 @@ body {
   min-width: 360px;
 }
 
+input,
+textarea,
+[contenteditable="true"] {
+  text-align: start;
+}
+
+[dir="rtl"] .text-left {
+  text-align: right;
+}
+
+[dir="rtl"] .text-right {
+  text-align: left;
+}
+
+[dir="rtl"] .ml-auto {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+[dir="rtl"] .mr-auto {
+  margin-right: 0;
+  margin-left: auto;
+}
+
+[dir="rtl"] .border-l {
+  border-left-width: 0;
+  border-right-width: 1px;
+}
+
+[dir="rtl"] .border-r {
+  border-right-width: 0;
+  border-left-width: 1px;
+}
+
 ::selection {
   background: rgb(var(--ms-accent-rgb) / 0.22);
 }
@@ -50,6 +84,7 @@ body {
 @layer components {
   .md-block {
     @apply relative;
+    unicode-bidi: plaintext;
   }
 
   .md-block:hover,
@@ -59,6 +94,11 @@ body {
 
   .md-block-toolbar {
     @apply absolute -left-18 z-40 flex h-7 items-center gap-1 rounded-md bg-[#fffdfa]/90 p-0.5 shadow-sm ring-1 ring-stone-200/70 backdrop-blur dark:bg-[#1a1917]/90 dark:ring-stone-700/70;
+  }
+
+  [dir="rtl"] .md-block-toolbar {
+    left: auto;
+    right: -4.5rem;
   }
 
   .md-block-button {
@@ -79,8 +119,17 @@ body {
       @apply pl-16;
     }
 
+    [dir="rtl"] .md-editor-surface {
+      @apply pr-16 pl-0;
+    }
+
     .md-block-toolbar {
       @apply left-0;
+    }
+
+    [dir="rtl"] .md-block-toolbar {
+      left: auto;
+      right: 0;
     }
   }
 
@@ -131,6 +180,11 @@ body {
     @apply my-0 border-l-[3px] py-0 pl-4 text-stone-700 dark:text-stone-200;
     background: rgb(var(--md-callout-rgb) / 0.08) !important;
     border-left-color: rgb(var(--md-callout-rgb) / 0.78);
+  }
+
+  [dir="rtl"] .md-callout-line[data-active] {
+    @apply border-l-0 border-r-[3px] pr-4 pl-0;
+    border-right-color: rgb(var(--md-callout-rgb) / 0.78);
   }
 
   .md-callout-line[data-active].md-callout-start {

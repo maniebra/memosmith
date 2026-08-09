@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Database, Plus, Trash2, X } from "@lucide/svelte";
+  import { i18n } from "../../lib/i18n";
   import type { DatabaseSummary } from "../../lib/tauri/databases";
   import Button from "../components/Button.svelte";
 
@@ -26,21 +27,21 @@
 
 <div
   class="flex h-[70vh] w-[90vw] flex-col overflow-hidden rounded-xl bg-stone-50 shadow-xl md:max-h-[640px] md:w-[36rem] dark:bg-stone-900"
-  aria-label="Databases"
+  aria-label={$i18n.t("database.title")}
 >
   <div class="flex h-12 shrink-0 items-center justify-between border-b border-stone-200/50 px-4 dark:border-stone-800/80">
-    <h2 class="text-sm font-semibold text-stone-800 dark:text-stone-100">Databases</h2>
-    <Button label="Close" icon={X} onClick={onClose} variant="ghost" size="sm" />
+    <h2 class="text-sm font-semibold text-stone-800 dark:text-stone-100">{$i18n.t("database.title")}</h2>
+    <Button label={$i18n.t("common.close")} icon={X} onClick={onClose} variant="ghost" size="sm" />
   </div>
 
   <div class="flex shrink-0 gap-2 border-b border-stone-200/50 p-3 dark:border-stone-800/80">
     <input
       class="h-9 min-w-0 flex-1 rounded-md border border-stone-200 bg-transparent px-2.5 text-sm text-stone-800 outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/30 dark:border-stone-700 dark:text-stone-100"
-      placeholder="New database name"
+      placeholder={$i18n.t("database.newName")}
       bind:value={newName}
       onkeydown={(event) => event.key === "Enter" && create()}
     />
-    <Button label="Create" icon={Plus} onClick={create} variant="primary" size="sm" />
+    <Button label={$i18n.t("common.create")} icon={Plus} onClick={create} variant="primary" size="sm" />
   </div>
 
   <div class="min-h-0 flex-1 overflow-y-auto p-2">
@@ -61,7 +62,7 @@
         <button
           type="button"
           class="flex size-8 shrink-0 items-center justify-center rounded-md text-stone-300 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-rose-500/10 hover:text-rose-600"
-          aria-label="Delete database {database.name}"
+          aria-label={$i18n.t("database.delete", { name: database.name })}
           onclick={() => onDelete(database.id)}
         >
           <Trash2 class="size-4" strokeWidth={1.8} aria-hidden="true" />
@@ -70,7 +71,7 @@
     {/each}
 
     {#if !databases.length}
-      <p class="px-2 py-8 text-center text-sm text-stone-400">No databases yet.</p>
+      <p class="px-2 py-8 text-center text-sm text-stone-400">{$i18n.t("database.empty")}</p>
     {/if}
   </div>
 </div>

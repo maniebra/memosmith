@@ -28,6 +28,7 @@
   import { onDestroy, onMount } from "svelte";
   import { cubicOut } from "svelte/easing";
   import { scale } from "svelte/transition";
+  import { i18n, type I18nKey } from "../../lib/i18n";
   import {
     defaultLspSettings,
     defaultMermaidSettings,
@@ -247,37 +248,53 @@
   };
 
   type BlockTransform = {
-    label: string;
+    labelKey: I18nKey;
     prefix: string;
     icon: any;
   };
 
   const BLOCK_TRANSFORMS: BlockTransform[] = [
-    { label: "Text", prefix: "", icon: Type },
-    { label: "Heading 1", prefix: "# ", icon: Heading1 },
-    { label: "Heading 2", prefix: "## ", icon: Heading2 },
-    { label: "Heading 3", prefix: "### ", icon: Heading3 },
-    { label: "Bulleted list", prefix: "- ", icon: List },
-    { label: "Numbered list", prefix: "1. ", icon: ListOrdered },
-    { label: "To-do", prefix: "- [ ] ", icon: CheckSquare },
-    { label: "Quote", prefix: "> ", icon: Quote },
-    { label: "Code", prefix: "```", icon: Code2 },
+    { labelKey: "editor.text", prefix: "", icon: Type },
+    { labelKey: "editor.heading1", prefix: "# ", icon: Heading1 },
+    { labelKey: "editor.heading2", prefix: "## ", icon: Heading2 },
+    { labelKey: "editor.heading3", prefix: "### ", icon: Heading3 },
+    { labelKey: "editor.bulletedList", prefix: "- ", icon: List },
+    { labelKey: "editor.numberedList", prefix: "1. ", icon: ListOrdered },
+    { labelKey: "editor.todo", prefix: "- [ ] ", icon: CheckSquare },
+    { labelKey: "editor.quote", prefix: "> ", icon: Quote },
+    { labelKey: "editor.code", prefix: "```", icon: Code2 },
   ];
+
+  function slashLabel(label: string) {
+    const labels: Record<string, I18nKey> = {
+      Text: "editor.text",
+      "Heading 1": "editor.heading1",
+      "Heading 2": "editor.heading2",
+      "Heading 3": "editor.heading3",
+      "Bulleted list": "editor.bulletedList",
+      "Numbered list": "editor.numberedList",
+      "To-do": "editor.todo",
+      Quote: "editor.quote",
+      Code: "editor.code",
+    };
+
+    return labels[label] ? $i18n.t(labels[label]) : label;
+  }
 
   $: calloutDefinitionsKey = JSON.stringify(calloutDefinitions);
   $: primaryCalloutId = calloutDefinitions.find((callout) => callout.id)?.id ?? "note";
   $: commands = [
-    ...SLASH_COMMANDS,
+    ...SLASH_COMMANDS.map((command) => ({ ...command, label: slashLabel(command.label) })),
     ...(callouts
-      ? [{ label: "Callout", hint: primaryCalloutId, prefix: `> [!${primaryCalloutId}] ` }]
+      ? [{ label: $i18n.t("editor.callout"), hint: primaryCalloutId, prefix: `> [!${primaryCalloutId}] ` }]
       : []),
-    ...(drawings ? [{ label: "Drawing", hint: "excalidraw", prefix: EMPTY_DRAWING }] : []),
-    ...(diagrams ? [{ label: "Diagram", hint: "draw.io", prefix: EMPTY_DIAGRAM }] : []),
+    ...(drawings ? [{ label: $i18n.t("editor.drawing"), hint: "excalidraw", prefix: EMPTY_DRAWING }] : []),
+    ...(diagrams ? [{ label: $i18n.t("editor.diagram"), hint: "draw.io", prefix: EMPTY_DIAGRAM }] : []),
     ...(plantuml ? [{ label: "PlantUML", hint: "diagram", prefix: EMPTY_PLANTUML }] : []),
     ...(mermaid ? [{ label: "Mermaid", hint: "diagram", prefix: EMPTY_MERMAID }] : []),
     ...(databaseRoot
       ? databaseOptions.map((option) => ({
-          label: `Database: ${option.name}`,
+          label: $i18n.t("editor.database", { name: option.name }),
           hint: "embed",
           prefix: emptyDatabaseEmbed(option.id),
         }))
@@ -1468,39 +1485,39 @@
 
     return [
       ...BLOCK_TRANSFORMS.map((transform) => ({
-        label: transform.label,
+        label: $i18n.t(transform.labelKey),
         icon: transform.icon,
         disabled: !canTransform,
         onSelect: () => transformBlock(transform),
       })),
       { separator: true },
       {
-        label: "Add block below",
+        label: $i18n.t("editor.addBlockBelow"),
         icon: Plus,
         disabled: !editable,
         onSelect: addBlockAfter,
       },
       {
-        label: "Duplicate",
+        label: $i18n.t("editor.duplicate"),
         icon: Copy,
         disabled: !context,
         onSelect: duplicateBlock,
       },
       {
-        label: "Move up",
+        label: $i18n.t("editor.moveUp"),
         icon: ArrowUp,
         disabled: !context || context.index === 0,
         onSelect: () => moveBlock(-1),
       },
       {
-        label: "Move down",
+        label: $i18n.t("editor.moveDown"),
         icon: ArrowDown,
         disabled: !context || context.index === context.units.length - 1,
         onSelect: () => moveBlock(1),
       },
       { separator: true },
       {
-        label: "Delete",
+        label: $i18n.t("common.delete"),
         icon: Trash2,
         danger: true,
         disabled: !context,
@@ -2714,7 +2731,7 @@
 
       if (!embed?.database) {
         anchor.classList.remove("md-database-anchor");
-        anchor.innerHTML = `<p class="md-database-empty">Database unavailable</p>`;
+        anchor.innerHTML = `<p class="md-database-empty">${$i18n.t("database.unavailable")}</p>`;
         continue;
       }
 
@@ -3138,22 +3155,22 @@
 
     return [
       {
-        label: "Align left",
+        label: $i18n.t("editor.alignLeft"),
         icon: AlignLeft,
         onSelect: () => setEmbedOption(preview, { align: null }),
       },
       {
-        label: "Align center",
+        label: $i18n.t("editor.alignCenter"),
         icon: AlignCenter,
         onSelect: () => setEmbedOption(preview, { align: "center" }),
       },
       {
-        label: "Align right",
+        label: $i18n.t("editor.alignRight"),
         icon: AlignRight,
         onSelect: () => setEmbedOption(preview, { align: "right" }),
       },
       {
-        label: "Reset size",
+        label: $i18n.t("editor.resetSize"),
         onSelect: () => setEmbedOption(preview, { width: null }),
       },
       { separator: true },
@@ -3173,17 +3190,17 @@
 
     return [
       {
-        label: "Align left",
+        label: $i18n.t("editor.alignLeft"),
         icon: AlignLeft,
         onSelect: () => setMediaOption(range, { align: "left" }),
       },
       {
-        label: "Align center",
+        label: $i18n.t("editor.alignCenter"),
         icon: AlignCenter,
         onSelect: () => setMediaOption(range, { align: "center" }),
       },
       {
-        label: "Align right",
+        label: $i18n.t("editor.alignRight"),
         icon: AlignRight,
         onSelect: () => setMediaOption(range, { align: "right" }),
       },
@@ -3201,43 +3218,43 @@
 
     return [
       {
-        label: "Add row below",
+        label: $i18n.t("editor.addRowBelow"),
         onSelect: () => tableAction(preview, cell, "insert-row"),
       },
       {
-        label: "Add column right",
+        label: $i18n.t("editor.addColumnRight"),
         onSelect: () => tableAction(preview, cell, "insert-column"),
       },
       {
-        label: "Merge right",
+        label: $i18n.t("editor.mergeRight"),
         onSelect: () => tableAction(preview, cell, "merge-right"),
       },
       {
-        label: "Merge down",
+        label: $i18n.t("editor.mergeDown"),
         onSelect: () => tableAction(preview, cell, "merge-down"),
       },
       {
-        label: "Split cell",
+        label: $i18n.t("editor.splitCell"),
         onSelect: () => tableAction(preview, cell, "split-cell"),
       },
       {
-        label: "Color red",
+        label: $i18n.t("editor.colorRed"),
         onSelect: () => tableAction(preview, cell, "set-color", "#fee2e2"),
       },
       {
-        label: "Color yellow",
+        label: $i18n.t("editor.colorYellow"),
         onSelect: () => tableAction(preview, cell, "set-color", "#fef3c7"),
       },
       {
-        label: "Color green",
+        label: $i18n.t("editor.colorGreen"),
         onSelect: () => tableAction(preview, cell, "set-color", "#dcfce7"),
       },
       {
-        label: "Color blue",
+        label: $i18n.t("editor.colorBlue"),
         onSelect: () => tableAction(preview, cell, "set-color", "#dbeafe"),
       },
       {
-        label: "Clear cell color",
+        label: $i18n.t("editor.clearCellColor"),
         onSelect: () => tableAction(preview, cell, "clear-color"),
       },
       { separator: true },
@@ -3270,41 +3287,41 @@
       ...alignItems(),
       ...tableItems(),
       {
-        label: "Cut",
+        label: $i18n.t("common.cut"),
         shortcut: "Ctrl X",
         icon: Scissors,
         disabled: !editable || !contextMenu?.hasSelection,
         onSelect: cutSelection,
       },
       {
-        label: "Copy",
+        label: $i18n.t("common.copy"),
         shortcut: "Ctrl C",
         icon: ClipboardCopy,
         disabled: !contextMenu?.hasSelection,
         onSelect: copySelection,
       },
       {
-        label: "Paste",
+        label: $i18n.t("common.paste"),
         shortcut: "Ctrl V",
         icon: ClipboardPaste,
         disabled: !editable,
         onSelect: pasteClipboard,
       },
       {
-        label: generating ? "Generating..." : "Generate with AI",
+        label: generating ? $i18n.t("editor.generating") : $i18n.t("editor.generateAi"),
         icon: Sparkles,
         disabled: !editable || !onGenerate || !contextMenu?.hasSelection || generating,
         onSelect: generateFromSelection,
       },
       {
-        label: "Insert file",
+        label: $i18n.t("editor.insertFile"),
         icon: FileUp,
         disabled: !editable || !onPickAssets,
         onSelect: async () => insertAssets(await onPickAssets!()),
       },
       { separator: true },
       {
-        label: "Select all",
+        label: $i18n.t("editor.selectAll"),
         shortcut: "Ctrl A",
         disabled: !value,
         onSelect: selectAll,
@@ -3719,7 +3736,7 @@
     contenteditable="false"
     role="toolbar"
     tabindex="-1"
-    aria-label="Block controls"
+    aria-label={$i18n.t("editor.blockControls")}
     onpointerenter={clearBlockToolbarHide}
     onpointermove={(event) => {
       event.stopPropagation();
@@ -3729,8 +3746,8 @@
     <button
       type="button"
       class="md-block-button"
-      title="Add block below"
-      aria-label="Add block below"
+      title={$i18n.t("editor.addBlockBelow")}
+      aria-label={$i18n.t("editor.addBlockBelow")}
       onmousedown={(event) => event.preventDefault()}
       onclick={(event) => {
         event.stopPropagation();
@@ -3742,8 +3759,8 @@
     <button
       type="button"
       class="md-block-button md-block-grip"
-      title="Block menu. Drag to move."
-      aria-label="Block menu. Drag to move."
+      title={$i18n.t("editor.blockMenuDrag")}
+      aria-label={$i18n.t("editor.blockMenuDrag")}
       onmousedown={(event) => event.preventDefault()}
       onclick={openBlockMenu}
       onpointerdown={startBlockDrag}
@@ -3764,11 +3781,12 @@
 <div
   bind:this={element}
   contenteditable={editable}
+  dir="auto"
   {spellcheck}
   role="textbox"
   tabindex="0"
   aria-multiline="true"
-  aria-label="Markdown editor"
+  aria-label={$i18n.t("editor.aria")}
   style="--md-placeholder: '{placeholder}'; font-size: {textSize}px; font-family: var(--ms-editor-font); line-height: var(--ms-editor-line-height);"
   class={cn(
     "min-h-[60vh] w-full leading-[1.75] whitespace-pre-wrap caret-emerald-700",
@@ -3838,8 +3856,8 @@
     <button
       type="button"
       class="flex h-7 w-full items-center justify-center rounded-md border border-dashed border-stone-300 bg-[#fffdfa]/90 text-stone-400 opacity-0 shadow-sm backdrop-blur transition-[border-color,background-color,color,opacity] hover:border-emerald-600/40 hover:bg-emerald-50/80 hover:text-emerald-700 hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 dark:border-stone-700 dark:bg-[#1a1917]/90 dark:text-stone-500 dark:hover:border-emerald-400/40 dark:hover:bg-emerald-950/30 dark:hover:text-emerald-300"
-      title="Add block"
-      aria-label="Add block"
+      title={$i18n.t("editor.addBlock")}
+      aria-label={$i18n.t("editor.addBlock")}
       onmousedown={(event) => event.preventDefault()}
       onclick={(event) => {
         event.stopPropagation();
@@ -3908,7 +3926,7 @@
     style="top: {menuPosition.top}px; left: {menuPosition.left}px; transform-origin: top left;"
     in:scale={{ start: 0.96, duration: 110, easing: cubicOut }}
     role="listbox"
-    aria-label="Block commands"
+    aria-label={$i18n.t("editor.commands")}
   >
     {#each matches as command, index}
       <li>
@@ -3945,7 +3963,7 @@
     style="top: {completionPosition.top}px; left: {completionPosition.left}px; transform-origin: top left;"
     in:scale={{ start: 0.96, duration: 110, easing: cubicOut }}
     role="listbox"
-    aria-label="Code completions"
+    aria-label={$i18n.t("editor.completions")}
   >
     {#each completions as item, index}
       <li>

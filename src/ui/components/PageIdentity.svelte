@@ -7,6 +7,7 @@
     Trash2,
     Upload,
   } from "@lucide/svelte";
+  import { i18n } from "../../lib/i18n";
   import { cn } from "../../lib/utils/cn";
   import {
     emojiIconChoices,
@@ -92,7 +93,7 @@
           onclick={() => (coverMenuOpen = !coverMenuOpen)}
         >
           <Image class="size-3.5" strokeWidth={1.8} aria-hidden="true" />
-          <span>Cover</span>
+          <span>{$i18n.t("page.cover")}</span>
         </button>
 
         {#if coverMenuOpen}
@@ -100,8 +101,8 @@
             class="absolute top-12 right-3 z-50 w-80 rounded-xl border border-stone-200/80 bg-stone-50/95 p-3 shadow-lg shadow-stone-900/8 backdrop-blur dark:border-stone-700/80 dark:bg-stone-900/95 dark:shadow-black/20"
           >
             <div class="flex gap-2">
-              <Button label="Upload" icon={Upload} size="sm" variant="secondary" onClick={pickCover} />
-              <Button label="Remove" icon={Trash2} size="sm" variant="ghost" onClick={removeCover} />
+              <Button label={$i18n.t("common.upload")} icon={Upload} size="sm" variant="secondary" onClick={pickCover} />
+              <Button label={$i18n.t("common.remove")} icon={Trash2} size="sm" variant="ghost" onClick={removeCover} />
             </div>
 
             <form
@@ -111,8 +112,8 @@
                 applyCoverUrl();
               }}
             >
-              <Input bind:value={coverUrl} type="url" placeholder="Paste image URL" className="h-8" />
-              <Button label="Set URL" icon={Link} size="sm" variant="ghost" onClick={applyCoverUrl} />
+              <Input bind:value={coverUrl} type="url" placeholder={$i18n.t("page.pasteImageUrl")} className="h-8" />
+              <Button label={$i18n.t("page.setUrl")} icon={Link} size="sm" variant="ghost" onClick={applyCoverUrl} />
             </form>
           </div>
         {/if}
@@ -129,7 +130,7 @@
           onclick={() => (coverMenuOpen = !coverMenuOpen)}
         >
           <Image class="size-3.5" strokeWidth={1.8} aria-hidden="true" />
-          <span>Cover</span>
+          <span>{$i18n.t("page.cover")}</span>
         </button>
       {/if}
 
@@ -138,7 +139,7 @@
           class="absolute top-10 right-0 z-50 w-80 rounded-xl border border-stone-200/80 bg-stone-50/95 p-3 shadow-lg shadow-stone-900/8 backdrop-blur dark:border-stone-700/80 dark:bg-stone-900/95 dark:shadow-black/20"
         >
           <div class="flex gap-2">
-            <Button label="Upload" icon={Upload} size="sm" variant="secondary" onClick={pickCover} />
+            <Button label={$i18n.t("common.upload")} icon={Upload} size="sm" variant="secondary" onClick={pickCover} />
           </div>
 
           <form
@@ -148,8 +149,8 @@
               applyCoverUrl();
             }}
           >
-            <Input bind:value={coverUrl} type="url" placeholder="Paste image URL" className="h-8" />
-            <Button label="Set URL" icon={Link} size="sm" variant="ghost" onClick={applyCoverUrl} />
+            <Input bind:value={coverUrl} type="url" placeholder={$i18n.t("page.pasteImageUrl")} className="h-8" />
+            <Button label={$i18n.t("page.setUrl")} icon={Link} size="sm" variant="ghost" onClick={applyCoverUrl} />
           </form>
         </div>
       {/if}
@@ -162,8 +163,8 @@
             "text-stone-500 hover:bg-stone-500/10 hover:text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25",
             "dark:text-stone-400 dark:hover:text-stone-100",
           )}
-          title={meta.icon ? "Change icon" : "Add icon"}
-          aria-label={meta.icon ? "Change icon" : "Add icon"}
+          title={meta.icon ? $i18n.t("page.changeIcon") : $i18n.t("page.addIcon")}
+          aria-label={meta.icon ? $i18n.t("page.changeIcon") : $i18n.t("page.addIcon")}
           onclick={() => (iconOpen = !iconOpen)}
         >
           <PageIcon icon={meta.icon} fallback={FileText} className="size-7" />
@@ -187,7 +188,7 @@
               <button
                 type="button"
                 class="flex size-9 items-center justify-center rounded-md text-xl transition-colors hover:bg-stone-200/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 dark:hover:bg-stone-800"
-                aria-label={`Use ${emoji}`}
+                aria-label={$i18n.t("page.use", { name: emoji })}
                 onclick={() => selectIcon({ type: "emoji", value: emoji })}
               >
                 {emoji}
@@ -201,7 +202,7 @@
                 type="button"
                 class="flex size-9 items-center justify-center rounded-md text-stone-600 transition-colors hover:bg-stone-200/70 hover:text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 dark:text-stone-300 dark:hover:bg-stone-800 dark:hover:text-stone-100"
                 title={name}
-                aria-label={`Use ${name}`}
+                aria-label={$i18n.t("page.use", { name })}
                 onclick={() => selectIcon({ type: "lucide", value: name })}
               >
                 <PageIcon icon={{ type: "lucide", value: name }} className="size-4" />
@@ -216,10 +217,10 @@
               applyIconInput();
             }}
           >
-            <Input bind:value={iconInput} placeholder="Emoji or lucide name" className="h-8 min-w-0 flex-1" />
-            <Button label="Set icon" icon={Check} size="sm" variant="primary" onClick={applyIconInput} />
+            <Input bind:value={iconInput} placeholder={$i18n.t("page.iconPlaceholder")} className="h-8 min-w-0 flex-1" />
+            <Button label={$i18n.t("page.setIcon")} icon={Check} size="sm" variant="primary" onClick={applyIconInput} />
             {#if meta.icon}
-              <Button label="Remove icon" icon={Trash2} size="sm" variant="ghost" onClick={() => selectIcon(null)} />
+              <Button label={$i18n.t("page.removeIcon")} icon={Trash2} size="sm" variant="ghost" onClick={() => selectIcon(null)} />
             {/if}
           </form>
         </div>

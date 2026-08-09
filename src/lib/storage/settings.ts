@@ -1,4 +1,5 @@
 import { GRAMMAR_MODES, isGrammarMode, type GrammarMode } from "../utils/grammar";
+import { isLocale, type Locale } from "../i18n";
 import { normalizeCalloutIcon } from "../utils/calloutIcons";
 import type { Kernel } from "../utils/runner";
 import {
@@ -86,6 +87,7 @@ export type LlmSettings = {
 };
 
 export type AppSettings = {
+  locale: Locale;
   theme: ThemePreference;
   appearance: AppearanceSettings;
   features: FeatureSettings;
@@ -203,6 +205,7 @@ export const defaultCalloutDefinitions: CalloutDefinition[] = [
 ];
 
 export const defaultSettings: AppSettings = {
+  locale: "en",
   theme: "system",
   appearance: { ...defaultAppearanceSettings },
   features: { ...defaultFeatureSettings },
@@ -478,6 +481,7 @@ export function loadSettings(): AppSettings {
     const parsed = JSON.parse(rawSettings) as Partial<AppSettings>;
 
     return {
+      locale: isLocale(parsed.locale) ? parsed.locale : defaultSettings.locale,
       theme: isThemePreference(parsed.theme) ? parsed.theme : defaultSettings.theme,
       appearance: readAppearance(parsed.appearance),
       features: readFeatures(parsed.features),

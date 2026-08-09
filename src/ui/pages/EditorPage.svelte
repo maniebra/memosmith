@@ -8,6 +8,7 @@
     saveSettings,
     type GrammarProfile,
   } from "../../lib/storage/settings";
+  import { i18n, locale } from "../../lib/i18n";
   import { loadSpaceRoot, saveSpaceRoot } from "../../lib/storage/space";
   import { convertFileSrc } from "@tauri-apps/api/core";
   import { assetFolder, assetMarkdown } from "../../lib/utils/assets";
@@ -98,6 +99,7 @@
   type Breadcrumb = { label: string; path?: string };
 
   let path: string | null = null;
+  let settings = loadSettings();
   let spaceRoot = loadSpaceRoot();
   let spaceNotes: string[] = [];
   let noteContents: Record<string, string> = {};
@@ -108,12 +110,11 @@
   let isDirty = false;
   let contents = "";
   let statusMessage = spaceRoot
-    ? "Select or create a note"
-    : "Choose a space to start";
+    ? $i18n.t("app.selectOrCreateNote")
+    : $i18n.t("app.chooseSpace");
   let editor: HTMLElement | undefined;
   let words = countWords(contents);
   let characters = contents.length;
-  let settings = loadSettings();
   let settingsOpen = false;
   let pdfPreviewOpen = false;
   let grammarOpen = false;
@@ -144,8 +145,8 @@
   $: fileLabel = activeRelativePath
     ? displayNotePath(activeRelativePath)
     : spaceRoot
-      ? "No note selected"
-      : "No space";
+      ? $i18n.t("app.noNoteSelected")
+      : $i18n.t("app.noSpace");
   $: breadcrumbs = noteBreadcrumbs(activeRelativePath, spaceNotes, fileLabel);
   $: noteTitle = activeRelativePath ? displayNoteName(activeRelativePath) : "";
   $: wikilinkKey = `${activeRelativePath ?? ""}\n${spaceNotes.join("\n")}`;
@@ -156,6 +157,10 @@
   $: dirtyMarker = isDirty ? " *" : "";
   $: displayName = `${fileLabel}${dirtyMarker}`;
   $: document.title = `${displayName} - ${appTitle}`;
+  $: isRtl = $i18n.dir === "rtl";
+  $: locale.set(settings.locale);
+  $: document.documentElement.lang = settings.locale;
+  $: document.documentElement.dir = $i18n.dir;
   // The PDF prints on white paper, so the preview pins the app to the light theme while it is open.
   $: applyAppearanceTheme(
     pdfPreviewOpen ? "light" : settings.theme,
@@ -237,7 +242,9 @@
 
     if (path === notePath) {
       isDirty = false;
-      statusMessage = `Synced ${activeRelativePath ? displayNotePath(activeRelativePath) : displayNoteName(notePath)}`;
+      statusMessage = $i18n.t("app.synced", {
+        name: activeRelativePath ? displayNotePath(activeRelativePath) : displayNoteName(notePath),
+      });
     }
   }
 
@@ -320,7 +327,7 @@
       return;
     }
 
-    const delta = event.clientX - resizing.startX;
+    const delta = (event.clientX - resizing.startX) * (isRtl ? -1 : 1);
     const nextWidth =
       resizing.pane === "space"
         ? resizing.startWidth + delta
@@ -343,7 +350,7 @@
 
     event.preventDefault();
 
-    const direction = event.key === "ArrowRight" ? 1 : -1;
+    const direction = (event.key === "ArrowRight" ? 1 : -1) * (isRtl ? -1 : 1);
     const step = event.shiftKey ? 40 : 12;
     const currentWidth =
       pane === "space"
@@ -411,7 +418,7 @@
     await refreshSpace();
     activeDatabaseId = id;
     databasesOpen = false;
-    statusMessage = `Created database ${name}`;
+    statusMessage = $i18n.t("app.createdDatabase", { name });
   }
 
   async function selectDatabase(id: string) {
@@ -419,7 +426,9 @@
 
     activeDatabaseId = id;
     databasesOpen = false;
-    statusMessage = `Opened ${databases.find((entry) => entry.id === id)?.name ?? id}`;
+    statusMessage = $i18n.t("app.opened", {
+      name: databases.find((entry) => entry.id === id)?.name ?? id,
+    });
   }
 
   async function deleteSpaceDatabase(id: string) {
@@ -436,7 +445,7 @@
     }
 
     await refreshSpace();
-    statusMessage = `Deleted database ${name}`;
+    statusMessage = $i18n.t("app.deletedDatabase", { name });
   }
 
   async function chooseSpace() {
@@ -450,7 +459,7 @@
     saveSpaceRoot(spaceRoot);
     setEditorText("", null);
     await refreshSpace();
-    statusMessage = `Space ${basename(spaceRoot)}`;
+    statusMessage = $i18n.t("app.space", { name: basename(spaceRoot) });
   }
 
   async function selectSpaceNote(relativePath: string) {
@@ -464,7 +473,7 @@
 
     noteContents = { ...noteContents, [relativePath]: text };
     setEditorText(text, notePath);
-    statusMessage = `Selected ${displayNotePath(relativePath)}`;
+    statusMessage = $i18n.t("app.selected", { name: displayNotePath(relativePath) });
     focusEditor();
   }
 
@@ -497,7 +506,7 @@
     await refreshSpace();
     setEditorText("", spacePath(relativePath));
     noteContents = { ...noteContents, [relativePath]: "" };
-    statusMessage = `Created ${displayNotePath(relativePath)}`;
+    statusMessage = $i18n.t("app.created", { name: displayNotePath(relativePath) });
     focusEditor();
   }
 
@@ -518,7 +527,7 @@
     const relativePath = wikilinkCreatePath(rawTarget, activeRelativePath);
 
     if (!relativePath) {
-      statusMessage = "That wikilink target is not a valid note path";
+      statusMessage = $i18n.t("app.invalidWikilink");
       return;
     }
 
@@ -526,7 +535,7 @@
     await refreshSpace();
     setEditorText("", spacePath(relativePath));
     noteContents = { ...noteContents, [relativePath]: "" };
-    statusMessage = `Created ${displayNotePath(relativePath)}`;
+    statusMessage = $i18n.t("app.created", { name: displayNotePath(relativePath) });
     focusEditor();
   }
 
@@ -620,7 +629,7 @@
       isFolder,
     );
     await refreshSpace();
-    statusMessage = `Renamed to ${displayNotePath(nextRelativePath)}`;
+    statusMessage = $i18n.t("app.renamedTo", { name: displayNotePath(nextRelativePath) });
   }
 
   async function deleteSpaceEntry(relativePath: string) {
@@ -649,7 +658,7 @@
 
     await pruneAssets(parent ? spacePath(parent) : spaceRoot!);
     await refreshSpace();
-    statusMessage = `Deleted ${displayNotePath(relativePath)}`;
+    statusMessage = $i18n.t("app.deleted", { name: displayNotePath(relativePath) });
   }
 
   async function updateActiveMeta(nextMeta: PageMeta) {
@@ -692,7 +701,7 @@
     const stored = await copyAsset(`${noteDir}/assets/images`, coverPath);
 
     await updateActiveCover(relativeToNote(stored));
-    statusMessage = "Updated cover";
+    statusMessage = $i18n.t("app.updatedCover");
   }
 
   function renamedMeta(
@@ -798,8 +807,8 @@
     scheduleNoteSave();
     scheduleGrammarCheck();
 
-    if (statusMessage !== "Saving...") {
-      statusMessage = "Saving...";
+    if (statusMessage !== $i18n.t("app.saving")) {
+      statusMessage = $i18n.t("app.saving");
     }
   }
 
@@ -839,7 +848,10 @@
       stored.push(await copyAsset(assetDir(basename(filePath)), filePath));
     }
 
-    statusMessage = `Added ${stored.length} file${stored.length === 1 ? "" : "s"}`;
+    statusMessage = $i18n.t("app.addedFiles", {
+      count: stored.length,
+      files: $i18n.t(stored.length === 1 ? "app.file" : "app.files"),
+    });
 
     return stored
       .map((assetPath) => assetMarkdown(relativeToNote(assetPath)))
@@ -853,12 +865,12 @@
   }
 
   async function generateFromPrompt(prompt: string) {
-    statusMessage = "Generating...";
+    statusMessage = $i18n.t("app.generating");
 
     try {
       const generated = await generateContent(settings.llm, prompt);
 
-      statusMessage = "Generated content";
+      statusMessage = $i18n.t("app.generatedContent");
 
       return generated;
     } catch (error) {
@@ -886,7 +898,7 @@
     grammarChecking = true;
     grammarError = "";
     grammarCheckedText = contents;
-    statusMessage = "Grammar Police is reading...";
+    statusMessage = $i18n.t("app.grammarReading");
 
     try {
       grammarReport = await checkGrammar(
@@ -895,7 +907,7 @@
         settings.grammarMode,
         grammarProfile,
       );
-      statusMessage = `Writing score ${grammarReport.score}`;
+      statusMessage = $i18n.t("app.writingScoreStatus", { score: grammarReport.score });
     } catch (error) {
       grammarError = error instanceof Error ? error.message : String(error);
       statusMessage = grammarError;
@@ -979,7 +991,7 @@
     const next = applyIssue(contents, issue);
 
     if (next === null) {
-      statusMessage = "That text changed, so the fix no longer applies";
+      statusMessage = $i18n.t("app.textChanged");
     } else {
       contents = next;
       updateNote();
@@ -1114,8 +1126,8 @@
         <button
           type="button"
           class="z-10 w-1.5 shrink-0 cursor-col-resize bg-transparent transition-colors hover:bg-emerald-600/20 focus-visible:bg-emerald-600/20 focus-visible:outline-none"
-          aria-label="Resize space pane"
-          title="Resize space pane"
+          aria-label={$i18n.t("sidebar.resize")}
+          title={$i18n.t("sidebar.resize")}
           onpointerdown={(event) => startResize(event, "space")}
           onkeydown={(event) => resizeWithKeyboard(event, "space")}
         ></button>
@@ -1161,8 +1173,8 @@
           pageMeta={activePageMeta}
           showPageTitle={settings.showPageTitle}
           placeholder={spaceRoot
-            ? "Select or create a note"
-            : "Choose a space from the sidebar"}
+            ? $i18n.t("app.selectOrCreateNote")
+            : $i18n.t("app.chooseSpaceFromSidebar")}
           onInput={updateNote}
           onIconChange={(icon) => runWithStatus(() => updateActiveIcon(icon))}
           onCoverChange={(cover) =>
@@ -1201,8 +1213,8 @@
           <button
             type="button"
             class="z-10 w-1.5 shrink-0 cursor-col-resize bg-transparent transition-colors hover:bg-emerald-600/20 focus-visible:bg-emerald-600/20 focus-visible:outline-none"
-            aria-label="Resize backlinks pane"
-            title="Resize backlinks pane"
+            aria-label={$i18n.t("backlinks.resize")}
+            title={$i18n.t("backlinks.resize")}
             onpointerdown={(event) => startResize(event, "backlinks")}
             onkeydown={(event) => resizeWithKeyboard(event, "backlinks")}
           ></button>
@@ -1223,12 +1235,12 @@
         <button
           type="button"
           class="flex w-9 shrink-0 items-center justify-center border-l border-stone-200/70 bg-[#fbf8f1] text-xs font-semibold tracking-wide text-stone-500 uppercase transition-colors hover:bg-emerald-50/70 hover:text-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600/25 dark:border-stone-800 dark:bg-[#181714] dark:text-stone-400 dark:hover:bg-emerald-950/20 dark:hover:text-emerald-300"
-          title="Show backlinks"
-          aria-label="Show backlinks"
+          title={$i18n.t("toolbar.showBacklinks")}
+          aria-label={$i18n.t("toolbar.showBacklinks")}
           onclick={() => (settings = { ...settings, backlinksPaneOpen: true })}
           transition:slide={paneSlide}
         >
-          <span class="rotate-90 whitespace-nowrap">Backlinks {backlinks.length}</span>
+          <span class="rotate-90 whitespace-nowrap">{$i18n.t("backlinks.title")} {backlinks.length}</span>
         </button>
       {/if}
     {/if}

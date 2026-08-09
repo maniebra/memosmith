@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { ask, open } from "@tauri-apps/plugin-dialog";
+import { translate } from "../i18n";
 import type { PageMeta, SpaceMeta } from "../utils/pageMeta";
 
 export function readNote(path: string) {
@@ -53,7 +54,10 @@ export async function chooseFiles() {
 }
 
 export function confirmDelete(name: string) {
-  return ask(`Delete ${name}? This cannot be undone.`, { title: "Delete", kind: "warning" });
+  return ask(translate("dialog.deleteConfirm", { name }), {
+    title: translate("common.deleteTitle"),
+    kind: "warning",
+  });
 }
 
 export function searchNotes(root: string, query: string) {

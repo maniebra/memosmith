@@ -20,6 +20,7 @@
   bind:this={element}
   bind:value
   spellcheck="true"
+  dir="auto"
   {placeholder}
   class={cn(
     "w-full resize-none rounded-lg border border-stone-300 bg-stone-50 px-5 py-4 font-mono text-base leading-relaxed text-stone-950 shadow-inner caret-emerald-700",

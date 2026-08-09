@@ -1,4 +1,5 @@
 import { fetch } from "@tauri-apps/plugin-http";
+import { translate } from "../i18n";
 import { mergeLlm, type GrammarProfile, type LlmSettings } from "../storage/settings";
 import {
   checkPrompt,
@@ -20,7 +21,7 @@ async function chat(llm: LlmSettings, system: string, prompt: string) {
   const baseUrl = llm.baseUrl.trim().replace(/\/+$/, "");
 
   if (!baseUrl || !llm.model.trim()) {
-    throw new Error("Set an LLM base URL and model in Settings > AI");
+    throw new Error(translate("error.llmRequired"));
   }
 
   const response = await fetch(`${baseUrl}/chat/completions`, {

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onDestroy, onMount } from "svelte";
   import { Printer, X } from "@lucide/svelte";
+  import { i18n } from "../../lib/i18n";
   import Button from "./Button.svelte";
   import { exportPdf } from "../../lib/tauri/pdf";
 
@@ -133,7 +134,7 @@
 
     try {
       const path = await exportPdf(title);
-      onStatus(path ? `Saved ${path}` : "PDF export cancelled");
+      onStatus(path ? $i18n.t("pdf.saved", { path }) : $i18n.t("pdf.cancelled"));
 
       if (path) {
         onClose();
@@ -179,7 +180,7 @@
     {/if}
     <div class="ml-auto flex items-center gap-1">
       <Button
-        label={saving ? "Saving…" : "Save as PDF"}
+        label={saving ? $i18n.t("app.saving") : $i18n.t("pdf.saveAsPdf")}
         icon={Printer}
         onClick={save}
         disabled={saving || cloning}
@@ -193,7 +194,7 @@
           size="sm"
         />
       {/if}
-      <Button label="Close" icon={X} onClick={onClose} variant="ghost" size="sm" />
+      <Button label={$i18n.t("common.close")} icon={X} onClick={onClose} variant="ghost" size="sm" />
     </div>
   </header>
 
@@ -201,7 +202,7 @@
     <div
       bind:this={sheet}
       class="ms-print-sheet mx-auto bg-white text-stone-900 shadow-xl"
-      aria-label="Rendered note"
+      aria-label={$i18n.t("pdf.renderedNote")}
       aria-busy={cloning}
     ></div>
   </div>

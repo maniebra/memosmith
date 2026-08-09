@@ -1,5 +1,6 @@
 <script lang="ts">
   import { ChevronDown, Link2, X } from "@lucide/svelte";
+  import { i18n } from "../../lib/i18n";
   import { cn } from "../../lib/utils/cn";
   import type { Backlink } from "../../lib/utils/wikilinks";
 
@@ -24,7 +25,7 @@
       aria-hidden="true"
     />
     <Link2 class="size-3.5" strokeWidth={1.8} aria-hidden="true" />
-    <span>Backlinks</span>
+    <span>{$i18n.t("backlinks.title")}</span>
     <span class="ml-auto rounded bg-stone-500/10 px-1.5 py-0.5 text-[0.65rem] leading-none">
       {backlinks.length}
     </span>
@@ -34,8 +35,8 @@
     <button
       type="button"
       class="absolute top-5 right-4 grid size-7 place-items-center rounded text-stone-400 transition-colors hover:bg-stone-200/70 hover:text-stone-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 dark:text-stone-500 dark:hover:bg-stone-800 dark:hover:text-stone-100"
-      title="Hide backlinks"
-      aria-label="Hide backlinks"
+      title={$i18n.t("toolbar.hideBacklinks")}
+      aria-label={$i18n.t("toolbar.hideBacklinks")}
       onclick={onClose}
     >
       <X class="size-4" strokeWidth={1.8} aria-hidden="true" />
@@ -62,7 +63,7 @@
               {/each}
               {#if backlink.matches.length > 2}
                 <span class="text-xs text-stone-400">
-                  +{backlink.matches.length - 2} more
+                  +{backlink.matches.length - 2} {$i18n.t("common.more")}
                 </span>
               {/if}
             </span>

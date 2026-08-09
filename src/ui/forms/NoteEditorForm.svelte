@@ -7,6 +7,7 @@
     PlantumlSettings,
     RunnerSettings,
   } from "../../lib/storage/settings";
+  import { i18n } from "../../lib/i18n";
   import { cn } from "../../lib/utils/cn";
   import type { PageIcon, PageMeta } from "../../lib/utils/pageMeta";
   import type { WikilinkEmbed } from "../../lib/utils/markdown";
@@ -70,7 +71,7 @@
 </script>
 
 <!-- overflow-x-hidden so a wide equation scrolls inside its own box instead of widening the app. -->
-<section class="h-full min-h-0 overflow-x-hidden overflow-y-auto" aria-label="Markdown editor">
+<section class="h-full min-h-0 overflow-x-hidden overflow-y-auto" aria-label={$i18n.t("editor.aria")}>
   <div class={cn("ms-editor-frame mx-auto w-full px-6 pt-14 pb-32 sm:px-10", editorClass)}>
     <PageIdentity
       title={noteTitle}

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { GripVertical, Plus, Settings2, Trash2 } from "@lucide/svelte";
+  import { i18n } from "../../lib/i18n";
   import { columnTypes } from "../../lib/utils/database";
   import type { CellValue, Choice, Column, ColumnType, Row } from "../../lib/utils/database";
   import DatabaseCell from "../components/DatabaseCell.svelte";
@@ -124,6 +125,26 @@
     editingColumn = null;
     onColumnsChange(columns.filter((column) => column.id !== id));
   }
+
+  $: translatedColumnTypes = columnTypes.map((type) => ({
+    ...type,
+    label:
+      type.value === "text"
+        ? $i18n.t("database.columnText")
+        : type.value === "number"
+          ? $i18n.t("database.columnNumber")
+          : type.value === "select"
+            ? $i18n.t("database.columnSelect")
+            : type.value === "multi_select"
+              ? $i18n.t("database.columnMultiSelect")
+              : type.value === "checkbox"
+                ? $i18n.t("database.columnCheckbox")
+                : type.value === "date"
+                  ? $i18n.t("database.columnDate")
+                  : type.value === "url"
+                    ? $i18n.t("database.columnUrl")
+                    : $i18n.t("database.columnRelation"),
+  }));
 </script>
 
 <svelte:window onkeydown={(event) => event.key === "Escape" && (editingColumn = null)} />
@@ -187,7 +208,7 @@
               <button
                 type="button"
                 class="flex size-6 shrink-0 items-center justify-center rounded-md text-stone-400 hover:bg-stone-500/10 hover:text-stone-700 dark:hover:text-stone-200"
-                aria-label="Edit column {column.name}"
+                aria-label={$i18n.t("database.editColumn", { name: column.name })}
                 onclick={(event) => toggleEditor(column.id, event)}
               >
                 <Settings2 class="size-3.5" strokeWidth={1.8} aria-hidden="true" />
@@ -205,7 +226,7 @@
               onpointerup={endResize}
               onpointercancel={endResize}
               ondblclick={() => updateColumn(column.id, { width: undefined })}
-              title="Drag to resize, double-click to fit contents"
+              title={$i18n.t("database.resizeColumn")}
             ></div>
 
             {#if editingColumn?.id === column.id}
@@ -221,7 +242,7 @@
 
                 <Select
                   value={column.type}
-                  options={columnTypes.map((type) => ({ value: type.value, label: type.label }))}
+                  options={translatedColumnTypes.map((type) => ({ value: type.value, label: type.label }))}
                   className="h-8 rounded-md font-normal"
                   onChange={(type) => updateColumn(column.id, { type: type as ColumnType })}
                 />
@@ -229,7 +250,7 @@
                 {#if column.type === "select" || column.type === "multi_select"}
                   <textarea
                     rows="3"
-                    placeholder="One option per line"
+                    placeholder={$i18n.t("database.oneOptionPerLine")}
                     class="rounded-md border border-stone-200 bg-transparent px-2 py-1 text-sm font-normal outline-none dark:border-stone-700"
                     value={(column.options ?? []).join("\n")}
                     oninput={(event) =>
@@ -246,7 +267,7 @@
                   <Select
                     value={column.relationDatabase ?? ""}
                     options={[
-                      { value: "", label: "Linked database…" },
+                      { value: "", label: $i18n.t("database.linkedDatabase") },
                       ...databaseOptions.map((option) => ({ value: option.id, label: option.name })),
                     ]}
                     className="h-8 rounded-md font-normal"
@@ -259,7 +280,7 @@
                   class="rounded-md px-2 py-1 text-left text-xs font-normal text-rose-600 hover:bg-rose-500/10"
                   onclick={() => deleteColumn(column.id)}
                 >
-                  Delete column
+                  {$i18n.t("database.deleteColumn")}
                 </button>
               </div>
             {/if}
@@ -270,8 +291,8 @@
           <button
             type="button"
             class="flex size-6 items-center justify-center rounded-md text-stone-400 hover:bg-stone-500/10 hover:text-stone-700 dark:hover:text-stone-200"
-            aria-label="Add column"
-            title="Add column"
+            aria-label={$i18n.t("database.addColumn")}
+            title={$i18n.t("database.addColumn")}
             onclick={onAddColumn}
           >
             <Plus class="size-4" strokeWidth={1.8} aria-hidden="true" />
@@ -312,7 +333,7 @@
                 dropRow = null;
               }}
               role="none"
-              title="Drag to reorder"
+              title={$i18n.t("database.dragReorder")}
             >
               <GripVertical class="size-3.5" strokeWidth={1.8} aria-hidden="true" />
             </div>
@@ -341,7 +362,7 @@
             <button
               type="button"
               class="flex size-6 items-center justify-center rounded-md text-stone-300 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-rose-500/10 hover:text-rose-600"
-              aria-label="Delete row"
+              aria-label={$i18n.t("database.deleteRow")}
               onclick={() => onDeleteRow(row.id)}
             >
               <Trash2 class="size-3.5" strokeWidth={1.8} aria-hidden="true" />
@@ -358,10 +379,10 @@
     onclick={onAddRow}
   >
     <Plus class="size-3.5" strokeWidth={1.8} aria-hidden="true" />
-    New row
+    {$i18n.t("database.newRow")}
   </button>
 
   {#if !rows.length}
-    <p class="px-2 py-4 text-center text-xs text-stone-400">No rows match this view.</p>
+    <p class="px-2 py-4 text-center text-xs text-stone-400">{$i18n.t("database.noRows")}</p>
   {/if}
 </div>

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { i18n } from "../../lib/i18n";
+
   export let statusMessage: string;
   export let words: number;
   export let characters: number;
@@ -9,6 +11,6 @@
 >
   <span class="min-w-0 truncate">{statusMessage}</span>
   <span class="ml-auto shrink-0 tabular-nums">
-    {words} words · {characters} characters
+    {$i18n.t("status.counts", { words, characters })}
   </span>
 </footer>

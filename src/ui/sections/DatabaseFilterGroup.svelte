@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Plus, X } from "@lucide/svelte";
+  import { i18n } from "../../lib/i18n";
   import {
     isGroup,
     needsValue,
@@ -95,19 +96,19 @@
     <div class="flex items-start gap-1.5">
       <div class="w-14 shrink-0 pt-1 text-right text-[0.6875rem] text-stone-500">
         {#if index === 0}
-          Where
+          {$i18n.t("filter.where")}
         {:else if index === 1}
           <Select
             value={group.conjunction}
             options={[
-              { value: "and", label: "And" },
-              { value: "or", label: "Or" },
+              { value: "and", label: $i18n.t("filter.and") },
+              { value: "or", label: $i18n.t("filter.or") },
             ]}
             className="{controlClass} w-full px-1"
             onChange={(conjunction) => onChange({ ...group, conjunction: conjunction as "and" | "or" })}
           />
         {:else}
-          {group.conjunction === "and" ? "And" : "Or"}
+          {group.conjunction === "and" ? $i18n.t("filter.and") : $i18n.t("filter.or")}
         {/if}
       </div>
 
@@ -147,8 +148,8 @@
               <Select
                 value={String(Boolean(child.value))}
                 options={[
-                  { value: "true", label: "Checked" },
-                  { value: "false", label: "Unchecked" },
+                  { value: "true", label: $i18n.t("filter.checked") },
+                  { value: "false", label: $i18n.t("filter.unchecked") },
                 ]}
                 className="{controlClass} w-28"
                 onChange={(checked) => replaceChild(index, { ...child, value: checked === "true" })}
@@ -156,7 +157,7 @@
             {:else if choices[child.column]?.length}
               <Select
                 value={conditionValue(child)}
-                options={[{ value: "", label: "Select…" }, ...choices[child.column]]}
+                options={[{ value: "", label: $i18n.t("common.select") }, ...choices[child.column]]}
                 className="{controlClass} w-32"
                 onChange={(value) => replaceChild(index, { ...child, value })}
               />
@@ -165,7 +166,7 @@
                 class="{controlClass} w-32"
                 type={columnOf(child)?.type === "date" ? "date" : columnOf(child)?.type === "number" ? "number" : "text"}
                 value={conditionValue(child)}
-                placeholder="Value"
+                placeholder={$i18n.t("filter.value")}
                 oninput={(event) =>
                   replaceChild(index, {
                     ...child,
@@ -180,7 +181,7 @@
       <button
         type="button"
         class="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md text-stone-400 hover:bg-stone-500/10 hover:text-stone-700 dark:hover:text-stone-200"
-        aria-label="Remove filter"
+        aria-label={$i18n.t("filter.remove")}
         onclick={() => removeChild(index)}
       >
         <X class="size-3.5" strokeWidth={1.8} aria-hidden="true" />
@@ -195,7 +196,7 @@
       onclick={addCondition}
     >
       <Plus class="size-3" strokeWidth={2} aria-hidden="true" />
-      Add filter
+      {$i18n.t("filter.add")}
     </button>
 
     {#if depth < 2}
@@ -204,7 +205,7 @@
         class="rounded-md px-1.5 py-1 text-[0.6875rem] text-stone-500 hover:bg-stone-500/10 hover:text-stone-800 dark:hover:text-stone-200"
         onclick={addGroup}
       >
-        Add group
+        {$i18n.t("filter.addGroup")}
       </button>
     {/if}
 
@@ -214,7 +215,7 @@
         class="rounded-md px-1.5 py-1 text-[0.6875rem] text-stone-400 hover:bg-stone-500/10 hover:text-rose-600"
         onclick={onRemove}
       >
-        Remove group
+        {$i18n.t("filter.removeGroup")}
       </button>
     {/if}
   </div>

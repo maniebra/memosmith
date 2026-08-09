@@ -13,6 +13,7 @@
 <input
   bind:value
   {type}
+  dir="auto"
   {placeholder}
   {oninput}
   class={cn(

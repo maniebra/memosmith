@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
+  import { i18n } from "../../lib/i18n";
   import Button from "./Button.svelte";
 
   /** draw.io diagram as JSON: `xml` is the source of truth, `svg` is the cached thumbnail. */
@@ -67,7 +68,7 @@
 
   function save() {
     if (!frame?.contentWindow) {
-      error = "Diagram is still loading";
+      error = $i18n.t("modal.diagramLoading");
       return;
     }
 
@@ -90,16 +91,16 @@
     <div
       class="flex items-center justify-between gap-3 border-b border-stone-200 px-4 py-2 dark:border-stone-700"
     >
-      <span class="text-sm font-medium text-stone-700 dark:text-stone-200">Diagram</span>
+      <span class="text-sm font-medium text-stone-700 dark:text-stone-200">{$i18n.t("modal.diagram")}</span>
       {#if error}
         <span class="text-sm text-rose-500">{error}</span>
       {/if}
       <div class="flex gap-2">
-        <Button label="Cancel" variant="ghost" onClick={onClose} />
-        <Button label="Save" variant="primary" onClick={save} />
+        <Button label={$i18n.t("common.cancel")} variant="ghost" onClick={onClose} />
+        <Button label={$i18n.t("common.save")} variant="primary" onClick={save} />
       </div>
     </div>
-    <iframe class="min-h-0 flex-1 border-0" title="Diagram editor" src={source} bind:this={frame}
+    <iframe class="min-h-0 flex-1 border-0" title={$i18n.t("modal.diagramEditor")} src={source} bind:this={frame}
     ></iframe>
   </div>
 </div>

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onDestroy, onMount } from "svelte";
+  import { i18n } from "../../lib/i18n";
   import Button from "./Button.svelte";
 
   /** Excalidraw scene as JSON; an empty string starts a blank canvas. */
@@ -60,7 +61,7 @@
 
   function save() {
     if (!api) {
-      error = "Drawing is still loading";
+      error = $i18n.t("modal.drawingLoading");
       return;
     }
 
@@ -89,13 +90,13 @@
     class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-stone-200 bg-white dark:border-stone-700 dark:bg-stone-900"
   >
     <div class="flex items-center justify-between gap-3 border-b border-stone-200 px-4 py-2 dark:border-stone-700">
-      <span class="text-sm font-medium text-stone-700 dark:text-stone-200">Drawing</span>
+      <span class="text-sm font-medium text-stone-700 dark:text-stone-200">{$i18n.t("modal.drawing")}</span>
       {#if error}
         <span class="text-sm text-rose-500">{error}</span>
       {/if}
       <div class="flex gap-2">
-        <Button label="Cancel" variant="ghost" onClick={onClose} />
-        <Button label="Save" variant="primary" onClick={save} />
+        <Button label={$i18n.t("common.cancel")} variant="ghost" onClick={onClose} />
+        <Button label={$i18n.t("common.save")} variant="primary" onClick={save} />
       </div>
     </div>
     <div class="min-h-0 flex-1" bind:this={host}></div>

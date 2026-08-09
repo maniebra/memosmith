@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Database, FileDown, Link2, PanelLeftClose, PanelLeftOpen, Settings, ShieldCheck } from "@lucide/svelte";
+  import { i18n } from "../../lib/i18n";
   import { cn } from "../../lib/utils/cn";
   import Button from "../components/Button.svelte";
 
@@ -31,14 +32,14 @@
 
 <header
   class="flex h-12 items-center gap-1.5 border-b border-stone-200/70 bg-stone-50/80 px-3 backdrop-blur dark:border-stone-800 dark:bg-stone-900/70"
-  aria-label="Editor toolbar"
+  aria-label={$i18n.t("toolbar.aria")}
 >
   <button
     type="button"
     class="group flex size-7 shrink-0 items-center justify-center rounded-md text-stone-400 transition-colors hover:bg-stone-500/10 hover:text-stone-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 dark:hover:text-stone-200"
-    aria-label="Toggle space pane"
+    aria-label={$i18n.t("toolbar.toggleSpace")}
     aria-pressed={spacePaneOpen}
-    title="Toggle space pane (Ctrl B)"
+    title={$i18n.t("toolbar.toggleSpaceShortcut")}
     onclick={onToggleSpacePane}
   >
     {#if spacePaneOpen}
@@ -48,7 +49,7 @@
     {/if}
   </button>
 
-  <nav class="flex min-w-0 items-center gap-0 text-sm font-medium leading-none" aria-label="Current note">
+  <nav class="flex min-w-0 items-center gap-0 text-sm font-medium leading-none" aria-label={$i18n.t("toolbar.currentNote")}>
     <span class="shrink-0 text-stone-500 dark:text-stone-400">
       {title}
     </span>
@@ -74,8 +75,8 @@
     {#if isDirty}
       <span
         class="ml-0.5 size-1.5 shrink-0 rounded-full bg-amber-500"
-        title="Unsaved changes"
-        aria-label="Unsaved changes"
+        title={$i18n.t("toolbar.unsaved")}
+        aria-label={$i18n.t("toolbar.unsaved")}
       ></span>
     {/if}
   </nav>
@@ -88,9 +89,9 @@
           "relative inline-flex size-8 items-center justify-center rounded-lg border border-transparent text-stone-500 transition-colors hover:bg-stone-500/10 hover:text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/40 dark:text-stone-400 dark:hover:text-stone-100",
           backlinksOpen && "bg-emerald-600/10 text-emerald-700 dark:text-emerald-300",
         )}
-        aria-label={backlinksOpen ? "Hide backlinks" : "Show backlinks"}
+        aria-label={backlinksOpen ? $i18n.t("toolbar.hideBacklinks") : $i18n.t("toolbar.showBacklinks")}
         aria-pressed={backlinksOpen}
-        title={backlinksOpen ? "Hide backlinks" : "Show backlinks"}
+        title={backlinksOpen ? $i18n.t("toolbar.hideBacklinks") : $i18n.t("toolbar.showBacklinks")}
         onclick={onToggleBacklinks}
       >
         <Link2 class="size-4 shrink-0" strokeWidth={1.8} aria-hidden="true" />
@@ -101,7 +102,7 @@
     {/if}
     {#if grammarEnabled}
       <Button
-        label="Grammar Police"
+        label={$i18n.t("toolbar.grammar")}
         icon={ShieldCheck}
         onClick={onToggleGrammar}
         variant="ghost"
@@ -109,11 +110,11 @@
       />
     {/if}
     {#if onExportPdf}
-      <Button label="Export PDF" icon={FileDown} onClick={onExportPdf} variant="ghost" size="sm" />
+      <Button label={$i18n.t("toolbar.exportPdf")} icon={FileDown} onClick={onExportPdf} variant="ghost" size="sm" />
     {/if}
     {#if databasesEnabled}
       <Button
-        label="Databases"
+        label={$i18n.t("toolbar.databases")}
         icon={Database}
         onClick={onToggleDatabases}
         variant="ghost"
@@ -121,7 +122,7 @@
       />
     {/if}
     <Button
-      label="Settings"
+      label={$i18n.t("toolbar.settings")}
       icon={Settings}
       onClick={onToggleSettings}
       variant="ghost"

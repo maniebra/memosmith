@@ -1,5 +1,6 @@
 <script lang="ts">
 import { FolderOpen, FolderPlus, Plus, RotateCcw, Search } from "@lucide/svelte";
+import { i18n } from "../../lib/i18n";
 import { basename } from "../../lib/utils/path";
 import type { SpaceMeta } from "../../lib/utils/pageMeta";
 import { buildTree } from "../../lib/utils/tree";
@@ -104,7 +105,7 @@ import ContextMenu, {
     if (!root) {
       return [
         {
-          label: "Choose space",
+          label: $i18n.t("sidebar.chooseSpace"),
           icon: FolderOpen,
           onSelect: onChooseSpace,
         },
@@ -113,25 +114,25 @@ import ContextMenu, {
 
     return [
       {
-        label: "Add note",
+        label: $i18n.t("sidebar.addNote"),
         icon: Plus,
         onSelect: () => startCreate(""),
       },
       {
-        label: "Add folder",
+        label: $i18n.t("sidebar.addFolder"),
         shortcut: "Ctrl Shift N",
         icon: FolderPlus,
         onSelect: startRootFolder,
       },
       { separator: true },
       {
-        label: "Refresh",
+        label: $i18n.t("common.refresh"),
         shortcut: "Ctrl R",
         icon: RotateCcw,
         onSelect: onRefresh,
       },
       {
-        label: "Change space",
+        label: $i18n.t("sidebar.changeSpace"),
         icon: FolderOpen,
         onSelect: onChooseSpace,
       },
@@ -164,7 +165,7 @@ import ContextMenu, {
 <aside
   class="flex min-h-0 shrink-0 flex-col border-r border-stone-200/70 bg-stone-100/50 dark:border-stone-800 dark:bg-stone-900/40"
   style="width: {width}px;"
-  aria-label="Space"
+  aria-label={$i18n.t("sidebar.space")}
 >
   <div
     class="flex h-12 shrink-0 items-center gap-1 border-b border-stone-200/70 px-2 dark:border-stone-800"
@@ -172,17 +173,17 @@ import ContextMenu, {
     <button
       type="button"
       class="min-w-0 flex-1 truncate rounded-md px-1 py-1 text-left text-xs font-semibold tracking-wide text-stone-500 uppercase hover:bg-stone-500/10 hover:text-stone-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 dark:hover:text-stone-300"
-      title={root ? "Change space" : "Choose space"}
+      title={root ? $i18n.t("sidebar.changeSpace") : $i18n.t("sidebar.chooseSpace")}
       onclick={onChooseSpace}
     >
-      {root ? basename(root) : "No space"}
+      {root ? basename(root) : $i18n.t("app.noSpace")}
     </button>
     {#if root}
       <button
         type="button"
         class="flex size-8 items-center justify-center rounded-md border border-transparent text-stone-500 transition-colors hover:bg-stone-500/10 hover:text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 dark:text-stone-400 dark:hover:text-stone-100"
-        aria-label="Add note"
-        title="Add note"
+        aria-label={$i18n.t("sidebar.addNote")}
+        title={$i18n.t("sidebar.addNote")}
         onclick={() => startCreate("")}
       >
         <Plus class="size-4" strokeWidth={1.8} aria-hidden="true" />
@@ -191,8 +192,8 @@ import ContextMenu, {
       <button
         type="button"
         class="flex size-8 items-center justify-center rounded-md border border-transparent text-stone-500 transition-colors hover:bg-stone-500/10 hover:text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 dark:text-stone-400 dark:hover:text-stone-100"
-        aria-label="Toggle search"
-        title="Toggle search"
+        aria-label={$i18n.t("sidebar.toggleSearch")}
+        title={$i18n.t("sidebar.toggleSearch")}
         onclick={() => (isSearching = !isSearching)}
       >
         <Search class="size-4" strokeWidth={1.8} aria-hidden="true" />
@@ -203,7 +204,7 @@ import ContextMenu, {
     <div class="px-2 py-1">
       <Input
         type="search"
-        placeholder="Search notes..."
+        placeholder={$i18n.t("sidebar.searchPlaceholder")}
         bind:value={searchQuery}
         oninput={handleSearch}
         className="h-8"
@@ -218,7 +219,7 @@ import ContextMenu, {
   >
     {#if !root}
       <p class="px-2 py-6 text-center text-xs leading-relaxed text-stone-400">
-        Choose a folder to use as your space.
+        {$i18n.t("sidebar.chooseFolder")}
       </p>
     {:else}
       {#if creating === ""}
@@ -232,7 +233,7 @@ import ContextMenu, {
 
       {#if !notes.length && creating !== ""}
         <p class="px-2 py-6 text-center text-xs text-stone-400">
-          No notes yet.
+          {$i18n.t("sidebar.noNotes")}
         </p>
       {/if}
 

@@ -16,6 +16,7 @@
   } from "@lucide/svelte";
   import { cubicOut } from "svelte/easing";
   import { fade, slide } from "svelte/transition";
+  import { i18n, localeOptions, type Locale } from "../../lib/i18n";
   import type {
     AppSettings,
     CalloutDefinition,
@@ -66,24 +67,24 @@
   export let onReset: () => void;
   export let onChange: (settings: AppSettings) => void;
 
-  const themeOptions: SelectOption[] = [
-    { label: "System", value: "system" },
-    { label: "Light", value: "light" },
-    { label: "Dark", value: "dark" },
-  ];
+  $: themeOptions = [
+    { label: $i18n.t("options.system"), value: "system" },
+    { label: $i18n.t("options.light"), value: "light" },
+    { label: $i18n.t("options.dark"), value: "dark" },
+  ] satisfies SelectOption[];
 
-  const widthOptions: SelectOption[] = [
-    { label: "Focused", value: "focused" },
-    { label: "Comfortable", value: "comfortable" },
-    { label: "Wide", value: "wide" },
-    { label: "Full width", value: "full" },
-  ];
+  $: widthOptions = [
+    { label: $i18n.t("options.focused"), value: "focused" },
+    { label: $i18n.t("options.comfortable"), value: "comfortable" },
+    { label: $i18n.t("options.wide"), value: "wide" },
+    { label: $i18n.t("options.fullWidth"), value: "full" },
+  ] satisfies SelectOption[];
 
-  const grammarCheckModeOptions: SelectOption[] = [
-    { label: "Auto diff", value: "auto-diff" },
-    { label: "Auto full", value: "auto-full" },
-    { label: "Manual", value: "manual" },
-  ];
+  $: grammarCheckModeOptions = [
+    { label: $i18n.t("options.autoDiff"), value: "auto-diff" },
+    { label: $i18n.t("options.autoFull"), value: "auto-full" },
+    { label: $i18n.t("options.manual"), value: "manual" },
+  ] satisfies SelectOption[];
 
   type SettingsTab = "appearance" | "features" | "editor" | "ai";
 
@@ -120,18 +121,18 @@
     updateSettings({ runner: { ...settings.runner, ...nextRunner } });
   }
 
-  const plantumlFormatOptions = [
+  $: plantumlFormatOptions = [
     { label: "SVG", value: "svg" },
     { label: "PNG", value: "png" },
-    { label: "ASCII art", value: "txt" },
-  ];
+    { label: $i18n.t("options.asciiArt"), value: "txt" },
+  ] satisfies SelectOption[];
 
-  const mermaidThemeOptions = [
-    { label: "Default", value: "default" },
-    { label: "Dark", value: "dark" },
-    { label: "Forest", value: "forest" },
-    { label: "Neutral", value: "neutral" },
-  ];
+  $: mermaidThemeOptions = [
+    { label: $i18n.t("options.default"), value: "default" },
+    { label: $i18n.t("options.dark"), value: "dark" },
+    { label: $i18n.t("options.forest"), value: "forest" },
+    { label: $i18n.t("options.neutral"), value: "neutral" },
+  ] satisfies SelectOption[];
 
   function updateMermaid(next: Partial<MermaidSettings>) {
     updateSettings({ mermaid: { ...settings.mermaid, ...next } });
@@ -146,12 +147,12 @@
     void refreshRuntimes();
   }
   let calloutOptionsOpen = false;
-  const tabOptions: { label: string; value: SettingsTab }[] = [
-    { label: "Appearance", value: "appearance" },
-    { label: "Features", value: "features" },
-    { label: "Editor", value: "editor" },
-    { label: "AI", value: "ai" },
-  ];
+  $: tabOptions = [
+    { label: $i18n.t("settings.appearance"), value: "appearance" },
+    { label: $i18n.t("settings.features"), value: "features" },
+    { label: $i18n.t("settings.editor"), value: "editor" },
+    { label: $i18n.t("settings.ai"), value: "ai" },
+  ] satisfies { label: string; value: SettingsTab }[];
 
   function updateSettings(nextSettings: Partial<AppSettings>) {
     onChange({ ...settings, ...nextSettings });
@@ -251,7 +252,7 @@
   $: reasoningOptions = REASONING_LEVELS.map((level) => ({
     label: level
       ? level[0].toUpperCase() + level.slice(1)
-      : "Provider default",
+      : $i18n.t("settings.providerDefault"),
     value: level,
   })) as SelectOption[];
 
@@ -277,26 +278,64 @@
     "#64748b",
     "#db2777",
   ];
+
+  $: translatedAccentOptions = accentOptions.map((accent) => ({
+    ...accent,
+    label: $i18n.t(`options.${accent.value}` as const),
+  }));
+  $: translatedFontOptions = fontOptions.map((font) => ({
+    ...font,
+    label:
+      font.value === "system"
+        ? $i18n.t("options.system")
+        : font.value === "inter"
+          ? $i18n.t("options.inter")
+          : font.value === "serif"
+            ? $i18n.t("options.serif")
+            : $i18n.t("options.mono"),
+  }));
+  $: translatedCornerOptions = cornerOptions.map((corner) => ({
+    ...corner,
+    label:
+      corner.value === "soft"
+        ? $i18n.t("options.soft")
+        : corner.value === "rounded"
+          ? $i18n.t("options.rounded")
+          : $i18n.t("options.square"),
+  }));
+  $: translatedDensityOptions = densityOptions.map((density) => ({
+    ...density,
+    label: density.value === "compact" ? $i18n.t("options.compact") : $i18n.t("options.comfortable"),
+  }));
+  $: translatedLineHeightOptions = editorLineHeightOptions.map((lineHeight) => ({
+    ...lineHeight,
+    label:
+      lineHeight.value === "compact"
+        ? $i18n.t("options.compact")
+        : lineHeight.value === "comfortable"
+          ? $i18n.t("options.comfortable")
+          : $i18n.t("options.loose"),
+  }));
 </script>
 
 <div
   class="flex h-[min(760px,85vh)] w-[min(920px,92vw)] flex-col overflow-hidden rounded-xl bg-stone-50 shadow-xl dark:bg-stone-900"
-  aria-label="Settings Modal"
+  aria-label={$i18n.t("settings.title")}
 >
   <div class="flex h-12 shrink-0 items-center justify-between border-b border-stone-200/50 px-4 dark:border-stone-800/80">
     <h2 class="text-sm font-semibold text-stone-800 dark:text-stone-100">
-      Settings
+      {$i18n.t("settings.title")}
     </h2>
     <div class="flex gap-1">
       <Button
-        label="Reset"
+        label={$i18n.t("common.reset")}
         icon={RotateCcw}
         onClick={onReset}
         variant="ghost"
         size="sm"
       />
       <Button
-        label="Close"
+        label={$i18n.t("common.close")}
         icon={X}
         onClick={onClose}
         variant="ghost"
@@ -308,7 +347,7 @@
   <div class="grid min-h-0 flex-1 grid-cols-[8rem_minmax(0,1fr)] sm:grid-cols-[11rem_minmax(0,1fr)]">
     <div
       class="flex flex-col gap-1 border-r border-stone-200/50 bg-stone-100/50 p-2 dark:border-stone-800/80 dark:bg-stone-950/25"
-      aria-label="Settings sections"
+      aria-label={$i18n.t("settings.sections")}
       aria-orientation="vertical"
       role="tablist"
     >
@@ -335,7 +374,20 @@
       <div class="grid max-w-2xl gap-5">
         <section class="grid gap-2 sm:grid-cols-[8rem_auto] sm:items-center">
           <span class="text-sm font-medium text-stone-800 dark:text-stone-200">
-            Color mode
+            {$i18n.t("settings.language")}
+          </span>
+          <Select
+            value={settings.locale}
+            options={localeOptions}
+            className="h-9"
+            rootClassName={compactSelectRoot}
+            onChange={(nextLocale) => updateSettings({ locale: nextLocale as Locale })}
+          />
+        </section>
+
+        <section class="grid gap-2 sm:grid-cols-[8rem_auto] sm:items-center">
+          <span class="text-sm font-medium text-stone-800 dark:text-stone-200">
+            {$i18n.t("settings.colorMode")}
           </span>
           <Select
             value={settings.theme}
@@ -349,10 +401,10 @@
 
         <section class="grid gap-3 border-t border-stone-200/50 pt-5 sm:grid-cols-[8rem_minmax(0,1fr)] dark:border-stone-800/80">
           <span class="text-sm font-medium text-stone-800 sm:pt-2 dark:text-stone-200">
-            Accent color
+            {$i18n.t("settings.accentColor")}
           </span>
           <div class="flex flex-wrap gap-2">
-            {#each accentOptions as accent (accent.value)}
+            {#each translatedAccentOptions as accent (accent.value)}
               <button
                 type="button"
                 class={cn(
@@ -377,24 +429,24 @@
 
         <section class="grid gap-3 border-t border-stone-200/50 pt-5 sm:grid-cols-[8rem_minmax(0,1fr)] dark:border-stone-800/80">
           <span class="text-sm font-medium text-stone-800 sm:pt-6 dark:text-stone-200">
-            Fonts
+            {$i18n.t("settings.fonts")}
           </span>
           <div class="flex flex-wrap gap-3">
             <label class="grid w-full gap-1.5 text-xs text-stone-500 sm:w-56">
-              Interface
+              {$i18n.t("settings.interface")}
               <Select
                 value={settings.appearance.uiFont}
-                options={fontOptions}
+                options={translatedFontOptions}
                 className="h-9"
                 rootClassName={compactSelectRoot}
                 onChange={(uiFont) => updateAppearance({ uiFont: uiFont as FontChoice })}
               />
             </label>
             <label class="grid w-full gap-1.5 text-xs text-stone-500 sm:w-56">
-              Editor
+              {$i18n.t("settings.editor")}
               <Select
                 value={settings.appearance.editorFont}
-                options={fontOptions}
+                options={translatedFontOptions}
                 className="h-9"
                 rootClassName={compactSelectRoot}
                 onChange={(editorFont) =>
@@ -406,14 +458,14 @@
 
         <section class="grid gap-3 border-t border-stone-200/50 pt-5 sm:grid-cols-[8rem_minmax(0,1fr)] dark:border-stone-800/80">
           <span class="text-sm font-medium text-stone-800 sm:pt-6 dark:text-stone-200">
-            Style
+            {$i18n.t("settings.style")}
           </span>
           <div class="flex flex-wrap gap-3">
             <label class="grid w-full gap-1.5 text-xs text-stone-500 sm:w-44">
-              Corners
+              {$i18n.t("settings.corners")}
               <Select
                 value={settings.appearance.cornerStyle}
-                options={cornerOptions}
+                options={translatedCornerOptions}
                 className="h-9"
                 rootClassName={shortSelectRoot}
                 onChange={(cornerStyle) =>
@@ -421,20 +473,20 @@
               />
             </label>
             <label class="grid w-full gap-1.5 text-xs text-stone-500 sm:w-44">
-              Density
+              {$i18n.t("settings.density")}
               <Select
                 value={settings.appearance.density}
-                options={densityOptions}
+                options={translatedDensityOptions}
                 className="h-9"
                 rootClassName={shortSelectRoot}
                 onChange={(density) => updateAppearance({ density: density as Density })}
               />
             </label>
             <label class="grid w-full gap-1.5 text-xs text-stone-500 sm:w-44">
-              Line spacing
+              {$i18n.t("settings.lineSpacing")}
               <Select
                 value={settings.appearance.editorLineHeight}
-                options={editorLineHeightOptions}
+                options={translatedLineHeightOptions}
                 className="h-9"
                 rootClassName={shortSelectRoot}
                 onChange={(editorLineHeight) =>
@@ -452,7 +504,7 @@
           <div class="flex h-10 w-full items-center gap-2">
             <Switch
               checked={settings.features.grammarPolice}
-              label="Grammar Police"
+              label={$i18n.t("feature.grammarPolice")}
               className="h-full min-w-0 flex-1"
               onChange={(grammarPolice) => updateFeatures({ grammarPolice })}
             />
@@ -460,8 +512,8 @@
               type="button"
               class="grid size-10 shrink-0 place-items-center rounded-md text-stone-500 transition-colors hover:bg-stone-500/10 hover:text-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 dark:hover:text-stone-200"
               aria-expanded={grammarOptionsOpen}
-              aria-label="Grammar Police options"
-              title="Grammar Police options"
+              aria-label={$i18n.t("feature.grammarOptions")}
+              title={$i18n.t("feature.grammarOptions")}
               onclick={() => (grammarOptionsOpen = !grammarOptionsOpen)}
             >
               <ChevronDown
@@ -481,7 +533,7 @@
             >
               <div class="grid gap-1.5" in:fade={{ duration: 120 }} out:fade={{ duration: 80 }}>
                 <label class="grid gap-1.5">
-                  Check mode
+                  {$i18n.t("settings.checkMode")}
                   <Select
                     value={settings.features.grammarCheckMode}
                     options={grammarCheckModeOptions}
@@ -496,13 +548,13 @@
           {/if}
           <Switch
             checked={settings.features.databases}
-            label="Databases"
+            label={$i18n.t("feature.databases")}
             className="h-10 w-full"
             onChange={(databases) => updateFeatures({ databases })}
           />
           <Switch
             checked={settings.features.fancyTableEditor}
-            label="Fancy table editor"
+            label={$i18n.t("feature.fancyTableEditor")}
             className="h-10 w-full"
             onChange={(fancyTableEditor) => updateFeatures({ fancyTableEditor })}
           />
@@ -510,7 +562,7 @@
             <div class="flex h-10 w-full items-center gap-2">
               <Switch
                 checked={settings.features.callouts}
-                label="Callouts"
+                label={$i18n.t("feature.callouts")}
                 className="h-full min-w-0 flex-1"
                 onChange={(callouts) => updateFeatures({ callouts })}
               />
@@ -518,8 +570,8 @@
                 type="button"
                 class="grid size-10 shrink-0 place-items-center rounded-md text-stone-500 transition-colors hover:bg-stone-500/10 hover:text-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 dark:hover:text-stone-200"
                 aria-expanded={calloutOptionsOpen}
-                aria-label="Callout options"
-                title="Callout options"
+                aria-label={$i18n.t("settings.calloutOptions")}
+                title={$i18n.t("settings.calloutOptions")}
                 onclick={() => (calloutOptionsOpen = !calloutOptionsOpen)}
               >
                 <ChevronDown
@@ -543,7 +595,7 @@
                   out:fade={{ duration: 80 }}
                 >
                   <span class="text-xs font-medium text-stone-500">
-                    Callout classes
+                    {$i18n.t("settings.calloutClasses")}
                   </span>
                   <div class="flex gap-1.5">
                     <button
@@ -552,7 +604,7 @@
                       onclick={resetCallouts}
                     >
                       <RotateCcw class="size-3.5" strokeWidth={1.8} aria-hidden="true" />
-                      Defaults
+                      {$i18n.t("common.defaults")}
                     </button>
                     <button
                       type="button"
@@ -560,7 +612,7 @@
                       onclick={addCallout}
                     >
                       <Plus class="size-3.5" strokeWidth={1.8} aria-hidden="true" />
-                      Add
+                      {$i18n.t("common.add")}
                     </button>
                   </div>
                 </div>
@@ -596,8 +648,8 @@
                         <button
                           type="button"
                           class="grid size-8 shrink-0 place-items-center rounded-md text-stone-400 transition-colors hover:bg-rose-500/10 hover:text-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600/25 dark:hover:text-rose-300"
-                          aria-label="Remove callout"
-                          title="Remove callout"
+                          aria-label={$i18n.t("settings.removeCallout")}
+                          title={$i18n.t("settings.removeCallout")}
                           onclick={() => removeCallout(index)}
                         >
                           <Trash2 class="size-3.5" strokeWidth={1.8} aria-hidden="true" />
@@ -606,7 +658,7 @@
 
                       <div class="grid gap-2 sm:grid-cols-[minmax(0,1fr)_10rem]">
                         <label class="grid gap-1.5 text-xs text-stone-500">
-                          Label
+                          {$i18n.t("settings.label")}
                           <Input
                             value={callout.label}
                             className="h-8 text-xs"
@@ -618,7 +670,7 @@
                           />
                         </label>
                         <label class="grid gap-1.5 text-xs text-stone-500">
-                          Icon
+                          {$i18n.t("settings.icon")}
                           <Select
                             value={callout.icon}
                             options={calloutIconOptions}
@@ -641,7 +693,7 @@
                               callout.color === color && "scale-90 ring-2 ring-stone-900/40 dark:ring-white/60",
                             )}
                             style={`background:${color};`}
-                            aria-label={`Use ${color}`}
+                            aria-label={$i18n.t("settings.useColor", { color })}
                             aria-pressed={callout.color === color}
                             onclick={() => updateCallout(index, { color })}
                           ></button>
@@ -650,7 +702,7 @@
                           type="color"
                           value={callout.color}
                           class="size-8 rounded-md border border-stone-200 bg-transparent p-0.5 dark:border-stone-700"
-                          aria-label="Custom callout color"
+                          aria-label={$i18n.t("settings.customCalloutColor")}
                           oninput={(event) =>
                             updateCallout(index, {
                               color: (event.target as HTMLInputElement).value,
@@ -665,13 +717,13 @@
           </div>
           <Switch
             checked={settings.features.drawings}
-            label="Drawing blocks (Excalidraw)"
+            label={$i18n.t("feature.drawings")}
             className="h-10 w-full"
             onChange={(drawings) => updateFeatures({ drawings })}
           />
           <Switch
             checked={settings.features.diagrams}
-            label="Diagram blocks (draw.io)"
+            label={$i18n.t("feature.diagrams")}
             className="h-10 w-full"
             onChange={(diagrams) => updateFeatures({ diagrams })}
           />
@@ -679,7 +731,7 @@
             <div class="flex items-center gap-1">
               <Switch
                 checked={settings.features.codeExecution}
-                label="Code execution (Jupyter-style cells)"
+                label={$i18n.t("feature.codeExecution")}
                 className="h-10 w-full"
                 onChange={(codeExecution) => {
                   updateFeatures({ codeExecution });
@@ -693,7 +745,7 @@
                 type="button"
                 class="grid size-10 shrink-0 place-items-center rounded-md text-stone-500 transition-colors hover:bg-stone-500/10 hover:text-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 dark:hover:text-stone-200"
                 aria-expanded={codeOptionsOpen}
-                aria-label="Code execution options"
+                aria-label={$i18n.t("feature.codeOptions")}
                 onclick={() => {
                   codeOptionsOpen = !codeOptionsOpen;
 
@@ -714,8 +766,7 @@
                 transition:slide={{ duration: 160, easing: cubicOut }}
               >
                 <span class="text-xs text-stone-500">
-                  Runtimes are found on PATH; fill a box only to point at a different one. Each note
-                  keeps its own kernel, so cells share variables like a notebook.
+                  {$i18n.t("settings.codeRuntimeHelp")}
                 </span>
 
                 {#each Object.keys(KERNEL_LABELS) as kernel (kernel)}
@@ -728,12 +779,12 @@
                           runtimes[kernel] ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400",
                         )}
                       >
-                        {runtimes[kernel] || "not found"}
+                        {runtimes[kernel] || $i18n.t("common.notFound")}
                       </span>
                     </span>
                     <Input
                       value={settings.runner.commands[kernel as Kernel]}
-                      placeholder={runtimes[kernel] || "path to the interpreter"}
+                      placeholder={runtimes[kernel] || $i18n.t("settings.pathToInterpreter")}
                       oninput={(event) =>
                         updateRunnerCommand(kernel as Kernel, (event.target as HTMLInputElement).value)}
                     />
@@ -741,7 +792,7 @@
                 {/each}
 
                 <label class="grid gap-1">
-                  <span class="text-sm text-stone-700 dark:text-stone-200">Cell timeout (seconds)</span>
+                  <span class="text-sm text-stone-700 dark:text-stone-200">{$i18n.t("settings.cellTimeout")}</span>
                   <Input
                     value={String(settings.runner.timeoutMs / 1000)}
                     oninput={(event) => {
@@ -761,7 +812,7 @@
             <div class="flex items-center gap-1">
               <Switch
                 checked={settings.features.plantuml}
-                label="PlantUML blocks (live render)"
+                label={$i18n.t("feature.plantuml")}
                 className="h-10 w-full"
                 onChange={(plantuml) => updateFeatures({ plantuml })}
               />
@@ -769,7 +820,7 @@
                 type="button"
                 class="grid size-10 shrink-0 place-items-center rounded-md text-stone-500 transition-colors hover:bg-stone-500/10 hover:text-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 dark:hover:text-stone-200"
                 aria-expanded={plantumlOptionsOpen}
-                aria-label="PlantUML options"
+                aria-label={$i18n.t("feature.plantumlOptions")}
                 onclick={() => (plantumlOptionsOpen = !plantumlOptionsOpen)}
               >
                 <ChevronDown
@@ -784,13 +835,11 @@
                 transition:slide={{ duration: 160, easing: cubicOut }}
               >
                 <span class="text-xs text-stone-500">
-                  Point at a local PlantUML binary, or at a PlantUML server. The server is used when
-                  both are filled in. Diagrams render in the background, so a slow one never blocks
-                  typing.
+                  {$i18n.t("settings.plantumlHelp")}
                 </span>
 
                 <label class="grid gap-1">
-                  <span class="text-sm text-stone-700 dark:text-stone-200">Binary or command</span>
+                  <span class="text-sm text-stone-700 dark:text-stone-200">{$i18n.t("settings.binaryCommand")}</span>
                   <Input
                     value={settings.plantuml.command}
                     placeholder="plantuml (or: java -jar /path/plantuml.jar)"
@@ -800,7 +849,7 @@
                 </label>
 
                 <label class="grid gap-1">
-                  <span class="text-sm text-stone-700 dark:text-stone-200">Server URL</span>
+                  <span class="text-sm text-stone-700 dark:text-stone-200">{$i18n.t("settings.serverUrl")}</span>
                   <Input
                     value={settings.plantuml.server}
                     placeholder="http://localhost:8080"
@@ -810,7 +859,7 @@
                 </label>
 
                 <label class="grid gap-1">
-                  <span class="text-sm text-stone-700 dark:text-stone-200">Theme</span>
+                  <span class="text-sm text-stone-700 dark:text-stone-200">{$i18n.t("settings.theme")}</span>
                   <Input
                     value={settings.plantuml.theme}
                     placeholder="none (try: carbon-gray, cyborg, hacker, sketchy)"
@@ -818,13 +867,12 @@
                       updatePlantuml({ theme: (event.target as HTMLInputElement).value })}
                   />
                   <span class="text-xs text-stone-500">
-                    Added as <code>!theme</code> to every diagram that does not set one itself. A
-                    dark theme is what makes diagrams sit well next to a dark editor.
+                    {$i18n.t("settings.plantumlThemeHelp")}
                   </span>
                 </label>
 
                 <label class="grid gap-1">
-                  <span class="text-sm text-stone-700 dark:text-stone-200">Output</span>
+                  <span class="text-sm text-stone-700 dark:text-stone-200">{$i18n.t("settings.output")}</span>
                   <Select
                     value={settings.plantuml.format}
                     options={plantumlFormatOptions}
@@ -841,7 +889,7 @@
             <div class="flex items-center gap-1">
               <Switch
                 checked={settings.features.mermaid}
-                label="Mermaid blocks (live render)"
+                label={$i18n.t("feature.mermaid")}
                 className="h-10 w-full"
                 onChange={(mermaid) => updateFeatures({ mermaid })}
               />
@@ -849,7 +897,7 @@
                 type="button"
                 class="grid size-10 shrink-0 place-items-center rounded-md text-stone-500 transition-colors hover:bg-stone-500/10 hover:text-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 dark:hover:text-stone-200"
                 aria-expanded={mermaidOptionsOpen}
-                aria-label="Mermaid options"
+                aria-label={$i18n.t("feature.mermaidOptions")}
                 onclick={() => (mermaidOptionsOpen = !mermaidOptionsOpen)}
               >
                 <ChevronDown
@@ -864,12 +912,11 @@
                 transition:slide={{ duration: 160, easing: cubicOut }}
               >
                 <span class="text-xs text-stone-500">
-                  Mermaid ships with the app and draws in the page, so it needs nothing installed
-                  and works offline.
+                  {$i18n.t("settings.mermaidHelp")}
                 </span>
 
                 <label class="grid gap-1">
-                  <span class="text-sm text-stone-700 dark:text-stone-200">Theme</span>
+                  <span class="text-sm text-stone-700 dark:text-stone-200">{$i18n.t("settings.theme")}</span>
                   <Select
                     value={settings.mermaid.theme}
                     options={mermaidThemeOptions}
@@ -886,7 +933,7 @@
             <div class="flex items-center gap-1">
               <Switch
                 checked={settings.features.lsp}
-                label="Code suggestions (language servers)"
+                label={$i18n.t("feature.lsp")}
                 className="h-10 w-full"
                 onChange={(lsp) => {
                   updateFeatures({ lsp });
@@ -902,7 +949,7 @@
                 type="button"
                 class="grid size-10 shrink-0 place-items-center rounded-md text-stone-500 transition-colors hover:bg-stone-500/10 hover:text-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 dark:hover:text-stone-200"
                 aria-expanded={lspOptionsOpen}
-                aria-label="Code suggestion options"
+                aria-label={$i18n.t("feature.lspOptions")}
                 onclick={() => {
                   lspOptionsOpen = !lspOptionsOpen;
 
@@ -923,8 +970,7 @@
                 transition:slide={{ duration: 160, easing: cubicOut }}
               >
                 <span class="text-xs text-stone-500">
-                  Typing inside a code block asks the matching language server for completions.
-                  Servers are found on PATH; fill a box only to point at a different one.
+                  {$i18n.t("settings.lspHelp")}
                 </span>
 
                 {#each Object.keys(KERNEL_LABELS) as kernel (kernel)}
@@ -937,12 +983,12 @@
                           languageServers[kernel] ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400",
                         )}
                       >
-                        {languageServers[kernel] || "not found"}
+                        {languageServers[kernel] || $i18n.t("common.notFound")}
                       </span>
                     </span>
                     <Input
                       value={settings.lsp.commands[kernel as Kernel]}
-                      placeholder={languageServers[kernel] || "path to the language server"}
+                      placeholder={languageServers[kernel] || $i18n.t("settings.pathToLanguageServer")}
                       oninput={(event) =>
                         updateLspCommand(kernel as Kernel, (event.target as HTMLInputElement).value)}
                     />
@@ -957,7 +1003,7 @@
       <div class="grid max-w-2xl gap-6">
         <section class="grid gap-2">
           <span class="text-sm font-medium text-stone-800 dark:text-stone-200">
-            Base URL
+            {$i18n.t("settings.baseUrl")}
           </span>
           <Input
             value={activeLlm.baseUrl}
@@ -966,13 +1012,13 @@
               updateLlm({ baseUrl: (event.target as HTMLInputElement).value })}
           />
           <span class="text-xs text-stone-500">
-            Any OpenAI-compatible endpoint (OpenAI, OpenRouter, Groq, Ollama, LM Studio).
+            {$i18n.t("settings.apiHelp")}
           </span>
         </section>
 
         <section class="grid gap-2">
           <span class="text-sm font-medium text-stone-800 dark:text-stone-200">
-            API key
+            {$i18n.t("settings.apiKey")}
           </span>
           <Input
             value={activeLlm.apiKey}
@@ -985,7 +1031,7 @@
 
         <section class="grid gap-2">
           <span class="text-sm font-medium text-stone-800 dark:text-stone-200">
-            Model
+            {$i18n.t("settings.model")}
           </span>
           <Input
             value={activeLlm.model}
@@ -997,7 +1043,7 @@
 
         <section class="grid gap-2">
           <span class="text-sm font-medium text-stone-800 dark:text-stone-200">
-            System prompt
+            {$i18n.t("settings.systemPrompt")}
           </span>
           <TextArea
             value={activeLlm.systemPrompt}
@@ -1011,7 +1057,7 @@
 
         <section class="grid gap-2 border-t border-stone-200/50 pt-5 sm:grid-cols-[8rem_auto] sm:items-start dark:border-stone-800/80">
           <span class="text-sm font-medium text-stone-800 sm:pt-2 dark:text-stone-200">
-            Reasoning effort
+            {$i18n.t("settings.reasoningEffort")}
           </span>
           <Select
             value={activeLlm.reasoningEffort}
@@ -1021,14 +1067,13 @@
             onChange={(reasoningEffort) => updateLlm({ reasoningEffort })}
           />
           <span class="text-xs text-stone-500 sm:col-start-2">
-            Sent as <code>reasoning_effort</code>. Only reasoning models accept it; leave it on the
-            provider default otherwise.
+            {$i18n.t("settings.reasoningHelp")}
           </span>
         </section>
 
         <section class="grid gap-3">
           <span class="text-sm font-medium text-stone-800 dark:text-stone-200">
-            Sampling
+            {$i18n.t("settings.sampling")}
           </span>
           <div class="grid grid-cols-2 gap-3">
             {#each samplingFields as field (field.key)}
@@ -1043,24 +1088,24 @@
               </label>
             {/each}
           </div>
-          <span class="text-xs text-stone-500">Empty fields are left out of the request.</span>
+          <span class="text-xs text-stone-500">{$i18n.t("settings.emptyFields")}</span>
         </section>
 
         <section class="grid gap-2">
           <span class="text-sm font-medium text-stone-800 dark:text-stone-200">
-            Stop sequences
+            {$i18n.t("settings.stopSequences")}
           </span>
           <Input
             value={activeLlm.stop}
             placeholder="END, ###"
             oninput={(event) => updateLlm({ stop: (event.target as HTMLInputElement).value })}
           />
-          <span class="text-xs text-stone-500">Comma separated.</span>
+          <span class="text-xs text-stone-500">{$i18n.t("settings.commaSeparated")}</span>
         </section>
 
         <section class="grid gap-2">
           <span class="text-sm font-medium text-stone-800 dark:text-stone-200">
-            Extra body (JSON)
+            {$i18n.t("settings.extraBody")}
           </span>
           <TextArea
             value={activeLlm.extraBody}
@@ -1071,8 +1116,7 @@
               updateLlm({ extraBody: (event.target as HTMLTextAreaElement).value })}
           />
           <span class="text-xs text-stone-500">
-            Merged into the request body last, so it overrides the fields above. Use it for
-            provider-specific options.
+            {$i18n.t("settings.extraBodyHelp")}
           </span>
         </section>
       </div>
@@ -1080,7 +1124,7 @@
       <div class="grid max-w-xl gap-6">
         <section class="grid gap-2 sm:grid-cols-[8rem_auto] sm:items-center">
           <span class="text-sm font-medium text-stone-800 dark:text-stone-200">
-            Page width
+            {$i18n.t("settings.pageWidth")}
           </span>
           <Select
             value={settings.editorWidth}
@@ -1098,7 +1142,7 @@
             min={15}
             max={21}
             step={1}
-            label="Text size"
+            label={$i18n.t("settings.textSize")}
             onChange={(textSize) => updateSettings({ textSize })}
           />
         </section>
@@ -1106,17 +1150,17 @@
         <section class="grid gap-3 border-t border-stone-200/50 pt-4 dark:border-stone-800/80">
           <Switch
             checked={settings.showPageTitle}
-            label="Page title"
+            label={$i18n.t("settings.pageTitle")}
             onChange={(showPageTitle) => updateSettings({ showPageTitle })}
           />
           <Switch
             checked={settings.spellcheck}
-            label="Spellcheck"
+            label={$i18n.t("settings.spellcheck")}
             onChange={(spellcheck) => updateSettings({ spellcheck })}
           />
           <Switch
             checked={settings.slashCommands}
-            label="Slash commands"
+            label={$i18n.t("settings.slashCommands")}
             onChange={(slashCommands) => updateSettings({ slashCommands })}
           />
         </section>

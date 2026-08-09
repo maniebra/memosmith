@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
+  import { i18n } from "../../lib/i18n";
   import type { CellValue, Choice, Column } from "../../lib/utils/database";
   import Select from "./Select.svelte";
 
@@ -155,7 +156,7 @@
   <input
     type={column.type === "url" ? "url" : "text"}
     class={inputClass}
-    placeholder="Empty"
+    placeholder={$i18n.t("database.emptyCell")}
     value={draft}
     onbeforeinput={stopEditorEvent}
     oninput={updateTextDraft}

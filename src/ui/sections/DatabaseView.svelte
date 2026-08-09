@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
   import { Filter, LayoutGrid, Plus, Table2, X } from "@lucide/svelte";
+  import { i18n } from "../../lib/i18n";
   import {
     choicesFor,
     defaultTable,
@@ -405,7 +406,7 @@
               class="rounded-md px-2 py-1 text-xs text-stone-400 hover:bg-stone-500/10 hover:text-stone-700 dark:hover:text-stone-200"
               onclick={onOpen}
             >
-              Open
+              {$i18n.t("common.open")}
             </button>
           {/if}
         </div>
@@ -437,7 +438,7 @@
               <button
                 type="button"
                 class="flex size-5 items-center justify-center rounded text-stone-400 opacity-0 transition-opacity group-hover:opacity-100 hover:text-rose-600"
-                aria-label="Delete table {entry.name}"
+                aria-label={$i18n.t("database.deleteTable", { name: entry.name })}
                 onclick={() => void removeTable(entry.id)}
               >
                 <X class="size-3" strokeWidth={2} aria-hidden="true" />
@@ -449,8 +450,8 @@
         <button
           type="button"
           class="flex size-7 items-center justify-center rounded-md text-stone-400 hover:bg-stone-500/10 hover:text-stone-700 dark:hover:text-stone-200"
-          aria-label="Add table"
-          title="Add table"
+          aria-label={$i18n.t("database.addTable")}
+          title={$i18n.t("database.addTable")}
           onclick={addTable}
         >
           <Plus class="size-3.5" strokeWidth={1.8} aria-hidden="true" />
@@ -458,7 +459,7 @@
 
         <input
           class="ml-2 min-w-0 flex-1 bg-transparent text-xs text-stone-500 outline-none"
-          aria-label="Table name"
+          aria-label={$i18n.t("database.tableName")}
           value={table.name}
           oninput={(event) => updateTable({ name: event.currentTarget.value })}
         />
@@ -486,8 +487,8 @@
         <button
           type="button"
           class="flex size-7 items-center justify-center rounded-md text-stone-400 hover:bg-stone-500/10 hover:text-stone-700 dark:hover:text-stone-200"
-          aria-label="Add table view"
-          title="Add table view"
+          aria-label={$i18n.t("database.addView")}
+          title={$i18n.t("database.addView")}
           onclick={() => addView("table")}
         >
           <Plus class="size-3.5" strokeWidth={1.8} aria-hidden="true" />
@@ -496,7 +497,7 @@
         <div class="ml-auto flex items-center gap-1.5">
           {#if view.type === "board"}
             <label class="flex items-center gap-1 text-xs text-stone-500">
-              Group by
+              {$i18n.t("database.groupBy")}
               <Select
                 value={view.groupBy ?? ""}
                 options={[
@@ -515,7 +516,7 @@
               class="rounded-md px-2 py-1 text-xs text-stone-500 hover:bg-stone-500/10 hover:text-stone-800 dark:hover:text-stone-200"
               onclick={() => addView("board")}
             >
-              Add board view
+              {$i18n.t("database.addBoardView")}
             </button>
           {/if}
 
@@ -527,7 +528,7 @@
             onclick={() => (filtersOpen = !filtersOpen)}
           >
             <Filter class="size-3.5" strokeWidth={1.8} aria-hidden="true" />
-            Filter{filterCount ? ` (${filterCount})` : ""}
+            {$i18n.t("common.filter")}{filterCount ? ` (${filterCount})` : ""}
           </button>
         </div>
       </div>
@@ -576,5 +577,5 @@
     </div>
   </div>
 {:else}
-  <p class="px-4 py-6 text-sm text-stone-400">Loading database…</p>
+  <p class="px-4 py-6 text-sm text-stone-400">{$i18n.t("database.loading")}</p>
 {/if}
