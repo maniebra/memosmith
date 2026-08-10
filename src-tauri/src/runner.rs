@@ -10,6 +10,8 @@ use std::time::{Duration, Instant};
 const END: &str = "__MEMOSMITH_END__";
 /// Sent after a cell's source so the python kernel knows the cell is complete.
 const EOC: &str = "__MEMOSMITH_EOC__";
+/// Printed by a shared compiled program where the replayed cells end and the new one begins.
+const CUT: &str = "__MEMOSMITH_CUT__";
 const DEFAULT_TIMEOUT_MS: u64 = 30_000;
 
 const PYTHON_DRIVER: &str = r#"
@@ -146,6 +148,13 @@ fn sessions() -> &'static Mutex<HashMap<String, Slot>> {
     static SESSIONS: OnceLock<Mutex<HashMap<String, Slot>>> = OnceLock::new();
 
     SESSIONS.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+/// Compiled kernels have no process to keep variables in, so a shared session keeps their source.
+fn history() -> &'static Mutex<HashMap<String, Vec<String>>> {
+    static HISTORY: OnceLock<Mutex<HashMap<String, Vec<String>>>> = OnceLock::new();
+
+    HISTORY.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
 fn slot(key: &str) -> Result<Slot, String> {
@@ -403,20 +412,47 @@ fn csharp_program(code: &str) -> String {
     format!("{CSHARP_PREAMBLE}{code}\n")
 }
 
-/// ponytail: every C++ and Rust cell is its own program, since a compiler has no REPL to keep state in.
-/// The cells of one note do share a working directory, so files written by an earlier cell stay put.
+/// The line a shared compiled program prints where the replayed cells end.
+fn cut_marker(kernel: &str) -> String {
+    match kernel {
+        "rust" => format!("println!(\"{CUT}\");\n"),
+        "csharp" => format!("Console.WriteLine(\"{CUT}\");\n"),
+        _ => format!("printf(\"{CUT}\\n\");\n"),
+    }
+}
+
+/// ponytail: a compiler has no REPL to keep state in, so a shared session replays the note's
+/// earlier cells ahead of the new one and shows only what came after the marker. Cells stay
+/// cheap to re-run, but their side effects (files, network, clocks) happen again every time.
+/// A real out-of-process interpreter per language is the upgrade if that ever bites.
 fn run_compiled(
     kernel: &str,
     session: &str,
     code: &str,
     command: Option<&str>,
     timeout: Duration,
+    shared: bool,
 ) -> Result<RunOutput, String> {
     let compiler = resolve(kernel, command)?;
     let directory =
         std::env::temp_dir().join(format!("memosmith-{kernel}-{:x}", fingerprint(session)));
 
     std::fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
+
+    let key = format!("{session}::{kernel}");
+    let own = code.to_string();
+    let earlier: Vec<String> = if shared {
+        history().lock().map_err(|error| error.to_string())?.get(&key).cloned().unwrap_or_default()
+    } else {
+        Vec::new()
+    };
+    let replayed = !earlier.is_empty();
+    let cell = if replayed {
+        format!("{}\n{}\n{code}", earlier.join("\n"), cut_marker(kernel))
+    } else {
+        code.to_string()
+    };
+    let code = cell.as_str();
 
     let rust = kernel == "rust";
     let csharp = kernel == "csharp";
@@ -501,15 +537,38 @@ fn run_compiled(
             Err(RecvTimeoutError::Disconnected) => {
                 let status = child.wait().map(|status| status.code().unwrap_or(1)).unwrap_or(1);
 
-                return Ok(RunOutput { output, status, timed_out: false });
+                // Only a cell that ran to the end is worth replaying under the next one.
+                if shared && status == 0 {
+                    history()
+                        .lock()
+                        .map_err(|error| error.to_string())?
+                        .entry(key)
+                        .or_default()
+                        .push(own);
+                }
+
+                return Ok(RunOutput { output: after_cut(output, replayed), status, timed_out: false });
             }
             Err(RecvTimeoutError::Timeout) => {
                 let _ = child.kill();
                 let _ = child.wait();
 
-                return Ok(RunOutput { output, status: -1, timed_out: true });
+                return Ok(RunOutput { output: after_cut(output, replayed), status: -1, timed_out: true });
             }
         }
+    }
+}
+
+/// Whatever the replayed cells printed belongs to the runs that already showed it.
+fn after_cut(output: String, replayed: bool) -> String {
+    if !replayed {
+        return output;
+    }
+
+    match output.find(CUT) {
+        Some(index) => output[index + CUT.len()..].trim_start_matches('\n').to_string(),
+        // No marker means the replay never reached the new cell; the failure is the output.
+        None => output,
     }
 }
 
@@ -545,17 +604,22 @@ pub async fn run_code(
     code: String,
     command: Option<String>,
     timeout_ms: Option<u64>,
+    shared: Option<bool>,
 ) -> Result<RunOutput, String> {
-    off_main(move || run_code_blocking(session, language, code, command, timeout_ms)).await
+    off_main(move || run_code_blocking(session, language, code, command, timeout_ms, shared)).await
 }
 
+/// `shared` is the Shared Kernel feature: on, a note's cells see each other's variables;
+/// off, every cell starts from nothing.
 pub fn run_code_blocking(
     session: String,
     language: String,
     code: String,
     command: Option<String>,
     timeout_ms: Option<u64>,
+    shared: Option<bool>,
 ) -> Result<RunOutput, String> {
+    let shared = shared.unwrap_or(true);
     let kernel = kernel_for(&language).ok_or_else(|| format!("`{language}` is not runnable"))?;
 
     if code.contains(END) || code.contains(EOC) {
@@ -565,14 +629,20 @@ pub fn run_code_blocking(
     let timeout = Duration::from_millis(timeout_ms.unwrap_or(DEFAULT_TIMEOUT_MS));
 
     if matches!(kernel, "cpp" | "rust" | "csharp") {
-        return run_compiled(kernel, &session, &code, command.as_deref(), timeout);
+        return run_compiled(kernel, &session, &code, command.as_deref(), timeout, shared);
     }
 
     let slot = slot(&format!("{session}::{kernel}"))?;
     let mut held = slot.lock().map_err(|error| error.to_string())?;
     // The session leaves its slot while it runs, so a dead kernel is simply never put back.
     let mut entry = match held.take() {
-        Some(entry) => entry,
+        Some(entry) if shared => entry,
+        // A kernel left over from before the toggle was turned off still holds old variables.
+        Some(entry) => {
+            entry.stop();
+
+            spawn(kernel, command.as_deref())?
+        }
         None => spawn(kernel, command.as_deref())?,
     };
 
@@ -605,7 +675,11 @@ pub fn run_code_blocking(
                         status = 1;
                     }
 
-                    *held = Some(entry);
+                    if shared {
+                        *held = Some(entry);
+                    } else {
+                        entry.stop();
+                    }
 
                     return Ok(RunOutput { output, status, timed_out: false });
                 }
@@ -635,10 +709,13 @@ pub async fn reset_session(session: String, language: String) -> Result<(), Stri
 
 fn reset_session_blocking(session: String, language: String) -> Result<(), String> {
     let kernel = kernel_for(&language).ok_or_else(|| format!("`{language}` is not runnable"))?;
+    let key = format!("{session}::{kernel}");
     let removed = sessions()
         .lock()
         .map_err(|error| error.to_string())?
-        .remove(&format!("{session}::{kernel}"));
+        .remove(&key);
+
+    history().lock().map_err(|error| error.to_string())?.remove(&key);
 
     // Waits out a cell already running in that slot, then kills the kernel it hands back.
     if let Some(slot) = removed {

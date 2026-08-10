@@ -43,6 +43,8 @@ export type PlantumlSettings = {
 export type RunnerSettings = {
   commands: Record<Kernel, string>;
   timeoutMs: number;
+  /** Shared Kernel: a note's cells see each other's variables instead of starting clean. */
+  sharedKernel: boolean;
 };
 
 /** Language server paths, empty meaning "find it on PATH". */

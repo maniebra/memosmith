@@ -104,6 +104,17 @@
           />
         </label>
       {/each}
+      <div class="grid gap-1">
+        <Switch
+          checked={settings.runner.sharedKernel}
+          label={$i18n.t("settings.sharedKernel")}
+          className="h-10 w-full"
+          onChange={(sharedKernel) => updateRunner({ sharedKernel })}
+        />
+        <span class="text-xs text-stone-500">
+          {$i18n.t("settings.sharedKernelHelp")}
+        </span>
+      </div>
       <label class="grid gap-1">
         <span class="text-sm text-stone-700 dark:text-stone-200">
           {$i18n.t("settings.cellTimeout")}

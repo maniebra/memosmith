@@ -279,6 +279,10 @@ function readRunner(value: unknown): RunnerSettings {
     timeoutMs: Number.isFinite(timeout)
       ? Math.min(600000, Math.max(1000, timeout))
       : defaultRunnerSettings.timeoutMs,
+    sharedKernel:
+      typeof parsed.sharedKernel === "boolean"
+        ? parsed.sharedKernel
+        : defaultRunnerSettings.sharedKernel,
   };
 }
 function readLsp(value: unknown): LspSettings {

@@ -7,6 +7,7 @@ fn run(session: &str, language: &str, code: &str) -> String {
         code.into(),
         None,
         Some(20_000),
+        None,
     )
     .expect("cell ran")
     .output
@@ -40,6 +41,7 @@ fn python_keeps_variables_and_reports_errors() {
         "1 / 0".into(),
         None,
         Some(20_000),
+        None,
     )
     .expect("cell ran");
 
@@ -87,6 +89,7 @@ fn java_keeps_variables_and_flags_errors() {
         "int broken = missing;".into(),
         None,
         Some(60_000),
+        None,
     )
     .expect("cell ran");
 
@@ -110,6 +113,7 @@ fn cpp_wraps_a_snippet_in_a_program() {
         "cout << nope;".into(),
         None,
         Some(60_000),
+        None,
     )
     .expect("cell ran");
 
@@ -142,6 +146,7 @@ fn rust_wraps_a_snippet_in_a_program() {
         "println!(\"{}\", nope);".into(),
         None,
         Some(60_000),
+        None,
     )
     .expect("cell ran");
 
@@ -168,6 +173,7 @@ fn a_hung_cell_times_out() {
         "sleep 5".into(),
         None,
         Some(300),
+        None,
     )
     .expect("cell ran");
 
@@ -181,7 +187,7 @@ fn different_sessions_run_in_parallel() {
     let threads: Vec<_> = ["parallel-a", "parallel-b"]
         .map(|session| {
             std::thread::spawn(move || {
-                run_code_blocking(session.into(), "bash".into(), "sleep 1".into(), None, Some(10_000))
+                run_code_blocking(session.into(), "bash".into(), "sleep 1".into(), None, Some(10_000), None)
                     .expect("cell ran")
             })
         })
@@ -207,6 +213,7 @@ fn csharp_wraps_a_snippet_in_a_program() {
         "Console.WriteLine(6 * 7);".into(),
         None,
         Some(120_000),
+        None,
     )
     .expect("cell ran");
 
@@ -218,8 +225,62 @@ fn csharp_wraps_a_snippet_in_a_program() {
         "Console.WriteLine(nope);".into(),
         None,
         Some(120_000),
+        None,
     )
     .expect("cell ran");
 
     assert_ne!(failed.status, 0, "compile errors are reported");
+}
+
+/// Shared Kernel on: a compiled cell sees the earlier cell's variables, and only its own output.
+#[test]
+fn compiled_cells_share_variables_when_shared() {
+    if !available("rustc") {
+        return;
+    }
+
+    assert_eq!(run("shared-rust", "rust", "let total = 40;\nprintln!(\"first\");"), "first\n");
+    assert_eq!(run("shared-rust", "rust", "println!(\"{}\", total + 2);"), "42\n");
+}
+
+/// Shared Kernel off: the same pair of cells does not compile, because nothing carried over.
+#[test]
+fn cells_start_clean_when_not_shared() {
+    if !available("rustc") {
+        return;
+    }
+
+    let unshared = |code: &str| {
+        run_code_blocking(
+            "unshared-rust".into(),
+            "rust".into(),
+            code.into(),
+            None,
+            Some(60_000),
+            Some(false),
+        )
+        .expect("cell ran")
+    };
+
+    assert_eq!(unshared("let total = 40;").status, 0);
+    assert_ne!(unshared("println!(\"{}\", total + 2);").status, 0);
+}
+
+#[test]
+fn a_kernel_forgets_variables_when_not_shared() {
+    let unshared = |code: &str| {
+        run_code_blocking(
+            "unshared-bash".into(),
+            "bash".into(),
+            code.into(),
+            None,
+            Some(20_000),
+            Some(false),
+        )
+        .expect("cell ran")
+    };
+
+    unshared("total=40");
+
+    assert_eq!(unshared("echo ${total:-empty}").output, "empty\n");
 }

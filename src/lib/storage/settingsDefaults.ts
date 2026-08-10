@@ -86,6 +86,7 @@ export const defaultRunnerSettings: RunnerSettings = {
     csharp: "",
   },
   timeoutMs: 30000,
+  sharedKernel: true,
 };
 export const defaultLspSettings: LspSettings = {
   commands: {
@@ -122,6 +123,7 @@ export const defaultSettings: AppSettings = {
   runner: {
     commands: { ...defaultRunnerSettings.commands },
     timeoutMs: defaultRunnerSettings.timeoutMs,
+    sharedKernel: defaultRunnerSettings.sharedKernel,
   },
   lsp: { commands: { ...defaultLspSettings.commands } },
   plantuml: { ...defaultPlantumlSettings },

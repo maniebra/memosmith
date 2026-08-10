@@ -106,6 +106,9 @@ export const en = {
   "settings.codeRuntimeHelp":
     "Runtimes are found on PATH; fill a box only to point at a different one. Each note keeps its own kernel, so cells share variables like a notebook.",
   "settings.pathToInterpreter": "path to the interpreter",
+  "settings.sharedKernel": "Shared Kernel",
+  "settings.sharedKernelHelp":
+    "Cells of a note share variables. Off, every cell starts from nothing.",
   "settings.cellTimeout": "Cell timeout (seconds)",
   "settings.plantumlHelp":
     "Point at a local PlantUML binary, or at a PlantUML server. The server is used when both are filled in. Diagrams render in the background, so a slow one never blocks typing.",

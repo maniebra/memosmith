@@ -22,6 +22,7 @@ export function runCode(
     code,
     command: kernel ? runner.commands[kernel] : "",
     timeoutMs: Number(runner.timeoutMs) || null,
+    shared: runner.sharedKernel,
   });
 }
 
