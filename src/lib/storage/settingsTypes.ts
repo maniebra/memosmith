@@ -76,12 +76,20 @@ export type LlmSettings = {
   extraBody: string;
 };
 
+/** One swatch of the database chip palette; `id` is what a column stores. */
+export type PaletteColor = {
+  id: string;
+  label: string;
+  hex: string;
+};
+
 export type AppSettings = {
   locale: Locale;
   theme: ThemePreference;
   appearance: AppearanceSettings;
   features: FeatureSettings;
   callouts: CalloutDefinition[];
+  databasePalette: PaletteColor[];
   runner: RunnerSettings;
   lsp: LspSettings;
   plantuml: PlantumlSettings;

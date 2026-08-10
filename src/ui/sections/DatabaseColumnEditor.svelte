@@ -7,6 +7,7 @@
   import type { Column, ColumnType } from "../../lib/utils/database";
   import { portal } from "../../lib/utils/portal";
   import Select from "../components/Select.svelte";
+  import DatabaseOptionColors from "./DatabaseOptionColors.svelte";
 
   export let column: Column;
   export let databaseOptions: { id: string; name: string }[] = [];
@@ -196,6 +197,7 @@
               .filter(Boolean),
           })}
       ></textarea>
+      <DatabaseOptionColors {column} {onUpdate} />
     </div>
   {/if}
 

@@ -1,6 +1,11 @@
 <script lang="ts">
   import { Plus, Trash2 } from "@lucide/svelte";
   import { groupRows, rowTitle, uncategorized } from "../../lib/utils/database";
+  import {
+    hasOptionColors,
+    optionChipStyle,
+    palette,
+  } from "../../lib/utils/optionColors";
   import type {
     CellValue,
     Choice,
@@ -108,6 +113,13 @@
     dragging = null;
   }
 
+  /** Only an option column colours its buckets, and never the empty one. */
+  function chipStyle(key: string) {
+    return groupColumn && hasOptionColors(groupColumn) && key !== uncategorized
+      ? optionChipStyle(groupColumn, key, $palette)
+      : "";
+  }
+
   function groupLabel(key: string) {
     if (key === uncategorized) {
       return "No value";
@@ -152,7 +164,12 @@
         ></div>
         <header class="flex items-center justify-between px-1 pb-2">
           <span
-            class="truncate text-xs font-medium tracking-wide text-stone-500 uppercase"
+            class="truncate rounded-full px-2 py-0.5 text-xs font-medium {chipStyle(
+              group.key,
+            )
+              ? 'db-chip'
+              : 'text-stone-500'}"
+            style={chipStyle(group.key)}
           >
             {groupLabel(group.key)}
           </span>

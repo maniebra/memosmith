@@ -5,6 +5,7 @@
   import type { DatabaseSummary } from "../../lib/tauri/databases";
   import { i18n, locale } from "../../lib/i18n";
   import { loadSettings, saveSettings } from "../../lib/storage/settings";
+  import { palette } from "../../lib/utils/optionColors";
   import { loadSpaceRoot } from "../../lib/storage/space";
   import { loadTabs, saveTabs } from "../../lib/storage/tabs";
   import type { GrammarIssue, GrammarReport } from "../../lib/utils/grammar";
@@ -140,6 +141,8 @@
     settings.appearance,
     prefersDark,
   );
+  // Database chips read the palette from a store, not from drilled props.
+  $: palette.set(settings.databasePalette);
   $: saveSettings(settings);
   $: if (!settings.features.grammarPolice && grammarOpen) {
     grammarOpen = false;

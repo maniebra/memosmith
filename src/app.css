@@ -82,6 +82,19 @@ textarea,
 
 /* Editor blocks are set via innerHTML, so their styles cannot be component-scoped. */
 @layer components {
+  /* Database option chips. Both themes arrive as custom properties on the
+     element, because the colours come from the user's palette at runtime and
+     so cannot be Tailwind classes. */
+  .db-chip {
+    background: var(--chip-bg);
+    color: var(--chip-fg);
+  }
+
+  .dark .db-chip {
+    background: var(--chip-bg-dark);
+    color: var(--chip-fg-dark);
+  }
+
   .md-block {
     @apply relative;
   }

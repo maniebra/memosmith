@@ -3,6 +3,7 @@
   import { open } from "@tauri-apps/plugin-dialog";
   import { i18n } from "../../lib/i18n";
   import { asDisplay, computedTypes } from "../../lib/utils/database";
+  import { optionChipStyle, palette } from "../../lib/utils/optionColors";
   import type { CellValue, Choice, Column } from "../../lib/utils/database";
   import DatePicker from "./DatePicker.svelte";
   import Select from "./Select.svelte";
@@ -22,6 +23,7 @@
   $: selected = Array.isArray(value) ? value.map(String) : [];
   $: readOnly = computedTypes.includes(column.type);
   $: files = Array.isArray(value) ? value.map(String) : [];
+  $: isEmpty = value === null || value === undefined || value === "";
 
   async function addFiles() {
     const picked = await open({ multiple: true });
@@ -137,15 +139,6 @@
       onclick={() => void addFiles()}>{$i18n.t("common.add")}</button
     >
   </div>
-{:else if column.type === "status"}
-  <div class="px-1 py-1">
-    <Select
-      value={value === null || value === undefined ? "" : String(value)}
-      options={[{ value: "", label: "—" }, ...choices]}
-      className="h-8 rounded-full border-transparent bg-emerald-600/10 text-emerald-800 shadow-none dark:text-emerald-300"
-      onChange={(next) => onChange(next || null)}
-    />
-  </div>
 {:else if column.type === "checkbox"}
   <div class="flex px-2 py-1.5">
     <input
@@ -160,12 +153,17 @@
       }}
     />
   </div>
-{:else if column.type === "select"}
+{:else if column.type === "select" || column.type === "status"}
   <div class="px-1 py-1">
     <Select
       value={value === null || value === undefined ? "" : String(value)}
       options={[{ value: "", label: "—" }, ...choices]}
-      className="h-8 rounded-md border-transparent bg-transparent shadow-none"
+      className="h-7 rounded-full border-transparent px-2.5 text-xs shadow-none {isEmpty
+        ? 'bg-transparent text-stone-400'
+        : 'db-chip'}"
+      triggerStyle={isEmpty
+        ? ""
+        : optionChipStyle(column, String(value), $palette)}
       onChange={(next) => onChange(next || null)}
     />
   </div>
@@ -174,11 +172,16 @@
     {#each choices as choice}
       <button
         type="button"
-        class="rounded-full border px-2 py-0.5 text-[0.6875rem] transition-colors {selected.includes(
+        class="rounded-full px-2 py-0.5 text-[0.6875rem] transition-colors {selected.includes(
           choice.value,
         )
-          ? 'border-emerald-600/40 bg-emerald-600/15 text-emerald-700 dark:text-emerald-300'
-          : 'border-stone-200 text-stone-500 hover:bg-stone-500/10 dark:border-stone-700'}"
+          ? column.type === 'relation'
+            ? 'bg-stone-500/15 text-stone-700 dark:text-stone-300'
+            : 'db-chip'
+          : 'text-stone-400 hover:bg-stone-500/10'}"
+        style={selected.includes(choice.value) && column.type !== "relation"
+          ? optionChipStyle(column, choice.value, $palette)
+          : ""}
         onclick={() => toggleChoice(choice.value)}
       >
         {choice.label}

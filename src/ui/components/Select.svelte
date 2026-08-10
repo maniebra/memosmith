@@ -16,6 +16,8 @@
   export let className = "";
   export let rootClassName = "w-full";
   export let ariaLabel = "";
+  /** Inline style for the trigger, for colours that cannot be Tailwind classes. */
+  export let triggerStyle = "";
   export let onChange: (value: string) => void = () => {};
 
   const selectId = Math.random().toString(36).slice(2);
@@ -189,6 +191,7 @@
       "dark:border-stone-700/80 dark:bg-stone-900/80 dark:text-stone-100 dark:shadow-black/10",
       className,
     )}
+    style={triggerStyle}
     onclick={(event) => {
       event.stopPropagation();
       toggle();

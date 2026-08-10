@@ -19,6 +19,7 @@
   import Input from "../../components/Input.svelte";
   import Select, { type SelectOption } from "../../components/Select.svelte";
   import { updateAppearance, updateSettings } from "./settingsHelpers";
+  import DatabasePaletteSettings from "./DatabasePaletteSettings.svelte";
 
   export let settings: AppSettings;
   export let onChange: (settings: AppSettings) => void;
@@ -250,4 +251,5 @@
       </label>
     </div>
   </section>
+  <DatabasePaletteSettings {settings} {onChange} />
 </div>

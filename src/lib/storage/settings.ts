@@ -5,6 +5,7 @@ import {
 } from "../utils/grammar";
 import { isLocale } from "../i18n";
 import { normalizeCalloutIcon } from "../utils/calloutIcons";
+import { readPalette } from "./settingsPalette";
 import type { Kernel } from "../utils/runner";
 import {
   defaultAppearanceSettings,
@@ -354,6 +355,7 @@ export function loadSettings(): AppSettings {
       appearance: readAppearance(parsed.appearance),
       features: readFeatures(parsed.features),
       callouts: readCallouts(parsed.callouts),
+      databasePalette: readPalette(parsed.databasePalette),
       runner: readRunner(parsed.runner),
       lsp: readLsp(parsed.lsp),
       plantuml: readPlantuml(parsed.plantuml),

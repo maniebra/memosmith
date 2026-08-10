@@ -47,6 +47,11 @@ export type Column = {
   type: ColumnType;
   /** Choices for `select`, `status` and `multi_select`. */
   options?: string[];
+  /**
+   * Option -> palette colour id. Anything unset, or naming a colour the palette
+   * no longer has, falls back to a colour derived from the option's own name.
+   */
+  optionColors?: Record<string, string>;
   /** Id of the database a `relation` column links to. */
   relationDatabase?: string;
   /** Id of the table inside that database; defaults to its first table. */

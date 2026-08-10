@@ -8,11 +8,7 @@
   } from "@lucide/svelte";
   import { i18n } from "../../lib/i18n";
   import type { I18nKey } from "../../lib/i18n";
-  import {
-    columnTypes,
-    groupRows,
-    uncategorized,
-  } from "../../lib/utils/database";
+  import { columnTypes } from "../../lib/utils/database";
   import type {
     Aggregate,
     CellValue,
@@ -27,6 +23,12 @@
     resizeTo,
   } from "./databaseTableInteractions";
   import type { Resize } from "./databaseTableInteractions";
+  import { palette } from "../../lib/utils/optionColors";
+  import {
+    groupChipStyle,
+    groupLabelOf,
+    tableGroups,
+  } from "./databaseTableGroups";
   import DatabaseTableFooter from "./DatabaseTableFooter.svelte";
   import DatabaseColumnEditor from "./DatabaseColumnEditor.svelte";
   import DatabaseCell from "../components/DatabaseCell.svelte";
@@ -61,19 +63,15 @@
   export let onOpenRow: (rowId: string) => void = () => {};
 
   const rowHeights = { short: "2rem", medium: "3.5rem", tall: "6rem" };
-  $: cellHeight = rowHeights[rowHeight] ?? rowHeights.short;
+  $: cellHeight = rowHeights[rowHeight];
   $: groupColumn = allColumns.find((column) => column.id === groupBy);
-  $: groupKeys = (choices[groupColumn?.id ?? ""] ?? []).map((c) => c.value);
-  $: groups = groupColumn
-    ? groupRows(rows, groupColumn, groupKeys)
-    : [{ key: "", rows }];
+  $: groupChoices = choices[groupColumn?.id ?? ""] ?? [];
+  $: groups = tableGroups(rows, groupColumn, groupChoices);
+  function chipStyle(key: string) {
+    return groupChipStyle(groupColumn, key, $palette);
+  }
   function groupLabel(key: string) {
-    const choice = (choices[groupColumn?.id ?? ""] ?? []).find(
-      (entry) => entry.value === key,
-    );
-    return key === uncategorized
-      ? $i18n.t("database.noValue")
-      : (choice?.label ?? key);
+    return groupLabelOf(groupChoices, key, $i18n.t("database.noValue"));
   }
   const panelWidth = 260;
   /** Width being dragged right now; committed to the column on pointerup. */
@@ -280,8 +278,9 @@
         <tr class="bg-stone-500/5">
           <td colspan={columns.length + 2} class="px-2 py-1">
             <span
-              class="text-xs font-medium tracking-wide text-stone-500 uppercase"
-              >{groupLabel(group.key)}</span
+              class="rounded-full px-2 py-0.5 text-xs font-medium
+                {chipStyle(group.key) ? 'db-chip' : 'text-stone-500'}"
+              style={chipStyle(group.key)}>{groupLabel(group.key)}</span
             >
             <span class="ml-2 text-xs text-stone-400">{group.rows.length}</span>
           </td>
