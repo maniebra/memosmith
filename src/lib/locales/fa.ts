@@ -31,6 +31,7 @@ export const fa: Record<I18nKey, string> = {
   "common.cancel": "لغو",
   "common.check": "بررسی",
   "common.checking": "در حال بررسی",
+  "common.clear": "پاک‌کردن",
   "common.close": "بستن",
   "common.confirm": "تأیید",
   "common.copy": "کپی",

@@ -29,6 +29,7 @@ export const en = {
   "common.cancel": "Cancel",
   "common.check": "Check",
   "common.checking": "Checking",
+  "common.clear": "Clear",
   "common.close": "Close",
   "common.confirm": "Confirm",
   "common.copy": "Copy",

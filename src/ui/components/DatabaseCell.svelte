@@ -4,6 +4,7 @@
   import { i18n } from "../../lib/i18n";
   import { asDisplay, computedTypes } from "../../lib/utils/database";
   import type { CellValue, Choice, Column } from "../../lib/utils/database";
+  import DatePicker from "./DatePicker.svelte";
   import Select from "./Select.svelte";
 
   export let column: Column;
@@ -202,16 +203,11 @@
     onblur={finishDraft}
   />
 {:else if column.type === "date"}
-  <input
-    type="date"
-    class={inputClass}
-    value={draft}
-    onbeforeinput={stopEditorEvent}
-    oninput={updateTextDraft}
-    onkeydown={stopEditorEvent}
-    oncompositionstart={stopEditorEvent}
-    oncompositionend={stopEditorEvent}
-    onblur={finishDraft}
+  <DatePicker
+    value={typeof value === "string" ? value : ""}
+    rootClassName=""
+    className="border-transparent bg-transparent"
+    onChange={(next) => onChange(next || null)}
   />
 {:else}
   <input

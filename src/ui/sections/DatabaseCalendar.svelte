@@ -2,6 +2,12 @@
   import { ChevronLeft, ChevronRight, Plus } from "@lucide/svelte";
   import { i18n } from "../../lib/i18n";
   import { rowTitle } from "../../lib/utils/database";
+  import {
+    addMonths,
+    isoDate,
+    monthDays,
+    startOfMonth,
+  } from "../../lib/utils/calendarMonth";
   import type { CellValue, Column, Row } from "../../lib/utils/database";
 
   export let columns: Column[];
@@ -19,26 +25,12 @@
   export let editable = true;
 
   const today = new Date();
-  let month = new Date(today.getFullYear(), today.getMonth(), 1);
+  let month = startOfMonth(today);
   let dragging: string | null = null;
 
   $: column = columns.find((entry) => entry.id === dateColumn);
 
-  function iso(date: Date) {
-    // Local date parts, so a day near midnight does not slide with the timezone.
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-  }
-
-  /** Six weeks from the Sunday on or before the first, so every month fills the grid. */
-  $: days = (() => {
-    const start = new Date(month);
-    start.setDate(1 - start.getDay());
-    return Array.from({ length: 42 }, (_, index) => {
-      const date = new Date(start);
-      date.setDate(start.getDate() + index);
-      return date;
-    });
-  })();
+  $: days = monthDays(month);
 
   $: byDay = (() => {
     const map = new Map<string, Row[]>();
@@ -53,12 +45,12 @@
   })();
 
   function shiftMonth(step: number) {
-    month = new Date(month.getFullYear(), month.getMonth() + step, 1);
+    month = addMonths(month, step);
   }
 
   function drop(date: Date) {
     if (dragging && column && editable) {
-      onCell(dragging, column.id, iso(date));
+      onCell(dragging, column.id, isoDate(date));
     }
     dragging = null;
   }
@@ -97,7 +89,7 @@
         type="button"
         class="rounded-md px-2 py-1 text-xs text-stone-500 hover:bg-stone-500/10"
         onclick={() =>
-          (month = new Date(today.getFullYear(), today.getMonth(), 1))}
+          (month = startOfMonth(today))}
         >{$i18n.t("database.today")}</button
       >
     </div>
@@ -117,7 +109,7 @@
         >
           <div class="flex items-center justify-between">
             <span
-              class="px-1 text-[0.6875rem] {iso(date) === iso(today)
+              class="px-1 text-[0.6875rem] {isoDate(date) === isoDate(today)
                 ? 'rounded bg-emerald-600/15 font-medium text-emerald-700 dark:text-emerald-300'
                 : 'text-stone-400'}">{date.getDate()}</span
             >
@@ -126,14 +118,14 @@
                 type="button"
                 class="flex size-5 items-center justify-center rounded text-stone-300 opacity-0 group-hover:opacity-100 hover:bg-stone-500/10"
                 aria-label={$i18n.t("database.newRow")}
-                onclick={() => onAddRow(iso(date))}
+                onclick={() => onAddRow(isoDate(date))}
               >
                 <Plus class="size-3" strokeWidth={1.8} aria-hidden="true" />
               </button>
             {/if}
           </div>
           <div class="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
-            {#each byDay.get(iso(date)) ?? [] as row (row.id)}
+            {#each byDay.get(isoDate(date)) ?? [] as row (row.id)}
               <button
                 type="button"
                 class="truncate rounded bg-emerald-600/10 px-1.5 py-0.5 text-left text-[0.6875rem] text-emerald-800 dark:text-emerald-300"

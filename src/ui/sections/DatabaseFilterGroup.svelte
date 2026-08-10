@@ -17,6 +17,7 @@
     FilterNode,
   } from "../../lib/utils/database";
   import Self from "./DatabaseFilterGroup.svelte";
+  import DatePicker from "../components/DatePicker.svelte";
   import Select from "../components/Select.svelte";
 
   export let group: FilterGroup;
@@ -27,6 +28,7 @@
   export let onRemove: (() => void) | null = null;
   export let depth = 0;
 
+  const dateTypes = ["date", "created_time", "edited_time"];
   const controlClass =
     "h-7 rounded-md border border-stone-200 bg-white px-1.5 text-xs text-stone-700 outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/30 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200";
 
@@ -195,16 +197,18 @@
                 className="{controlClass} w-32"
                 onChange={(value) => replaceChild(index, { ...child, value })}
               />
+            {:else if dateTypes.includes(columnOf(child)?.type ?? "")}
+              <DatePicker
+                value={conditionValue(child)}
+                rootClassName=""
+                className="{controlClass} w-32"
+                ariaLabel={$i18n.t("filter.value")}
+                onChange={(value) => replaceChild(index, { ...child, value })}
+              />
             {:else}
               <input
                 class="{controlClass} w-32"
-                type={["date", "created_time", "edited_time"].includes(
-                  columnOf(child)?.type ?? "",
-                )
-                  ? "date"
-                  : columnOf(child)?.type === "number"
-                    ? "number"
-                    : "text"}
+                type={columnOf(child)?.type === "number" ? "number" : "text"}
                 value={conditionValue(child)}
                 placeholder={$i18n.t("filter.value")}
                 oninput={(event) =>
