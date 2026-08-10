@@ -1,3 +1,4 @@
+import { matchesFilter } from "./databaseFilter";
 import { rowsOf, tableOf } from "./databaseTypes";
 import type {
   CellValue,
@@ -5,7 +6,6 @@ import type {
   Column,
   ColumnType,
   Database,
-  FilterCondition,
   FilterGroup,
   FilterNode,
   FilterOperator,
@@ -13,9 +13,20 @@ import type {
   Sort,
   Table,
   View,
+  ViewType,
 } from "./databaseTypes";
-export { rowsOf, tableOf } from "./databaseTypes";
+export {
+  BODY,
+  COVER,
+  CREATED_AT,
+  EDITED_AT,
+  ICON,
+  computedTypes,
+  rowsOf,
+  tableOf,
+} from "./databaseTypes";
 export type {
+  Aggregate,
   CellValue,
   Choice,
   Column,
@@ -29,43 +40,73 @@ export type {
   Sort,
   Table,
   View,
+  ViewType,
 } from "./databaseTypes";
 export const columnTypes: { value: ColumnType; label: string }[] = [
   { value: "text", label: "Text" },
   { value: "number", label: "Number" },
   { value: "select", label: "Select" },
+  { value: "status", label: "Status" },
   { value: "multi_select", label: "Multi-select" },
   { value: "checkbox", label: "Checkbox" },
   { value: "date", label: "Date" },
   { value: "url", label: "URL" },
+  { value: "email", label: "Email" },
+  { value: "phone", label: "Phone" },
+  { value: "files", label: "Files" },
   { value: "relation", label: "Relation" },
+  { value: "formula", label: "Formula" },
+  { value: "rollup", label: "Rollup" },
+  { value: "created_time", label: "Created time" },
+  { value: "edited_time", label: "Last edited time" },
+];
+export const viewTypes: ViewType[] = [
+  "table",
+  "board",
+  "gallery",
+  "list",
+  "calendar",
 ];
 const emptyOperators: FilterOperator[] = ["is_empty", "is_not_empty"];
+const textOperators: FilterOperator[] = [
+  "is",
+  "is_not",
+  "contains",
+  "does_not_contain",
+  "starts_with",
+  "ends_with",
+  ...emptyOperators,
+];
+const dateOperators: FilterOperator[] = [
+  "is",
+  "is_not",
+  "on_or_after",
+  "on_or_before",
+  ...emptyOperators,
+];
+const listOperators: FilterOperator[] = [
+  "contains",
+  "does_not_contain",
+  ...emptyOperators,
+];
 const operatorsByType: Record<ColumnType, FilterOperator[]> = {
-  text: [
-    "is",
-    "is_not",
-    "contains",
-    "does_not_contain",
-    "starts_with",
-    "ends_with",
-    ...emptyOperators,
-  ],
-  url: [
-    "is",
-    "is_not",
-    "contains",
-    "does_not_contain",
-    "starts_with",
-    "ends_with",
-    ...emptyOperators,
-  ],
+  text: textOperators,
+  url: textOperators,
+  email: textOperators,
+  phone: textOperators,
   number: ["is", "is_not", "greater_than", "less_than", ...emptyOperators],
   select: ["is", "is_not", ...emptyOperators],
-  multi_select: ["contains", "does_not_contain", ...emptyOperators],
-  relation: ["contains", "does_not_contain", ...emptyOperators],
+  status: ["is", "is_not", ...emptyOperators],
+  multi_select: listOperators,
+  relation: listOperators,
+  files: listOperators,
   checkbox: ["is"],
-  date: ["is", "is_not", "on_or_after", "on_or_before", ...emptyOperators],
+  date: dateOperators,
+  created_time: dateOperators,
+  edited_time: dateOperators,
+  // Formulas and rollups can hold text or numbers, so both sets are offered.
+  formula: [...textOperators, "greater_than", "less_than"],
+  rollup: [...textOperators, "greater_than", "less_than"],
 };
 export const operatorLabels: Record<FilterOperator, string> = {
   is: "is",
@@ -113,7 +154,8 @@ export function isEmptyValue(value: CellValue | undefined) {
     (Array.isArray(value) && value.length === 0)
   );
 }
-function asText(value: CellValue | undefined) {
+/** Lower-cased text of a cell, for case-insensitive compares. */
+export function asText(value: CellValue | undefined) {
   if (isEmptyValue(value)) {
     return "";
   }
@@ -121,118 +163,12 @@ function asText(value: CellValue | undefined) {
     Array.isArray(value) ? value.join(", ") : String(value)
   ).toLowerCase();
 }
-function asNumber(value: CellValue | undefined) {
+/** Numeric value of a cell, or null when it does not read as a number. */
+export function asNumber(value: CellValue | undefined) {
   const number = Number(value);
   return Number.isFinite(number) ? number : null;
 }
-function matchesNumberCondition(
-  condition: FilterCondition,
-  cell: CellValue | undefined,
-) {
-  const cellNumber = asNumber(cell);
-  const targetNumber = asNumber(condition.value);
-  if (cellNumber === null || targetNumber === null) {
-    return false;
-  }
-  switch (condition.operator) {
-    case "is":
-      return cellNumber === targetNumber;
-    case "is_not":
-      return cellNumber !== targetNumber;
-    case "greater_than":
-      return cellNumber > targetNumber;
-    case "less_than":
-      return cellNumber < targetNumber;
-    default:
-      return true;
-  }
-}
-function matchesMultiValueCondition(
-  condition: FilterCondition,
-  cell: CellValue | undefined,
-) {
-  const values = (Array.isArray(cell) ? cell : []).map((entry) =>
-    String(entry).toLowerCase(),
-  );
-  const wanted = String(condition.value).toLowerCase();
-  return condition.operator === "does_not_contain"
-    ? !values.includes(wanted)
-    : values.includes(wanted);
-}
-function matchesTextCondition(
-  condition: FilterCondition,
-  cell: CellValue | undefined,
-) {
-  const cellText = asText(cell);
-  const targetText = asText(condition.value);
-  switch (condition.operator) {
-    case "is":
-      return cellText === targetText;
-    case "is_not":
-      return cellText !== targetText;
-    case "contains":
-      return cellText.includes(targetText);
-    case "does_not_contain":
-      return !cellText.includes(targetText);
-    case "starts_with":
-      return cellText.startsWith(targetText);
-    case "ends_with":
-      return cellText.endsWith(targetText);
-    case "on_or_after":
-      return cellText >= targetText;
-    case "on_or_before":
-      return cellText <= targetText;
-    default:
-      return true;
-  }
-}
-function matchesCondition(
-  condition: FilterCondition,
-  column: Column | undefined,
-  row: Row,
-) {
-  const cell = row.data[condition.column];
-  if (condition.operator === "is_empty") {
-    return isEmptyValue(cell);
-  }
-  if (condition.operator === "is_not_empty") {
-    return !isEmptyValue(cell);
-  }
-  const target = condition.value;
-  if (isEmptyValue(target) && column?.type !== "checkbox") {
-    return true;
-  }
-  if (column?.type === "checkbox") {
-    return Boolean(cell) === Boolean(target);
-  }
-  if (column?.type === "number") {
-    return matchesNumberCondition(condition, cell);
-  }
-  // Relations hold linked row ids, so membership works the same as multi-select.
-  if (column?.type === "multi_select" || column?.type === "relation") {
-    return matchesMultiValueCondition(condition, cell);
-  }
-  return matchesTextCondition(condition, cell);
-}
-export function matchesFilter(
-  node: FilterNode,
-  columns: Column[],
-  row: Row,
-): boolean {
-  if (!isGroup(node)) {
-    return matchesCondition(
-      node,
-      columns.find((column) => column.id === node.column),
-      row,
-    );
-  }
-  if (!node.children.length) {
-    return true;
-  }
-  return node.conjunction === "and"
-    ? node.children.every((child) => matchesFilter(child, columns, row))
-    : node.children.some((child) => matchesFilter(child, columns, row));
-}
+export { matchesFilter } from "./databaseFilter";
 export function sortRows(rows: Row[], sorts: Sort[], columns: Column[]) {
   // Position is the hand-dragged order, so it is the default sort, not the load order.
   if (!sorts.length) {
@@ -322,6 +258,15 @@ export function groupRows(
     rows: groupedRows,
   }));
 }
+export {
+  aggregate,
+  aggregateOptions,
+  asDisplay,
+  computeRows,
+  relationColumnsOf,
+  searchRows,
+  visibleColumns,
+} from "./databaseCompute";
 export function defaultColumns(): Column[] {
   return [
     { id: newId(), name: "Name", type: "text" },

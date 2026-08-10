@@ -21,6 +21,7 @@
   ) => void;
   export let onAddRow: (groupValue: string | null) => void;
   export let onDeleteRow: (rowId: string) => void;
+  export let onOpenRow: (rowId: string) => void = () => {};
   /** Width of every board column, in pixels; unset uses the default. */
   export let cardWidth: number | undefined = undefined;
   export let onCardWidth: (width: number) => void = () => {};
@@ -168,11 +169,13 @@
               ondragend={() => (dragging = null)}
             >
               <div class="flex items-start justify-between gap-1">
-                <p
-                  class="min-w-0 flex-1 truncate text-sm text-stone-800 dark:text-stone-100"
+                <button
+                  type="button"
+                  class="min-w-0 flex-1 truncate text-left text-sm text-stone-800 hover:underline dark:text-stone-100"
+                  onclick={() => onOpenRow(row.id)}
                 >
                   {rowTitle(row, columns)}
-                </p>
+                </button>
                 <button
                   type="button"
                   class="flex size-6 shrink-0 items-center justify-center rounded-md text-stone-300 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-rose-500/10 hover:text-rose-600"

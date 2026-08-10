@@ -1,6 +1,8 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
+  import { open } from "@tauri-apps/plugin-dialog";
   import { i18n } from "../../lib/i18n";
+  import { asDisplay, computedTypes } from "../../lib/utils/database";
   import type { CellValue, Choice, Column } from "../../lib/utils/database";
   import Select from "./Select.svelte";
 
@@ -17,6 +19,21 @@
 
   $: multi = column.type === "multi_select" || column.type === "relation";
   $: selected = Array.isArray(value) ? value.map(String) : [];
+  $: readOnly = computedTypes.includes(column.type);
+  $: files = Array.isArray(value) ? value.map(String) : [];
+
+  async function addFiles() {
+    const picked = await open({ multiple: true });
+    const paths = Array.isArray(picked) ? picked : picked ? [picked] : [];
+
+    if (paths.length) {
+      onChange([...files, ...paths]);
+    }
+  }
+
+  function fileName(path: string) {
+    return path.split(/[\\/]/).pop() || path;
+  }
 
   let draft = "";
   let committedDraft = "";
@@ -90,7 +107,45 @@
   onDestroy(commitDraft);
 </script>
 
-{#if column.type === "checkbox"}
+{#if readOnly}
+  <div
+    class="truncate px-2 py-1.5 text-sm text-stone-600 dark:text-stone-300"
+    title={asDisplay(value)}
+  >
+    {asDisplay(value) || "—"}
+  </div>
+{:else if column.type === "files"}
+  <div class="flex flex-wrap items-center gap-1 px-2 py-1">
+    {#each files as path, index (path + index)}
+      <span
+        class="inline-flex max-w-full items-center gap-1 rounded-md bg-stone-500/10 px-1.5 py-0.5 text-[0.6875rem] text-stone-600 dark:text-stone-300"
+      >
+        <span class="truncate" title={path}>{fileName(path)}</span>
+        <button
+          type="button"
+          class="text-stone-400 hover:text-rose-600"
+          aria-label={$i18n.t("common.remove")}
+          onclick={() =>
+            onChange(files.filter((_, entry) => entry !== index))}>×</button
+        >
+      </span>
+    {/each}
+    <button
+      type="button"
+      class="rounded-md px-1.5 py-0.5 text-[0.6875rem] text-stone-400 hover:bg-stone-500/10 hover:text-stone-700 dark:hover:text-stone-200"
+      onclick={() => void addFiles()}>{$i18n.t("common.add")}</button
+    >
+  </div>
+{:else if column.type === "status"}
+  <div class="px-1 py-1">
+    <Select
+      value={value === null || value === undefined ? "" : String(value)}
+      options={[{ value: "", label: "—" }, ...choices]}
+      className="h-8 rounded-full border-transparent bg-emerald-600/10 text-emerald-800 shadow-none dark:text-emerald-300"
+      onChange={(next) => onChange(next || null)}
+    />
+  </div>
+{:else if column.type === "checkbox"}
   <div class="flex px-2 py-1.5">
     <input
       type="checkbox"
@@ -160,7 +215,13 @@
   />
 {:else}
   <input
-    type={column.type === "url" ? "url" : "text"}
+    type={column.type === "url"
+      ? "url"
+      : column.type === "email"
+        ? "email"
+        : column.type === "phone"
+          ? "tel"
+          : "text"}
     class={inputClass}
     placeholder={$i18n.t("database.emptyCell")}
     value={draft}

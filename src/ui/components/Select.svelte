@@ -14,6 +14,7 @@
   export let options: SelectOption[] = [];
   export let className = "";
   export let rootClassName = "w-full";
+  export let ariaLabel = "";
   export let onChange: (value: string) => void = () => {};
 
   const selectId = Math.random().toString(36).slice(2);
@@ -156,6 +157,7 @@
   <button
     type="button"
     aria-haspopup="listbox"
+    aria-label={ariaLabel || undefined}
     aria-expanded={open}
     class={cn(
       "flex h-10 w-full items-center justify-between gap-2 rounded-xl border border-stone-200/80 bg-stone-50/80 px-3 text-left text-sm text-stone-800 shadow-sm shadow-stone-900/5",

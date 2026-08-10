@@ -198,7 +198,9 @@
             {:else}
               <input
                 class="{controlClass} w-32"
-                type={columnOf(child)?.type === "date"
+                type={["date", "created_time", "edited_time"].includes(
+                  columnOf(child)?.type ?? "",
+                )
                   ? "date"
                   : columnOf(child)?.type === "number"
                     ? "number"

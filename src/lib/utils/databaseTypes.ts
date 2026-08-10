@@ -2,21 +2,63 @@ export type ColumnType =
   | "text"
   | "number"
   | "select"
+  | "status"
   | "multi_select"
   | "checkbox"
   | "date"
   | "url"
-  | "relation";
+  | "email"
+  | "phone"
+  | "files"
+  | "relation"
+  | "formula"
+  | "rollup"
+  | "created_time"
+  | "edited_time";
+/** Cells these types show are derived on read; nothing is stored for them. */
+export const computedTypes: ColumnType[] = [
+  "formula",
+  "rollup",
+  "created_time",
+  "edited_time",
+];
+/** Row timestamps live in `data` under reserved keys, so the sqlite schema stays as is. */
+export const CREATED_AT = "__created";
+export const EDITED_AT = "__edited";
+/** Page body, icon and cover of a row, shown when the row is opened. */
+export const BODY = "__body";
+export const ICON = "__icon";
+export const COVER = "__cover";
+export type Aggregate =
+  | "none"
+  | "count"
+  | "count_empty"
+  | "count_not_empty"
+  | "count_unique"
+  | "sum"
+  | "average"
+  | "min"
+  | "max"
+  | "percent_checked"
+  | "show_original";
 export type Column = {
   id: string;
   name: string;
   type: ColumnType;
-  /** Choices for `select` and `multi_select`. */
+  /** Choices for `select`, `status` and `multi_select`. */
   options?: string[];
   /** Id of the database a `relation` column links to. */
   relationDatabase?: string;
   /** Id of the table inside that database; defaults to its first table. */
   relationTable?: string;
+  /** Expression of a `formula` column, e.g. `if({Done}, 1, 0) + {Size}`. */
+  formula?: string;
+  /** Id of the `relation` column a `rollup` column walks. */
+  rollupRelation?: string;
+  /** Id of the column read on each linked row. */
+  rollupTarget?: string;
+  /** How the linked values are folded into one cell. */
+  rollupFunction?: Aggregate;
   /** Pixel width set by dragging the header edge; unset means the default width. */
   width?: number;
 };
@@ -56,16 +98,26 @@ export type FilterGroup = {
 };
 export type FilterNode = FilterCondition | FilterGroup;
 export type Sort = { column: string; direction: "asc" | "desc" };
+export type ViewType = "table" | "board" | "gallery" | "list" | "calendar";
 export type View = {
   id: string;
   name: string;
-  type: "table" | "board";
-  /** Column the board groups cards by; ignored by table views. */
+  type: ViewType;
+  /**
+   * Column the view keys on: board and grouped-table group by it, calendar places
+   * rows on its date. List and gallery ignore it.
+   */
   groupBy?: string;
   filter: FilterGroup;
   sorts: Sort[];
   /** Pixel width of board columns; unset means the default. */
   cardWidth?: number;
+  /** Columns hidden in this view; they stay on the table and in other views. */
+  hidden?: string[];
+  /** Footer summary per column id; absent means `none`. */
+  aggregations?: Record<string, Aggregate>;
+  /** Row height of table views. */
+  rowHeight?: "short" | "medium" | "tall";
 };
 export type Table = {
   id: string;

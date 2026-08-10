@@ -3,15 +3,18 @@
   import { i18n } from "../../lib/i18n";
   import {
     choicesFor,
+    computeRows,
     defaultTable,
-    emptyFilter,
     isGroup,
-    newId,
+    relationColumnsOf,
     rowsOf,
+    searchRows,
     tableOf,
+    visibleColumns,
     visibleRows,
   } from "../../lib/utils/database";
   import type {
+    Aggregate,
     CellValue,
     Choice,
     Column,
@@ -20,14 +23,24 @@
     Table,
     View,
   } from "../../lib/utils/database";
+  import { exportTableCsv, importTableCsv } from "./databaseCsvActions";
+  import {
+    patched,
+    createColumn,
+    createRow,
+    createView,
+    reordered,
+    withCell,
+    withoutMissingGroups,
+  } from "./databaseEdits";
   import {
     deleteDatabaseRow,
     deleteDatabaseTable,
     loadDatabase,
   } from "../../lib/tauri/databases";
-  import DatabaseBoard from "./DatabaseBoard.svelte";
+  import DatabaseRowPage from "./DatabaseRowPage.svelte";
+  import DatabaseViewBody from "./DatabaseViewBody.svelte";
   import DatabaseViewHeader from "./DatabaseViewHeader.svelte";
-  import DatabaseTable from "./DatabaseTable.svelte";
   import { DatabasePersistence } from "./databasePersistence";
   export let root: string;
   export let databaseId: string;
@@ -52,6 +65,8 @@
   let activeViewId: string | null = null;
   let filtersOpen = false;
   let loadedId: string | null = null;
+  let search = "";
+  let openRowId: string | null = null;
   const persistence = new DatabasePersistence(
     () => root,
     () => database,
@@ -89,10 +104,22 @@
     table?.views.find((entry) => entry.id === activeViewId) ??
     table?.views[0] ??
     null;
+  /** Formulas, rollups and timestamps are filled before filtering, so views agree on values. */
+  $: computed =
+    database && table
+      ? computeRows(rowsOf(database, table.id), table.columns, relations)
+      : [];
+  $: shownColumns = table && view ? visibleColumns(table.columns, view) : [];
+  $: relationColumns = relationColumnsOf(table?.columns ?? [], relations);
   $: rows =
     database && table && view
-      ? visibleRows(rowsOf(database, table.id), view, table.columns)
+      ? searchRows(
+          visibleRows(computed, view, table.columns),
+          shownColumns,
+          search,
+        )
       : [];
+  $: openRow = rows.find((row) => row.id === openRowId) ?? null;
   $: filterCount = view ? countConditions(view.filter) : 0;
   function countConditions(node: View["filter"]): number {
     return node.children.reduce(
@@ -110,9 +137,12 @@
       try {
         relations = { ...relations, [id]: await loadDatabase(root, id) };
       } catch (error) {
-        onStatus(error instanceof Error ? error.message : String(error));
+        report(error);
       }
     }
+  }
+  function report(error: unknown) {
+    onStatus(error instanceof Error ? error.message : String(error));
   }
   async function load(id: string) {
     try {
@@ -123,40 +153,25 @@
       filtersOpen = false;
     } catch (error) {
       database = null;
-      onStatus(error instanceof Error ? error.message : String(error));
+      report(error);
     }
-  }
-  function scheduleMetaSave() {
-    persistence.scheduleMetaSave();
   }
   function updateDatabase(patch: Partial<Database>) {
     if (!database) {
       return;
     }
     database = { ...database, ...patch };
-    scheduleMetaSave();
+    persistence.scheduleMetaSave();
   }
   function updateTable(patch: Partial<Table>) {
-    if (!database || !table) {
-      return;
+    if (database && table) {
+      updateDatabase({ tables: patched(database.tables, table.id, patch) });
     }
-    const tableId = table.id;
-    updateDatabase({
-      tables: database.tables.map((entry) =>
-        entry.id === tableId ? { ...entry, ...patch } : entry,
-      ),
-    });
   }
   function updateView(patch: Partial<View>) {
-    if (!table || !view) {
-      return;
+    if (table && view) {
+      updateTable({ views: patched(table.views, view.id, patch) });
     }
-    const viewId = view.id;
-    updateTable({
-      views: table.views.map((entry) =>
-        entry.id === viewId ? { ...entry, ...patch } : entry,
-      ),
-    });
   }
   function addTable() {
     if (!database) {
@@ -176,15 +191,12 @@
       activeTableId =
         database.tables.find((entry) => entry.id !== tableId)?.id ?? null;
       activeViewId = null;
-      database = {
-        ...database,
-        rows: database.rows.filter((row) => row.tableId !== tableId),
-      };
-      updateDatabase({
-        tables: database.tables.filter((entry) => entry.id !== tableId),
-      });
+      const rows = database.rows.filter((row) => row.tableId !== tableId);
+      const tables = database.tables.filter((entry) => entry.id !== tableId);
+      database = { ...database, rows };
+      updateDatabase({ tables });
     } catch (error) {
-      onStatus(error instanceof Error ? error.message : String(error));
+      report(error);
     }
   }
   function persistRow(row: Row, immediate = false) {
@@ -198,34 +210,19 @@
     if (!database) {
       return;
     }
-    const positions = new Map(
-      orderedIds.map((rowId, index) => [rowId, index + 1]),
-    );
-    database = {
-      ...database,
-      rows: database.rows.map((row) =>
-        positions.has(row.id)
-          ? { ...row, position: positions.get(row.id)! }
-          : row,
-      ),
-    };
-    for (const row of database.rows) {
-      if (positions.has(row.id)) {
-        persistRow(row, true);
-      }
+    const rows = reordered(database.rows, orderedIds);
+    database = { ...database, rows };
+    for (const row of rows.filter((entry) => orderedIds.includes(entry.id))) {
+      persistRow(row, true);
     }
   }
   function setCell(rowId: string, columnId: string, value: CellValue) {
     if (!database) {
       return;
     }
-    const next = database.rows.map((row) =>
-      row.id === rowId
-        ? { ...row, data: { ...row.data, [columnId]: value } }
-        : row,
-    );
-    database = { ...database, rows: next };
-    const row = next.find((entry) => entry.id === rowId);
+    const rows = withCell(database.rows, rowId, columnId, value);
+    database = { ...database, rows };
+    const row = rows.find((entry) => entry.id === rowId);
     if (row) {
       persistRow(row);
     }
@@ -234,20 +231,12 @@
     if (!database || !table) {
       return;
     }
-    const groupColumn = table.columns.find(
-      (column) => column.id === view?.groupBy,
+    const row = createRow(
+      table,
+      table.columns.find((column) => column.id === view?.groupBy),
+      groupValue,
+      database.rows[database.rows.length - 1]?.position ?? 0,
     );
-    const data: Row["data"] = {};
-    if (groupValue !== null && groupColumn) {
-      data[groupColumn.id] =
-        groupColumn.type === "multi_select" ? [groupValue] : groupValue;
-    }
-    const row: Row = {
-      id: newId(),
-      tableId: table.id,
-      position: (database.rows[database.rows.length - 1]?.position ?? 0) + 1,
-      data,
-    };
     database = { ...database, rows: [...database.rows, row] };
     persistRow(row, true);
   }
@@ -257,55 +246,77 @@
     }
     try {
       await deleteDatabaseRow(root, database.id, rowId);
-      database = {
-        ...database,
-        rows: database.rows.filter((row) => row.id !== rowId),
-      };
+      const rows = database.rows.filter((row) => row.id !== rowId);
+      database = { ...database, rows };
     } catch (error) {
-      onStatus(error instanceof Error ? error.message : String(error));
+      report(error);
     }
   }
   function addColumn() {
-    if (!table) {
-      return;
+    if (table) {
+      updateTable({ columns: [...table.columns, createColumn(table.columns)] });
     }
-    const column: Column = {
-      id: newId(),
-      name: `Column ${table.columns.length + 1}`,
-      type: "text",
-    };
-    updateTable({ columns: [...table.columns, column] });
   }
   function setColumns(columns: Column[]) {
-    if (!table) {
-      return;
+    if (table) {
+      updateTable({
+        columns,
+        views: withoutMissingGroups(table.views, columns),
+      });
     }
-    const removed = table.columns.filter(
-      (column) => !columns.some((entry) => entry.id === column.id),
-    );
-    updateTable({
-      columns,
-      views: table.views.map((entry) =>
-        removed.some((column) => column.id === entry.groupBy)
-          ? { ...entry, groupBy: undefined }
-          : entry,
-      ),
-    });
   }
   function addView(type: View["type"]) {
     if (!table) {
       return;
     }
-    const created: View = {
-      id: newId(),
-      name: type === "board" ? "Board" : "Table",
-      type,
-      groupBy: table.columns.find((column) => column.type === "select")?.id,
-      filter: emptyFilter(),
-      sorts: [],
-    };
+    const created = createView(type, table.columns);
     activeViewId = created.id;
     updateTable({ views: [...table.views, created] });
+  }
+  function removeView(id: string) {
+    if (!table || table.views.length < 2) {
+      return;
+    }
+    if (activeViewId === id) {
+      activeViewId = table.views.find((entry) => entry.id !== id)?.id ?? null;
+    }
+    updateTable({ views: table.views.filter((entry) => entry.id !== id) });
+  }
+  function setAggregation(columnId: string, fn: Aggregate) {
+    updateView({
+      aggregations: { ...(view?.aggregations ?? {}), [columnId]: fn },
+    });
+  }
+  async function exportCsv() {
+    if (!table) {
+      return;
+    }
+    const message = await exportTableCsv(table.name, shownColumns, rows);
+    if (message) {
+      onStatus(message);
+    }
+  }
+  async function importCsv() {
+    if (!database || !table) {
+      return;
+    }
+    const result = await importTableCsv(
+      table,
+      database.rows[database.rows.length - 1]?.position ?? 0,
+    );
+    if (!result) {
+      return;
+    }
+    if (result.error) {
+      onStatus(result.error);
+      return;
+    }
+    database = { ...database, rows: [...database.rows, ...result.rows] };
+    updateTable({ columns: result.columns });
+    for (const row of result.rows) {
+      persistRow(row, true);
+    }
+    onStatus($i18n.t("database.imported", { count: result.rows.length }));
   }
   onDestroy(persistence.destroy);
   function renameDatabase(name: string) {
@@ -335,41 +346,46 @@
       onSelectView={(id) => (activeViewId = id)}
       onAddView={addView}
       onUpdateView={updateView}
+      onDeleteView={removeView}
       onToggleFilters={() => (filtersOpen = !filtersOpen)}
+      {search}
+      onSearch={(query) => (search = query)}
+      onExportCsv={() => void exportCsv()}
+      onImportCsv={() => void importCsv()}
     />
     <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
-      {#if view.type === "board"}
-        <DatabaseBoard
-          columns={table.columns}
-          {rows}
-          {choices}
-          groupBy={view.groupBy}
-          cardWidth={view.cardWidth}
-          onCardWidth={(cardWidth) => updateView({ cardWidth })}
-          onCell={setCell}
-          onAddRow={addRow}
-          onDeleteRow={removeRow}
-          commitCellsOnInput={!compact}
-        />
-      {:else}
-        <DatabaseTable
-          columns={table.columns}
-          {rows}
-          {choices}
-          databaseOptions={databaseOptions.filter(
-            (option) => option.id !== database?.id,
-          )}
-          onCell={setCell}
-          onAddRow={() => addRow(null)}
-          onDeleteRow={removeRow}
-          onColumnsChange={setColumns}
-          onAddColumn={addColumn}
-          onReorderRows={reorderRows}
-          commitCellsOnInput={!compact}
-        />
-      {/if}
+      <DatabaseViewBody
+        {view}
+        {table}
+        {rows}
+        {choices}
+        {shownColumns}
+        {relationColumns}
+        {compact}
+        databaseOptions={databaseOptions.filter(
+          (option) => option.id !== database?.id,
+        )}
+        onCell={setCell}
+        onAddRow={addRow}
+        onDeleteRow={removeRow}
+        onOpenRow={(id) => (openRowId = id)}
+        onColumnsChange={setColumns}
+        onAddColumn={addColumn}
+        onReorderRows={reorderRows}
+        onUpdateView={updateView}
+        onAggregation={setAggregation}
+      />
     </div>
   </div>
+  {#if openRow}
+    <DatabaseRowPage
+      row={openRow}
+      columns={table.columns}
+      {choices}
+      onCell={setCell}
+      onClose={() => (openRowId = null)}
+    />
+  {/if}
 {:else}
   <p class="px-4 py-6 text-sm text-stone-400">{$i18n.t("database.loading")}</p>
 {/if}

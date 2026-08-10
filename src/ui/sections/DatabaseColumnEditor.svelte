@@ -1,5 +1,7 @@
 <script lang="ts">
   import { i18n } from "../../lib/i18n";
+  import type { I18nKey } from "../../lib/i18n";
+  import { aggregateOptions } from "../../lib/utils/database";
   import type { Column, ColumnType } from "../../lib/utils/database";
   import Select from "../components/Select.svelte";
 
@@ -9,8 +11,19 @@
   export let top = 0;
   export let width = 240;
   export let columnTypes: { value: ColumnType; label: string }[] = [];
+  /** Every column of this table, so rollups can name the relation they walk. */
+  export let columns: Column[] = [];
+  /** Relation column id -> columns of the table it links to. */
+  export let relationColumns: Record<string, Column[]> = {};
   export let onUpdate: (patch: Partial<Column>) => void;
   export let onDelete: () => void;
+
+  $: relationOptions = columns
+    .filter((entry) => entry.type === "relation")
+    .map((entry) => ({ value: entry.id, label: entry.name }));
+  $: targetOptions = (relationColumns[column.rollupRelation ?? ""] ?? []).map(
+    (entry) => ({ value: entry.id, label: entry.name }),
+  );
 </script>
 
 <div
@@ -28,7 +41,7 @@
     className="h-8 rounded-md font-normal"
     onChange={(type) => onUpdate({ type: type as ColumnType })}
   />
-  {#if column.type === "select" || column.type === "multi_select"}
+  {#if column.type === "select" || column.type === "multi_select" || column.type === "status"}
     <textarea
       rows="3"
       placeholder={$i18n.t("database.oneOptionPerLine")}
@@ -54,6 +67,54 @@
       ]}
       className="h-8 rounded-md font-normal"
       onChange={(id) => onUpdate({ relationDatabase: id || undefined })}
+    />
+  {/if}
+  {#if column.type === "formula"}
+    <textarea
+      rows="3"
+      placeholder={'if({Done}, 1, 0) * {Size}'}
+      class="rounded-md border border-stone-200 bg-transparent px-2 py-1 font-mono text-xs font-normal outline-none dark:border-stone-700"
+      value={column.formula ?? ""}
+      oninput={(event) => onUpdate({ formula: event.currentTarget.value })}
+    ></textarea>
+    <p class="text-[0.6875rem] text-stone-400">
+      {$i18n.t("database.formulaHint")}
+    </p>
+  {/if}
+  {#if column.type === "rollup"}
+    <Select
+      value={column.rollupRelation ?? ""}
+      options={[
+        { value: "", label: $i18n.t("database.rollupRelation") },
+        ...relationOptions,
+      ]}
+      className="h-8 rounded-md font-normal"
+      onChange={(id) =>
+        onUpdate({ rollupRelation: id || undefined, rollupTarget: undefined })}
+    />
+    <Select
+      value={column.rollupTarget ?? ""}
+      options={[
+        { value: "", label: $i18n.t("database.rollupTarget") },
+        ...targetOptions,
+      ]}
+      className="h-8 rounded-md font-normal"
+      onChange={(id) => onUpdate({ rollupTarget: id || undefined })}
+    />
+    <Select
+      value={column.rollupFunction ?? "show_original"}
+      options={[
+        { value: "show_original", label: $i18n.t("database.aggShowOriginal") },
+        ...aggregateOptions
+          .filter((entry) => entry !== "none")
+          .map((entry) => ({
+            value: entry,
+            label: $i18n.t(`database.agg.${entry}` as I18nKey),
+          })),
+      ]}
+      className="h-8 rounded-md font-normal"
+      onChange={(value) =>
+        onUpdate({ rollupFunction: value as Column["rollupFunction"] })}
     />
   {/if}
   <button

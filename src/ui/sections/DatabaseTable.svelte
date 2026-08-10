@@ -1,13 +1,33 @@
 <script lang="ts">
-  import { GripVertical, Plus, Settings2, Trash2 } from "@lucide/svelte";
+  import {
+    GripVertical,
+    Maximize2,
+    Plus,
+    Settings2,
+    Trash2,
+  } from "@lucide/svelte";
   import { i18n } from "../../lib/i18n";
-  import { columnTypes } from "../../lib/utils/database";
+  import type { I18nKey } from "../../lib/i18n";
+  import {
+    columnTypes,
+    groupRows,
+    uncategorized,
+  } from "../../lib/utils/database";
   import type {
+    Aggregate,
     CellValue,
     Choice,
     Column,
     Row,
   } from "../../lib/utils/database";
+  import {
+    beginResize,
+    editorPosition,
+    moved,
+    resizeTo,
+  } from "./databaseTableInteractions";
+  import type { Resize } from "./databaseTableInteractions";
+  import DatabaseTableFooter from "./DatabaseTableFooter.svelte";
   import DatabaseColumnEditor from "./DatabaseColumnEditor.svelte";
   import DatabaseCell from "../components/DatabaseCell.svelte";
   export let columns: Column[];
@@ -28,16 +48,39 @@
   export let onReorderRows: (rowIds: string[]) => void = () => {};
   /** Embedded tables delay text-like cell commits so the note editor keeps focus stable. */
   export let commitCellsOnInput = true;
+  /** Every column of the table, including the ones this view hides. */
+  export let allColumns: Column[] = [];
+  /** Relation column id -> columns of the table it links to, for rollup pickers. */
+  export let relationColumns: Record<string, Column[]> = {};
+  /** Column the rows are grouped under; unset shows one flat list. */
+  export let groupBy: string | undefined = undefined;
+  export let aggregations: Record<string, Aggregate> = {};
+  export let onAggregation: (columnId: string, fn: Aggregate) => void =
+    () => {};
+  export let rowHeight: "short" | "medium" | "tall" = "short";
+  export let onOpenRow: (rowId: string) => void = () => {};
+
+  const rowHeights = { short: "2rem", medium: "3.5rem", tall: "6rem" };
+  $: cellHeight = rowHeights[rowHeight] ?? rowHeights.short;
+  $: groupColumn = allColumns.find((column) => column.id === groupBy);
+  $: groups = groupColumn
+    ? groupRows(
+        rows,
+        groupColumn,
+        (choices[groupColumn.id] ?? []).map((choice) => choice.value),
+      )
+    : [{ key: "", rows }];
+  function groupLabel(key: string) {
+    const choice = (choices[groupColumn?.id ?? ""] ?? []).find(
+      (entry) => entry.value === key,
+    );
+    return key === uncategorized
+      ? $i18n.t("database.noValue")
+      : (choice?.label ?? key);
+  }
   const panelWidth = 240;
-  const MIN_WIDTH = 80;
   /** Width being dragged right now; committed to the column on pointerup. */
-  let resizing: {
-    id: string;
-    startX: number;
-    startWidth: number;
-    width: number;
-    x: number;
-  } | null = null;
+  let resizing: Resize | null = null;
   function widthOf(column: Column) {
     return resizing?.id === column.id ? resizing.width : column.width;
   }
@@ -48,26 +91,11 @@
   ) {
     event.preventDefault();
     (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
-    resizing = {
-      id: column.id,
-      startX: event.clientX,
-      startWidth: column.width ?? header.getBoundingClientRect().width,
-      width: column.width ?? header.getBoundingClientRect().width,
-      x: event.clientX,
-    };
+    resizing = beginResize(event.clientX, column, header);
   }
   function moveResize(event: PointerEvent) {
     if (resizing) {
-      const width = Math.max(
-        MIN_WIDTH,
-        Math.round(resizing.startWidth + event.clientX - resizing.startX),
-      );
-      // The guide sticks to the column edge, so it stops where the minimum width does.
-      resizing = {
-        ...resizing,
-        width,
-        x: resizing.startX + width - resizing.startWidth,
-      };
+      resizing = resizeTo(resizing, event.clientX);
     }
   }
   function endResize() {
@@ -76,33 +104,24 @@
       resizing = null;
     }
   }
-  /** Fixed-positioned: the table scrolls under `overflow-auto`, which would clip an absolute panel. */
+  /** Fixed-positioned: the table scrolls under `overflow-auto`, which clips absolutes. */
   let editingColumn: { id: string; x: number; y: number } | null = null;
   function toggleEditor(id: string, event: MouseEvent) {
     if (editingColumn?.id === id) {
       editingColumn = null;
       return;
     }
-    const bounds = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    editingColumn = {
+    editingColumn = editorPosition(
       id,
-      x: Math.max(
-        8,
-        Math.min(bounds.right - panelWidth, window.innerWidth - panelWidth - 8),
-      ),
-      y: bounds.bottom + 4,
-    };
+      (event.currentTarget as HTMLElement).getBoundingClientRect(),
+      panelWidth,
+    );
   }
   let headers: Record<string, HTMLElement> = {};
   let draggedRow: string | null = null;
   let dropRow: string | null = null;
   let draggedColumn: string | null = null;
   let dropColumn: string | null = null;
-  function moved<T>(entries: T[], from: number, to: number) {
-    const next = [...entries];
-    next.splice(to, 0, ...next.splice(from, 1));
-    return next;
-  }
   function dropRowOn(targetId: string) {
     const from = rows.findIndex((row) => row.id === draggedRow);
     const to = rows.findIndex((row) => row.id === targetId);
@@ -132,24 +151,15 @@
     editingColumn = null;
     onColumnsChange(columns.filter((column) => column.id !== id));
   }
+  /** `multi_select` -> `database.columnMultiSelect`, so a new type needs no branch here. */
   $: translatedColumnTypes = columnTypes.map((type) => ({
     ...type,
-    label:
-      type.value === "text"
-        ? $i18n.t("database.columnText")
-        : type.value === "number"
-          ? $i18n.t("database.columnNumber")
-          : type.value === "select"
-            ? $i18n.t("database.columnSelect")
-            : type.value === "multi_select"
-              ? $i18n.t("database.columnMultiSelect")
-              : type.value === "checkbox"
-                ? $i18n.t("database.columnCheckbox")
-                : type.value === "date"
-                  ? $i18n.t("database.columnDate")
-                  : type.value === "url"
-                    ? $i18n.t("database.columnUrl")
-                    : $i18n.t("database.columnRelation"),
+    label: $i18n.t(
+      `database.column${type.value
+        .split("_")
+        .map((part) => part[0].toUpperCase() + part.slice(1))
+        .join("")}` as I18nKey,
+    ),
   }));
 </script>
 <svelte:window
@@ -240,6 +250,8 @@
               <DatabaseColumnEditor
                 {column}
                 {databaseOptions}
+                {relationColumns}
+                columns={allColumns}
                 left={editingColumn.x}
                 top={editingColumn.y}
                 width={panelWidth}
@@ -263,8 +275,20 @@
         </th>
       </tr>
     </thead>
+    {#each groups as group (group.key)}
     <tbody>
-      {#each rows as row (row.id)}
+      {#if groupColumn}
+        <tr class="bg-stone-500/5">
+          <td colspan={columns.length + 2} class="px-2 py-1">
+            <span
+              class="text-xs font-medium tracking-wide text-stone-500 uppercase"
+              >{groupLabel(group.key)}</span
+            >
+            <span class="ml-2 text-xs text-stone-400">{group.rows.length}</span>
+          </td>
+        </tr>
+      {/if}
+      {#each group.rows as row (row.id)}
         <tr
           class="group border-b border-stone-200/70 hover:bg-stone-500/5 dark:border-stone-800 {dropRow ===
           row.id
@@ -313,28 +337,52 @@
                 ? `width:${widthOf(column)}px;min-width:${widthOf(column)}px;max-width:${widthOf(column)}px`
                 : ""}
             >
-              <DatabaseCell
-                {column}
-                choices={choices[column.id] ?? []}
-                value={row.data[column.id] ?? null}
-                commitOnInput={commitCellsOnInput}
-                onChange={(value) => onCell(row.id, column.id, value)}
-              />
+              <div class="overflow-auto" style="min-height:{cellHeight}">
+                <DatabaseCell
+                  {column}
+                  choices={choices[column.id] ?? []}
+                  value={row.data[column.id] ?? null}
+                  commitOnInput={commitCellsOnInput}
+                  onChange={(value) => onCell(row.id, column.id, value)}
+                />
+              </div>
             </td>
           {/each}
           <td class="px-1 align-top">
-            <button
-              type="button"
-              class="flex size-6 items-center justify-center rounded-md text-stone-300 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-rose-500/10 hover:text-rose-600"
-              aria-label={$i18n.t("database.deleteRow")}
-              onclick={() => onDeleteRow(row.id)}
-            >
-              <Trash2 class="size-3.5" strokeWidth={1.8} aria-hidden="true" />
-            </button>
+            <div class="flex items-center gap-0.5">
+              <button
+                type="button"
+                class="flex size-6 items-center justify-center rounded-md text-stone-300 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-stone-500/10 hover:text-stone-700 dark:hover:text-stone-200"
+                aria-label={$i18n.t("database.openRow")}
+                title={$i18n.t("database.openRow")}
+                onclick={() => onOpenRow(row.id)}
+              >
+                <Maximize2
+                  class="size-3.5"
+                  strokeWidth={1.8}
+                  aria-hidden="true"
+                />
+              </button>
+              <button
+                type="button"
+                class="flex size-6 items-center justify-center rounded-md text-stone-300 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-rose-500/10 hover:text-rose-600"
+                aria-label={$i18n.t("database.deleteRow")}
+                onclick={() => onDeleteRow(row.id)}
+              >
+                <Trash2 class="size-3.5" strokeWidth={1.8} aria-hidden="true" />
+              </button>
+            </div>
           </td>
         </tr>
       {/each}
     </tbody>
+    {/each}
+    <DatabaseTableFooter
+      {columns}
+      {rows}
+      {aggregations}
+      {onAggregation}
+    />
   </table>
   <button
     type="button"
