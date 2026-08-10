@@ -12,6 +12,8 @@ assert(kernelFor("c++") === "cpp", "c++ spells the same kernel as cpp");
 assert(kernelFor("R") === "r", "R is its own kernel");
 assert(kernelFor("java") === "java", "java runs on jshell");
 assert(kernelFor("rs") === "rust", "rs is a rust cell");
+assert(kernelFor("cs") === "csharp", "cs is a csharp cell");
+assert(kernelFor("C#") === "csharp", "c# spells the same kernel as csharp");
 assert(kernelFor("haskell") === null, "unknown languages are not runnable");
 assert(
   isRunnable(" bash ") === true,

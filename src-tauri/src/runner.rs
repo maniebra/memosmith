@@ -122,6 +122,9 @@ sink(stdout(), type = "message")
 /// Enough of the standard library that a bare snippet compiles without ceremony.
 const CPP_PREAMBLE: &str = "#include <algorithm>\n#include <chrono>\n#include <cmath>\n#include <cstdint>\n#include <cstdio>\n#include <functional>\n#include <iostream>\n#include <map>\n#include <memory>\n#include <numeric>\n#include <set>\n#include <sstream>\n#include <string>\n#include <unordered_map>\n#include <unordered_set>\n#include <vector>\nusing namespace std;\n";
 
+/// Same idea for C#: the namespaces a snippet reaches for without thinking about it.
+const CSHARP_PREAMBLE: &str = "using System;\nusing System.Collections.Generic;\nusing System.IO;\nusing System.Linq;\nusing System.Text;\nusing System.Threading.Tasks;\n";
+
 struct Session {
     child: Child,
     stdin: ChildStdin,
@@ -162,12 +165,13 @@ pub fn kernel_for(language: &str) -> Option<&'static str> {
         "r" => Some("r"),
         "rust" | "rs" => Some("rust"),
         "cpp" | "c++" | "cc" | "cxx" => Some("cpp"),
+        "csharp" | "c#" | "cs" => Some("csharp"),
         _ => None,
     }
 }
 
-pub const KERNELS: [&str; 8] =
-    ["bash", "python", "node", "java", "kotlin", "r", "cpp", "rust"];
+pub const KERNELS: [&str; 9] =
+    ["bash", "python", "node", "java", "kotlin", "r", "cpp", "rust", "csharp"];
 
 fn candidates(kernel: &str) -> &'static [&'static str] {
     match kernel {
@@ -178,6 +182,7 @@ fn candidates(kernel: &str) -> &'static [&'static str] {
         "r" => &["R"],
         "cpp" => &["g++", "clang++"],
         "rust" => &["rustc"],
+        "csharp" => &["dotnet"],
         _ => &["bash", "sh"],
     }
 }
@@ -387,6 +392,17 @@ fn rust_program(code: &str) -> String {
     )
 }
 
+/// Top-level statements already make a bare snippet a program; it only needs its usings.
+/// A snippet that declares its own entry point is left exactly as written.
+fn csharp_program(code: &str) -> String {
+    if code.contains("static void Main") || code.contains("static async Task Main") {
+        return code.to_string();
+    }
+
+    // A using repeated by the cell is only a warning, so these can go on unconditionally.
+    format!("{CSHARP_PREAMBLE}{code}\n")
+}
+
 /// ponytail: every C++ and Rust cell is its own program, since a compiler has no REPL to keep state in.
 /// The cells of one note do share a working directory, so files written by an earlier cell stay put.
 fn run_compiled(
@@ -403,35 +419,63 @@ fn run_compiled(
     std::fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
 
     let rust = kernel == "rust";
-    let source = directory.join(if rust { "cell.rs" } else { "cell.cpp" });
+    let csharp = kernel == "csharp";
+    let source = directory.join(match kernel {
+        "rust" => "cell.rs",
+        "csharp" => "cell.cs",
+        _ => "cell.cpp",
+    });
     let binary = directory.join(if cfg!(windows) { "cell.exe" } else { "cell" });
-    let program = if rust { rust_program(code) } else { cpp_program(code) };
+    let program = match kernel {
+        "rust" => rust_program(code),
+        "csharp" => csharp_program(code),
+        _ => cpp_program(code),
+    };
 
     std::fs::write(&source, program).map_err(|error| error.to_string())?;
 
-    // ponytail: the compile itself is not on the clock, only the program it produces.
-    let build = Command::new(&compiler)
-        .args(if rust {
-            ["--edition", "2021"]
-        } else {
-            ["-std=c++20", "-O0"]
-        })
-        .arg("-o")
-        .arg(&binary)
-        .arg(&source)
-        .current_dir(&directory)
-        .output()
-        .map_err(|error| format!("Could not run `{compiler}`: {error}"))?;
+    if !csharp {
+        // ponytail: the compile itself is not on the clock, only the program it produces.
+        let build = Command::new(&compiler)
+            .args(if rust {
+                ["--edition", "2021"]
+            } else {
+                ["-std=c++20", "-O0"]
+            })
+            .arg("-o")
+            .arg(&binary)
+            .arg(&source)
+            .current_dir(&directory)
+            .output()
+            .map_err(|error| format!("Could not run `{compiler}`: {error}"))?;
 
-    if !build.status.success() {
-        return Ok(RunOutput {
-            output: String::from_utf8_lossy(&build.stderr).to_string(),
-            status: 1,
-            timed_out: false,
-        });
+        if !build.status.success() {
+            return Ok(RunOutput {
+                output: String::from_utf8_lossy(&build.stderr).to_string(),
+                status: 1,
+                timed_out: false,
+            });
+        }
     }
 
-    let mut child = Command::new(&binary)
+    // ponytail: `dotnet run cell.cs` compiles and runs in one step, so a C# cell's build
+    // time is on the clock. Publish it up front if the first-run wait ever matters.
+    let mut launch = if csharp {
+        let mut command = Command::new(&compiler);
+
+        // Without these the first `dotnet` of a machine's life greets the cell with its banner.
+        command
+            .arg("run")
+            .arg(&source)
+            .env("DOTNET_NOLOGO", "1")
+            .env("DOTNET_CLI_TELEMETRY_OPTOUT", "1")
+            .env("DOTNET_SKIP_WORKLOAD_INTEGRITY_CHECK", "1");
+        command
+    } else {
+        Command::new(&binary)
+    };
+
+    let mut child = launch
         .current_dir(&directory)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
@@ -520,7 +564,7 @@ pub fn run_code_blocking(
 
     let timeout = Duration::from_millis(timeout_ms.unwrap_or(DEFAULT_TIMEOUT_MS));
 
-    if matches!(kernel, "cpp" | "rust") {
+    if matches!(kernel, "cpp" | "rust" | "csharp") {
         return run_compiled(kernel, &session, &code, command.as_deref(), timeout);
     }
 

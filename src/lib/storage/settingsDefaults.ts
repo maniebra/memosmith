@@ -83,6 +83,7 @@ export const defaultRunnerSettings: RunnerSettings = {
     r: "",
     cpp: "",
     rust: "",
+    csharp: "",
   },
   timeoutMs: 30000,
 };
@@ -96,6 +97,7 @@ export const defaultLspSettings: LspSettings = {
     r: "",
     cpp: "",
     rust: "",
+    csharp: "",
   },
 };
 export const defaultCalloutDefinitions: CalloutDefinition[] = [

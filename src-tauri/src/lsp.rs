@@ -114,6 +114,7 @@ fn candidates(kernel: &str) -> &'static [&'static str] {
         "r" => &["R"],
         "cpp" => &["clangd"],
         "rust" => &["rust-analyzer"],
+        "csharp" => &["csharp-ls", "omnisharp"],
         _ => &["bash-language-server"],
     }
 }
@@ -145,6 +146,7 @@ fn language_id(kernel: &str, language: &str) -> &'static str {
         "kotlin" => "kotlin",
         "r" => "r",
         "cpp" => "cpp",
+        "csharp" => "csharp",
         _ => "rust",
     }
 }
@@ -164,6 +166,7 @@ fn extension(kernel: &str, language: &str) -> &'static str {
         "kotlin" => "kt",
         "r" => "R",
         "cpp" => "cpp",
+        "csharp" => "cs",
         _ => "rs",
     }
 }

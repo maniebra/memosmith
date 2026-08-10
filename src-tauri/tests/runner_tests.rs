@@ -194,3 +194,32 @@ fn different_sessions_run_in_parallel() {
 
     assert!(started.elapsed().as_millis() < 1_800, "cells queued: {:?}", started.elapsed());
 }
+
+#[test]
+fn csharp_wraps_a_snippet_in_a_program() {
+    if !available("dotnet") {
+        return;
+    }
+
+    let ok = run_code_blocking(
+        "csharp-note".into(),
+        "csharp".into(),
+        "Console.WriteLine(6 * 7);".into(),
+        None,
+        Some(120_000),
+    )
+    .expect("cell ran");
+
+    assert_eq!(ok.output, "42\n");
+
+    let failed = run_code_blocking(
+        "csharp-note".into(),
+        "csharp".into(),
+        "Console.WriteLine(nope);".into(),
+        None,
+        Some(120_000),
+    )
+    .expect("cell ran");
+
+    assert_ne!(failed.status, 0, "compile errors are reported");
+}
