@@ -281,6 +281,7 @@ export const fa: Record<I18nKey, string> = {
   "editor.todo": "کار",
   "editor.quote": "نقل قول",
   "editor.code": "کد",
+  "editor.columns": "ستون ها",
   "editor.callout": "کال اوت",
   "editor.drawing": "طراحی",
   "editor.diagram": "نمودار",

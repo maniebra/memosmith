@@ -55,7 +55,16 @@ function unescapeHtml(text: string) {
 }
 
 function renderInlineMath(source: string) {
-  return `<span class="md-math-inline"><span class="md-math-source">${mark("$")}${source}${mark("$")}</span><span class="md-math-rendered" contenteditable="false">${renderKatex(unescapeHtml(source), false)}</span></span>`;
+  return [
+    '<span class="md-math-inline">',
+    '<span class="md-math-source" spellcheck="false">',
+    mark("$"),
+    source,
+    mark("$"),
+    '</span><span class="md-math-rendered" contenteditable="false">',
+    renderKatex(unescapeHtml(source), false),
+    "</span></span>",
+  ].join("");
 }
 
 /** Source stays an ordinary editable line; the preview is a sibling the caret never enters. */

@@ -17,7 +17,7 @@ import {
   withMediaOptions,
 } from "./markdown";
 
-// The caret maps by counting source blocks, so previews must never be counted as lines.
+// Caret mapping counts source blocks, so previews must never count as lines.
 const sourceBlocksFromHtml = (html: string) =>
   (html.match(/class="[^"]*\bmd-block\b[^"]*"/g) ?? []).length;
 const sourceBlocks = (text: string) =>

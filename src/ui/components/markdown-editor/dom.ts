@@ -27,6 +27,7 @@ export function createDom(e: Editor): DomApi {
     setCaret: service.setCaret.bind(service),
     sourceLength: service.sourceLength.bind(service),
     sourceText: service.sourceText.bind(service),
+    subblockBodyForNode: service.subblockBodyForNode.bind(service),
     tableCellForNode: service.tableCellForNode.bind(service),
   };
 }
@@ -204,6 +205,12 @@ class EditorDom {
     return (
       node instanceof HTMLElement ? node : node?.parentElement
     )?.closest("[data-table-cell]") as HTMLElement | null;
+  }
+
+  subblockBodyForNode(node: Node | null) {
+    return (
+      node instanceof HTMLElement ? node : node?.parentElement
+    )?.closest("[data-subblock-body]") as HTMLElement | null;
   }
 
   offsetForPosition(node: Node, nodeOffset: number): number | null {

@@ -2,8 +2,14 @@ export {
   applyPrefix,
   continueList,
   continueQuote,
+  enterEdit,
+  inlineMarkEdit,
+  lineStartAt,
   SLASH_COMMANDS,
   stripPrefix,
+  tabEdit,
+  type InlineMarker,
+  type TextEdit,
 } from "./markdownCommands";
 export { renderDocument } from "./markdownDocument";
 export {
@@ -36,6 +42,15 @@ export {
   withMediaOptions,
   type MediaOptions,
 } from "./markdownMedia";
+export {
+  COLUMN_SUBBLOCK_CLOSE,
+  COLUMN_SUBBLOCK_OPEN,
+  DEFAULT_COLUMN_SUBBLOCKS,
+  DEFAULT_VERTICAL_SUBBLOCKS,
+  serializeColumnSubblocks,
+  verticalSubblockLine,
+  verticalSubblocksPreview,
+} from "./markdownSubblocks";
 export {
   DEFAULT_TABLE_MARKDOWN,
   editMarkdownTable,

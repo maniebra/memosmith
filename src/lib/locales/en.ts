@@ -276,6 +276,7 @@ export const en = {
   "editor.todo": "To-do",
   "editor.quote": "Quote",
   "editor.code": "Code",
+  "editor.columns": "Columns",
   "editor.callout": "Callout",
   "editor.drawing": "Drawing",
   "editor.diagram": "Diagram",

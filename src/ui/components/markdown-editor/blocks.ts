@@ -31,7 +31,13 @@ class EditorBlocks {
   constructor(private e: Editor) {}
 
   private blockUnitKey(block: HTMLElement, fallback: number) {
-    for (const name of ["code", "math", "table", "callout"] as const) {
+    for (const name of [
+      "code",
+      "math",
+      "table",
+      "callout",
+      "subblocks",
+    ] as const) {
       if (block.dataset[name] !== undefined) {
         return `${name}:${block.dataset[name]}`;
       }
@@ -125,7 +131,11 @@ class EditorBlocks {
   private unitVisualElements(unit: BlockUnit) {
     const [kind, group] = unit.key.split(":");
     const grouped =
-      kind === "code" || kind === "math" || kind === "table" || kind === "callout";
+      kind === "code" ||
+      kind === "math" ||
+      kind === "table" ||
+      kind === "callout" ||
+      kind === "subblocks";
 
     if (this.e.element && group !== undefined && grouped) {
       return Array.from(

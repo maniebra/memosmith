@@ -2,6 +2,7 @@ import type { I18nKey } from "../../../lib/i18n";
 import {
   applyPrefix,
   DEFAULT_TABLE_MARKDOWN,
+  lineStartAt,
   emptyDatabaseEmbed,
   EMPTY_DIAGRAM,
   EMPTY_DRAWING,
@@ -9,6 +10,7 @@ import {
   EMPTY_PLANTUML,
   SLASH_COMMANDS,
 } from "../../../lib/utils/markdown";
+import { editSurface, type EditSurface } from "./surface";
 import type { Editor, SlashApi, SlashCommand } from "./types";
 
 const SLASH_LABELS: Record<string, I18nKey> = {
@@ -21,6 +23,7 @@ const SLASH_LABELS: Record<string, I18nKey> = {
   "To-do": "editor.todo",
   Quote: "editor.quote",
   Code: "editor.code",
+  Columns: "editor.columns",
 };
 
 export function createSlash(e: Editor): SlashApi {
@@ -116,7 +119,7 @@ class EditorSlash {
     this.e.ui.slashIndex = 0;
   }
 
-  syncMenu(offset: number) {
+  syncMenu(surface: EditSurface) {
     const e = this.e;
 
     if (!e.props.slashCommands) {
@@ -124,7 +127,8 @@ class EditorSlash {
       return;
     }
 
-    const line = e.value.slice(e.lineStartAt(offset), offset);
+    const { text, caret } = surface;
+    const line = text.slice(lineStartAt(text, caret), caret);
     const typed = /(?:^|\s)\/([\w ]*)$/.exec(line);
 
     if (!typed) {
@@ -132,7 +136,7 @@ class EditorSlash {
       return;
     }
 
-    e.ui.slashStart = offset - typed[1].length - 1;
+    e.ui.slashStart = caret - typed[1].length - 1;
     e.ui.slashQuery = typed[1];
     e.ui.slashIndex = 0;
 
@@ -143,64 +147,75 @@ class EditorSlash {
     }
   }
 
+  /** Commands rewrite the caret's line, in the document or in a column alike. */
   runCommand(prefix: string) {
     const e = this.e;
-    const offset = e.caretOffset();
+    const surface = editSurface(e, null);
     const slashStart = e.ui.slashStart;
 
-    if (offset === null || slashStart === null) {
+    if (!surface || slashStart === null) {
       return;
     }
 
-    const start = e.lineStartAt(offset);
-    const newline = e.value.indexOf("\n", offset);
-    const lineEnd = newline === -1 ? e.value.length : newline;
-    const tail = e.value.slice(offset, lineEnd);
-    const head = e.value.slice(start, slashStart);
+    const { text, caret } = surface;
+    const start = lineStartAt(text, caret);
+    const newline = text.indexOf("\n", caret);
+    const lineEnd = newline === -1 ? text.length : newline;
+    const tail = text.slice(caret, lineEnd);
+    const head = text.slice(start, slashStart);
 
     this.closeMenu();
 
     if (prefix === DEFAULT_TABLE_MARKDOWN) {
-      e.replace(start, lineEnd, prefix, start + prefix.length);
+      surface.apply({
+        start,
+        end: lineEnd,
+        text: prefix,
+        caret: start + prefix.length,
+      });
       return;
     }
 
     if (prefix.startsWith("```")) {
-      this.runFenceCommand(prefix, start, lineEnd, head, tail);
+      this.runFenceCommand(surface, prefix, { start, lineEnd, head, tail });
       return;
     }
 
     const nextLine = applyPrefix(head + tail, prefix);
 
-    e.replace(start, lineEnd, nextLine, start + nextLine.length - tail.length);
+    surface.apply({
+      start,
+      end: lineEnd,
+      text: nextLine,
+      caret: start + nextLine.length - tail.length,
+    });
   }
 
   private runFenceCommand(
+    surface: EditSurface,
     prefix: string,
-    start: number,
-    lineEnd: number,
-    head: string,
-    tail: string,
+    line: { start: number; lineEnd: number; head: string; tail: string },
   ) {
+    const { start, lineEnd, head, tail } = line;
     const opening = applyPrefix(head, prefix);
 
     // Embeds carry their own source, so the caret waits under the card.
     if (prefix.includes("\n")) {
-      this.e.replace(
+      surface.apply({
         start,
-        lineEnd,
-        `${opening}\n\n${tail}`,
-        start + opening.length + 2,
-      );
+        end: lineEnd,
+        text: `${opening}\n\n${tail}`,
+        caret: start + opening.length + 2,
+      });
       return;
     }
 
     // A code block needs its closing fence, with the caret on the line between.
-    this.e.replace(
+    surface.apply({
       start,
-      lineEnd,
-      `${opening}\n${tail}\n\`\`\``,
-      start + opening.length + 1,
-    );
+      end: lineEnd,
+      text: `${opening}\n${tail}\n\`\`\``,
+      caret: start + opening.length + 1,
+    });
   }
 }

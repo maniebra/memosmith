@@ -86,6 +86,12 @@ class EditorRender {
       )) {
         (cell as HTMLElement).contentEditable = "false";
       }
+
+      for (const body of Array.from(
+        e.element.querySelectorAll("[data-subblock-body]"),
+      )) {
+        (body as HTMLElement).contentEditable = "false";
+      }
     }
 
     if (offset !== null) {

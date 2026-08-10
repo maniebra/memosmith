@@ -7,6 +7,7 @@ import {
   wordPrefix,
   type Completion,
 } from "../../../lib/utils/lsp";
+import { editSurface, type EditSurface } from "./surface";
 import type { CompletionApi, Editor } from "./types";
 
 /** Long enough that a burst of typing costs one request, not one per key. */
@@ -48,10 +49,10 @@ class EditorCompletions {
   }
 
   private rescheduleAtCaret() {
-    const current = this.e.caretOffset();
+    const surface = editSurface(this.e, null);
 
-    if (current !== null) {
-      this.syncCompletions(current);
+    if (surface) {
+      this.syncCompletions(surface);
     }
   }
 
@@ -109,14 +110,18 @@ class EditorCompletions {
 
       const items = await this.requestItems(context);
 
-      if (request === this.request && this.e.caretOffset() === offset) {
+      // The caret must still sit where the request was made, same surface.
+      const caret = editSurface(this.e, null)?.caret;
+
+      if (request === this.request && caret === offset) {
         this.showCompletions(items, prefix, offset);
       }
     }, COMPLETION_DELAY);
   }
 
-  syncCompletions(offset: number) {
+  syncCompletions(surface: EditSurface) {
     const e = this.e;
+    const offset = surface.caret;
 
     clearTimeout(this.timer);
 
@@ -125,7 +130,7 @@ class EditorCompletions {
       return;
     }
 
-    const context = fenceContext(e.value, offset);
+    const context = fenceContext(surface.text, offset);
 
     if (!context || !hasLanguageServer(context.language)) {
       this.closeCompletions();
@@ -148,15 +153,20 @@ class EditorCompletions {
   }
 
   applyCompletion(item: Completion) {
-    const offset = this.e.caretOffset();
+    const surface = editSurface(this.e, null);
     const start = this.e.ui.completionStart;
 
     this.closeCompletions();
 
-    if (offset === null || start === null) {
+    if (!surface || start === null) {
       return;
     }
 
-    this.e.replace(start, offset, item.insert);
+    surface.apply({
+      start,
+      end: surface.caret,
+      text: item.insert,
+      caret: start + item.insert.length,
+    });
   }
 }

@@ -1,7 +1,9 @@
+import {
+  inlineMarkEdit,
+  type InlineMarker,
+} from "../../../lib/utils/markdown";
+import type { EditSurface } from "./surface";
 import type { Editor } from "./types";
-
-type InlineMarker = "*" | "**";
-type SourceSelection = { start: number; end: number };
 
 const WORD_CHARACTER = /[\p{L}\p{N}_]/u;
 
@@ -12,11 +14,11 @@ function prepareShortcut(event: KeyboardEvent, e: Editor) {
   e.closeCompletions();
 }
 
-function selectAll(event: KeyboardEvent, e: Editor) {
+function selectAll(event: KeyboardEvent, e: Editor, surface: EditSurface) {
   prepareShortcut(event, e);
 
-  if (e.value) {
-    e.selectRange(0, e.value.length);
+  if (surface.text) {
+    surface.select(0, surface.text.length);
   }
 
   e.markActiveBlock();
@@ -63,20 +65,6 @@ function wordOffset(text: string, offset: number, direction: -1 | 1) {
     : previousWordOffset(text, offset);
 }
 
-function blockDirection(e: Editor, offset: number) {
-  const block = e.blockAtOffset(offset);
-
-  return block ? getComputedStyle(block).direction : "ltr";
-}
-
-function selectionAnchorOffset(e: Editor) {
-  const selection = getSelection();
-
-  return selection?.anchorNode
-    ? e.offsetForPosition(selection.anchorNode, selection.anchorOffset)
-    : null;
-}
-
 function selectToOffset(e: Editor, anchor: number, focus: number) {
   const from = e.positionAtOffset(anchor);
   const to = e.positionAtOffset(focus);
@@ -101,134 +89,65 @@ function selectToOffset(e: Editor, anchor: number, focus: number) {
   }
 }
 
-function handleRtlWordNavigation(event: KeyboardEvent, e: Editor) {
-  if (!event.ctrlKey || event.metaKey) {
-    return false;
-  }
-
-  const offset = e.caretOffset();
-
-  if (offset === null || blockDirection(e, offset) !== "rtl") {
+function handleRtlWordNavigation(
+  event: KeyboardEvent,
+  e: Editor,
+  surface: EditSurface,
+) {
+  if (!event.ctrlKey || event.metaKey || surface.direction !== "rtl") {
     return false;
   }
 
   const direction = event.key === "ArrowLeft" ? 1 : -1;
-  const next = wordOffset(e.value, offset, direction);
+  const next = wordOffset(surface.text, surface.caret, direction);
 
   prepareShortcut(event, e);
 
-  if (event.shiftKey) {
-    selectToOffset(e, selectionAnchorOffset(e) ?? offset, next);
+  if (!event.shiftKey) {
+    surface.setCaret(next);
+  } else if (surface.subblock) {
+    surface.select(surface.selection.start, next);
   } else {
-    e.setCaret(next);
+    selectToOffset(e, surface.selection.start, next);
   }
 
   e.markActiveBlock();
   return true;
 }
 
-function insertEmptyMark(
-  e: Editor,
-  selection: SourceSelection,
-  marker: InlineMarker,
-) {
-  e.replace(
-    selection.start,
-    selection.end,
-    `${marker}${marker}`,
-    selection.start + marker.length,
-  );
-}
-
-function removeSelectedMarks(
-  e: Editor,
-  selection: SourceSelection,
-  selected: string,
-  marker: InlineMarker,
-) {
-  const inner = selected.slice(marker.length, selected.length - marker.length);
-
-  e.replace(selection.start, selection.end, inner, selection.start);
-  e.selectRange(selection.start, selection.start + inner.length);
-}
-
-function removeAdjacentMarks(
-  e: Editor,
-  selection: SourceSelection,
-  selected: string,
-  marker: InlineMarker,
-) {
-  e.replace(
-    selection.start - marker.length,
-    selection.end + marker.length,
-    selected,
-    selection.start - marker.length,
-  );
-  e.selectRange(
-    selection.start - marker.length,
-    selection.end - marker.length,
-  );
-}
-
-function wrapSelection(
-  e: Editor,
-  selection: SourceSelection,
-  selected: string,
-  marker: InlineMarker,
-) {
-  e.replace(
-    selection.start,
-    selection.end,
-    `${marker}${selected}${marker}`,
-    selection.start + marker.length,
-  );
-  e.selectRange(
-    selection.start + marker.length,
-    selection.end + marker.length,
-  );
-}
-
 function toggleInlineMark(
   event: KeyboardEvent,
   e: Editor,
+  surface: EditSurface,
   marker: InlineMarker,
 ) {
   if (!e.props.editable) {
     return false;
   }
 
-  const selection = e.selectionOffsets();
-
-  if (!selection) {
-    return false;
-  }
-
   prepareShortcut(event, e);
 
-  if (selection.start === selection.end) {
-    insertEmptyMark(e, selection, marker);
-    return true;
-  }
-
-  const selected = e.value.slice(selection.start, selection.end);
-  const before = e.value.slice(
-    selection.start - marker.length,
-    selection.start,
+  const { edit, select } = inlineMarkEdit(
+    surface.text,
+    surface.selection.start,
+    surface.selection.end,
+    marker,
   );
-  const after = e.value.slice(selection.end, selection.end + marker.length);
 
-  if (selected.startsWith(marker) && selected.endsWith(marker)) {
-    removeSelectedMarks(e, selection, selected, marker);
-  } else if (before === marker && after === marker) {
-    removeAdjacentMarks(e, selection, selected, marker);
-  } else {
-    wrapSelection(e, selection, selected, marker);
+  surface.apply(edit);
+
+  if (select) {
+    surface.select(select.start, select.end);
   }
 
   return true;
 }
 
-export function handleEditorShortcut(event: KeyboardEvent, e: Editor) {
+export function handleEditorShortcut(
+  event: KeyboardEvent,
+  e: Editor,
+  surface: EditSurface,
+) {
   const shortcut = event.ctrlKey || event.metaKey;
 
   if (!shortcut || event.altKey) {
@@ -238,19 +157,19 @@ export function handleEditorShortcut(event: KeyboardEvent, e: Editor) {
   const key = event.key.toLowerCase();
 
   if (key === "arrowleft" || key === "arrowright") {
-    return handleRtlWordNavigation(event, e);
+    return handleRtlWordNavigation(event, e, surface);
   }
 
   if (key === "a") {
-    return selectAll(event, e);
+    return selectAll(event, e, surface);
   }
 
   if (key === "b") {
-    return toggleInlineMark(event, e, "**");
+    return toggleInlineMark(event, e, surface, "**");
   }
 
   if (key === "i") {
-    return toggleInlineMark(event, e, "*");
+    return toggleInlineMark(event, e, surface, "*");
   }
 
   return false;

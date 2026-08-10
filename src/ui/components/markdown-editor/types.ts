@@ -14,6 +14,7 @@ import type {
   withMediaOptions,
 } from "../../../lib/utils/markdown";
 import type { ContextMenuItem } from "../ContextMenu.svelte";
+import type { EditSurface } from "./surface";
 
 export type Decoration = {
   start: number;
@@ -171,6 +172,7 @@ export type DomApi = {
   getText: () => string;
   caretOffset: () => number | null;
   previewForNode: (node: Node | null) => Element | null | undefined;
+  subblockBodyForNode: (node: Node | null) => HTMLElement | null;
   tableCellForNode: (node: Node | null) => HTMLElement | null;
   offsetForPosition: (node: Node, nodeOffset: number) => number | null;
   selectionOffsets: () => { start: number; end: number } | null;
@@ -201,11 +203,11 @@ export type RenderApi = {
 export type SelectionApi = {
   setActiveBlock: (active: HTMLElement | undefined) => void;
   markActiveBlock: () => void;
+  markActiveSubblock: (body: HTMLElement, node: Node | null) => void;
   repairPreviewNavigation: (direction: "up" | "down", offset: number) => void;
   measureDecorations: () => void;
   scheduleMeasure: () => void;
 };
-
 export type BlockApi = {
   closeBlockMenu: () => void;
   sourceUnits: () => BlockUnit[];
@@ -255,6 +257,20 @@ export type TableApi = {
     renderPreview?: boolean,
   ) => void;
   handleTableCellInput: (cell: HTMLElement) => void;
+};
+
+export type SubblockApi = {
+  handleSubblockInput: (body: HTMLElement) => void;
+  handleSubblockKeydown: (
+    event: KeyboardEvent,
+    body: HTMLElement,
+  ) => boolean;
+  handleSubblockPointerDown: (
+    event: PointerEvent,
+    body: HTMLElement,
+  ) => boolean;
+  replaceSubblockSelection: (body: HTMLElement, text: string) => void;
+  subblockSurface: (body: HTMLElement) => EditSurface;
 };
 
 export type TableMenuApi = {
@@ -333,14 +349,14 @@ export type SlashApi = {
   highlightSlash: (index: number) => void;
   slashMatches: () => SlashCommand[];
   closeMenu: () => void;
-  syncMenu: (offset: number) => void;
+  syncMenu: (surface: EditSurface) => void;
   runCommand: (prefix: string) => void;
 };
 
 export type CompletionApi = {
   highlightCompletion: (index: number) => void;
   closeCompletions: () => void;
-  syncCompletions: (offset: number) => void;
+  syncCompletions: (surface: EditSurface) => void;
   applyCompletion: (item: Completion) => void;
 };
 
@@ -371,6 +387,7 @@ export type Editor = EditorHost &
   BlockApi &
   BlockEditApi &
   TableApi &
+  SubblockApi &
   TableMenuApi &
   EmbedLayoutApi &
   DrawingApi &

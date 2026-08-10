@@ -5,6 +5,7 @@ export function createSelection(e: Editor): SelectionApi {
 
   return {
     markActiveBlock: service.markActiveBlock.bind(service),
+    markActiveSubblock: service.setActiveSubblockBlock.bind(service),
     measureDecorations: service.measureDecorations.bind(service),
     repairPreviewNavigation: service.repairPreviewNavigation.bind(service),
     scheduleMeasure: service.scheduleMeasure.bind(service),
@@ -23,7 +24,13 @@ class EditorSelection {
   constructor(private e: Editor) {}
 
   private groupNameOf(active: HTMLElement | undefined) {
-    for (const name of ["code", "math", "table", "callout"] as const) {
+    for (const name of [
+      "code",
+      "math",
+      "table",
+      "callout",
+      "subblocks",
+    ] as const) {
       if (active?.dataset[name] !== undefined) {
         return name;
       }
@@ -94,6 +101,57 @@ class EditorSelection {
       : source ?? this.adjacentSourceBlock(preview, "previous");
   }
 
+  private clearSubblockActive(root = this.e.element) {
+    for (const block of Array.from(
+      root?.querySelectorAll(
+        ".md-subblock-body .md-block[data-active]," +
+          ".md-subblock-body .md-preview[data-active]",
+      ) ?? [],
+    )) {
+      (block as HTMLElement).removeAttribute("data-active");
+    }
+  }
+
+  private subblockSourceForPreview(preview: Element | null) {
+    if (!preview?.classList.contains("md-preview")) {
+      return null;
+    }
+
+    return preview.previousElementSibling instanceof HTMLElement
+      ? preview.previousElementSibling
+      : null;
+  }
+
+  /** Unfolding the caret's block has to precede the caret: a hidden line drops it. */
+  setActiveSubblockBlock(body: HTMLElement, node: Node | null) {
+    const element = node instanceof HTMLElement ? node : node?.parentElement;
+    // The body itself sits inside the columns preview: only an inner one counts.
+    const nearest = element?.closest(".md-preview") ?? null;
+    const preview = nearest && body.contains(nearest) ? nearest : null;
+    const source = this.subblockSourceForPreview(preview);
+    const active = source ?? element?.closest(".md-block");
+    const activeBlock =
+      active instanceof HTMLElement && body.contains(active)
+        ? active
+        : undefined;
+    const groupName = this.groupNameOf(activeBlock);
+    const group = groupName ? activeBlock?.dataset[groupName] : undefined;
+
+    this.clearSubblockActive(body);
+
+    for (const block of Array.from(
+      body.querySelectorAll(".md-block, .md-preview"),
+    )) {
+      const item = block as HTMLElement;
+
+      item.toggleAttribute(
+        "data-active",
+        item === activeBlock ||
+          (groupName !== null && item.dataset[groupName] === group),
+      );
+    }
+  }
+
   private normalizePreviewSelection() {
     const e = this.e;
 
@@ -150,12 +208,23 @@ class EditorSelection {
   /** Markdown markers stay hidden except on the block holding the caret. */
   markActiveBlock() {
     const e = this.e;
+    const selection = getSelection();
+    const subblockBody = e.subblockBodyForNode(selection?.focusNode ?? null);
+
+    if (subblockBody) {
+      this.setActiveSubblockBlock(subblockBody, selection?.focusNode ?? null);
+      this.setActiveBlock(undefined);
+      e.ui.selectedTableCell = null;
+      e.markSelectedTableCell();
+      return;
+    }
+
+    this.clearSubblockActive();
 
     if (this.normalizePreviewSelection()) {
       return;
     }
 
-    const selection = getSelection();
     const tableCell = e.tableCellForNode(selection?.focusNode ?? null);
 
     if (tableCell) {

@@ -31,6 +31,7 @@ export type RenderDocumentOptions = {
   databaseEmbeds?: boolean;
   plantuml?: boolean;
   mermaid?: boolean;
+  subblockDepth?: number;
 };
 
 /** Language of the fenced block that holds an Excalidraw scene as JSON. */

@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import {
   defaultCalloutDefinitions,
   type CalloutDefinition,
@@ -21,6 +22,11 @@ import {
   tablePreview,
 } from "./markdownTableRender";
 import {
+  COLUMN_SUBBLOCK_OPEN,
+  renderMarkdownLines,
+  renderVerticalSubblocks,
+} from "./markdownSubblocks";
+import {
   CALLOUT_LINE,
   CALLOUT_START,
   DATABASE_LANGUAGE,
@@ -43,6 +49,7 @@ import {
 } from "./markdownEmbeds";
 const EQUATION_BLOCK = /^\s*\$\$\s*(\S.*?)\s*\$\$\s*$/;
 const FENCE = /^\s*```(\w*)([^\n]*)/;
+const MAX_SUBBLOCK_DEPTH = 6;
 class DocumentRenderer {
   private readonly calloutDefinitions: CalloutDefinition[];
   private readonly callouts: boolean;
@@ -65,6 +72,7 @@ class DocumentRenderer {
   private mathLines: string[] | null = null;
   private tableGroup = 0;
   private runLanguage: string | null = null;
+  private subblockGroup = 0;
   constructor(
     private readonly text: string,
     private readonly resolveAsset: ((source: string) => string) | undefined,
@@ -77,7 +85,18 @@ class DocumentRenderer {
     this.diagrams = options.diagrams ?? false;
     this.drawings = options.drawings ?? false;
     this.fancyTableEditor = options.fancyTableEditor ?? true;
-    this.inlineOptions = { resolveWikilink: options.resolveWikilink };
+    this.inlineOptions = {
+      resolveWikilink: options.resolveWikilink,
+    };
+  }
+  private renderNestedMarkdown(source: string) {
+    const depth = (this.options.subblockDepth ?? 0) + 1;
+    return depth > MAX_SUBBLOCK_DEPTH
+      ? renderMarkdownLines(source, this.inlineOptions)
+      : renderDocument(source, this.resolveAsset, {
+          ...this.options,
+          subblockDepth: depth,
+        });
   }
   render() {
     const lines = this.text.split("\n");
@@ -265,6 +284,17 @@ class DocumentRenderer {
       this.mathLines = [line];
       return index + 1;
     }
+    if (COLUMN_SUBBLOCK_OPEN.test(line)) {
+      const block = renderVerticalSubblocks(
+        lines,
+        index,
+        this.subblockGroup++,
+        this.inlineOptions,
+        this.renderNestedMarkdown.bind(this),
+      );
+      this.output.push(block.html);
+      return block.next;
+    }
     return this.renderRichMarkdownLine(lines, index);
   }
   private renderEquationLine(line: string, source: string, index: number) {
@@ -278,7 +308,7 @@ class DocumentRenderer {
     if (wikilinkEmbed) {
       this.output.push(
         `<div dir="auto" class="md-block md-wikilink-embed-line">${renderLine(line, this.inlineOptions)}</div>`,
-        wikilinkEmbedPreview(wikilinkEmbed[2], this.options),
+        wikilinkEmbedPreview(wikilinkEmbed[1], this.options),
       );
       return index + 1;
     }
@@ -377,4 +407,3 @@ export function renderDocument(
 ) {
   return new DocumentRenderer(text, resolveAsset, options).render();
 }
-/** Prefix to start the next line with when Enter is pressed inside a list. */

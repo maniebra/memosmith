@@ -13,6 +13,7 @@ import { createRender } from "./render";
 import { createRunCells } from "./runCells";
 import { createSelection } from "./selection";
 import { createSlash } from "./slash";
+import { createSubblocks } from "./subblocks";
 import { createTableMenu } from "./tableMenu";
 import { createTables } from "./tables";
 import type { Editor, EditorHost, EditorUi } from "./types";
@@ -93,6 +94,7 @@ export function createEditor(host: EditorHost, notify: () => void) {
     createLiveDiagrams(editor),
     createRunCells(editor),
     createDatabase(editor),
+    createSubblocks(editor),
     createSlash(editor),
     createCompletions(editor),
     createContextMenu(editor),

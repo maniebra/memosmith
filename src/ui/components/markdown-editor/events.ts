@@ -1,9 +1,11 @@
 import {
-  continueList,
-  continueQuote,
+  enterEdit,
   insideFence,
+  lineStartAt,
   mathUnclosed,
+  tabEdit,
 } from "../../../lib/utils/markdown";
+import { editSurface, type EditSurface } from "./surface";
 import { EMBED_SELECTOR } from "./embedLayout";
 import { handleEditorShortcut } from "./shortcuts";
 import type { Editor, EventApi } from "./types";
@@ -22,14 +24,9 @@ export function createEvents(e: Editor): EventApi {
   };
 }
 
-/** Typing, pointer and clipboard events, sent to whichever island owns them. */
 class EditorEvents {
   constructor(private e: Editor) {}
 
-  /**
-   * Events from the live database card belong to it, not to the note's source.
-   * IME events name the editor as their target, so focus decides as well.
-   */
   insideDatabaseEmbed(event?: Event) {
     return Boolean(this.e.databaseCardFor(event));
   }
@@ -56,6 +53,21 @@ class EditorEvents {
       return;
     }
 
+    const subblockBody = e.subblockBodyForNode(event?.target as Node | null);
+    if (subblockBody) {
+      e.handleSubblockInput(subblockBody);
+
+      // The body may have been re-rendered, so the menu reads the live caret.
+      const surface = editSurface(e, null);
+
+      if (surface) {
+        e.syncMenu(surface);
+        e.syncCompletions(surface);
+      }
+
+      return;
+    }
+
     const tableCell = e.tableCellForNode(event?.target as Node | null);
 
     if (tableCell) {
@@ -67,9 +79,11 @@ class EditorEvents {
     const offset = e.caretOffset();
     e.renderPreservingScroll(offset);
 
-    if (offset !== null) {
-      e.syncMenu(offset);
-      e.syncCompletions(offset);
+    const surface = offset === null ? null : editSurface(e, null);
+
+    if (surface) {
+      e.syncMenu(surface);
+      e.syncCompletions(surface);
     }
 
     e.props.onInput();
@@ -160,117 +174,95 @@ class EditorEvents {
     return true;
   }
 
-  private handleAutoClose(event: KeyboardEvent, offset: number, start: number) {
+  private handleAutoClose(event: KeyboardEvent, surface: EditSurface) {
     const e = this.e;
-    const typed = e.value.slice(start, offset);
+    const { text, caret } = surface;
+    const start = lineStartAt(text, caret);
+    const typed = text.slice(start, caret);
 
     if (
       event.key === "`" &&
       /^[ \t]*``$/.test(typed) &&
-      !insideFence(e.value.slice(0, start))
+      !insideFence(text.slice(0, start))
     ) {
       event.preventDefault();
       e.closeMenu();
-      e.replace(offset, offset, "`\n\n```", offset + 2);
+      surface.apply({
+        start: caret,
+        end: caret,
+        text: "`\n\n```",
+        caret: caret + 2,
+      });
       return true;
     }
 
     if (
       event.key === "Enter" &&
       /^[ \t]*\$\$$/.test(typed) &&
-      mathUnclosed(e.value)
+      mathUnclosed(text)
     ) {
       event.preventDefault();
       e.closeMenu();
-      e.replace(offset, offset, "\n\n$$", offset + 1);
+      surface.apply({
+        start: caret,
+        end: caret,
+        text: "\n\n$$",
+        caret: caret + 1,
+      });
       return true;
     }
 
     return false;
   }
 
-  private handleEnter(event: KeyboardEvent, offset: number, start: number) {
-    const e = this.e;
-
+  private handleEnter(event: KeyboardEvent, surface: EditSurface) {
     if (event.key !== "Enter") {
       return false;
     }
 
     event.preventDefault();
-    e.closeMenu();
-
-    const inCodeBlock = e
-      .blockAtOffset(offset)
-      ?.classList.contains("md-codeblock");
-
-    if (inCodeBlock && insideFence(e.value.slice(0, start))) {
-      e.replace(offset, offset, "\n");
-      return true;
-    }
-
-    const line = e.value.slice(start, offset);
-    const quotePrefix = continueQuote(line);
-    const prefix = quotePrefix || continueList(line);
-
-    if (!quotePrefix && /^\s*>\s?$/.test(line)) {
-      e.replace(start, offset, "");
-      return true;
-    }
-
-    if (!prefix && /^\s*([-*+]|\d+\.)( \[[ x]\])? $/.test(line)) {
-      e.replace(start, offset, "");
-      return true;
-    }
-
-    e.replace(offset, offset, `\n${prefix}`);
+    this.e.closeMenu();
+    surface.apply(
+      enterEdit(surface.text, surface.caret, surface.inCodeBlock),
+    );
     return true;
   }
 
-  private handleTab(event: KeyboardEvent, offset: number, start: number) {
-    const e = this.e;
-
+  private handleTab(event: KeyboardEvent, surface: EditSurface) {
     if (event.key !== "Tab") {
       return false;
     }
 
     event.preventDefault();
-
-    if (event.shiftKey) {
-      const line = e.value.slice(start, offset);
-
-      e.replace(start, offset, line.replace(/^ {1,2}/, ""));
-    } else {
-      e.replace(offset, offset, "  ");
-    }
-
+    surface.apply(tabEdit(surface.text, surface.caret, event.shiftKey));
     return true;
   }
 
-  private handleMarkdownKeydown(event: KeyboardEvent) {
-    const e = this.e;
-    const offset = e.caretOffset();
-
-    if (offset === null || event.ctrlKey || event.metaKey || event.altKey) {
+  private handleMarkdownKeydown(event: KeyboardEvent, surface: EditSurface) {
+    if (event.ctrlKey || event.metaKey || event.altKey) {
       return;
     }
 
-    const start = e.lineStartAt(offset);
-
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-      const direction = event.key === "ArrowDown" ? "down" : "up";
+      // Inside a column the browser already walks the body's own lines.
+      if (!surface.subblock) {
+        this.e.repairPreviewNavigation(
+          event.key === "ArrowDown" ? "down" : "up",
+          surface.caret,
+        );
+      }
 
-      e.repairPreviewNavigation(direction, offset);
       return;
     }
 
     if (
-      this.handleAutoClose(event, offset, start) ||
-      this.handleEnter(event, offset, start)
+      this.handleAutoClose(event, surface) ||
+      this.handleEnter(event, surface)
     ) {
       return;
     }
 
-    this.handleTab(event, offset, start);
+    this.handleTab(event, surface);
   }
 
   handleKeydown(event: KeyboardEvent) {
@@ -286,16 +278,29 @@ class EditorEvents {
       return;
     }
 
+    const subblockBody = e.subblockBodyForNode(event.target as Node | null);
+    if (subblockBody && e.handleSubblockKeydown(event, subblockBody)) {
+      return;
+    }
+
+    const surface = editSurface(e, event.target as Node | null);
+
+    if (!surface) {
+      return;
+    }
+
     if (
-      handleEditorShortcut(event, e) ||
-      this.handleCompletionKeydown(event) ||
-      this.handleSlashKeydown(event) ||
-      this.handleRunShortcut(event)
+      handleEditorShortcut(event, e, surface) ||
+      this.handleCompletionKeydown(event)
     ) {
       return;
     }
 
-    this.handleMarkdownKeydown(event);
+    if (this.handleSlashKeydown(event) || this.handleRunShortcut(event)) {
+      return;
+    }
+
+    this.handleMarkdownKeydown(event, surface);
   }
 
   handlePaste(event: ClipboardEvent) {
@@ -313,8 +318,15 @@ class EditorEvents {
       return;
     }
 
-    const offset = e.caretOffset();
     const text = event.clipboardData?.getData("text/plain");
+    const subblockBody = e.subblockBodyForNode(event.target as Node | null);
+    if (subblockBody && text !== undefined) {
+      event.preventDefault();
+      e.replaceSubblockSelection(subblockBody, text);
+      return;
+    }
+
+    const offset = e.caretOffset();
     const table = e.tableSelection();
 
     if (table && text !== undefined) {
@@ -359,12 +371,14 @@ class EditorEvents {
   handlePointerDown(event: PointerEvent) {
     const e = this.e;
     const handle = event.target as HTMLElement;
-
-    // pointerdown fires for the right button too, which the menu owns.
     if (event.button !== 0 || this.handleWikilinkPointer(event, handle)) {
       return;
     }
-
+    // A column body only claims the click when it moves its own caret.
+    const subblockBody = e.subblockBodyForNode(handle);
+    if (subblockBody && e.handleSubblockPointerDown(event, subblockBody)) {
+      return;
+    }
     const onEmbed =
       handle.classList?.contains("md-resize") &&
       handle.closest(EMBED_SELECTOR);
