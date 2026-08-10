@@ -4,7 +4,7 @@ use std::collections::HashMap;
 /// The only server this test can count on is whichever one the machine happens to have.
 #[test]
 fn a_present_language_server_answers_with_completions() {
-    let found = detect_language_servers(HashMap::new());
+    let found = tauri::async_runtime::block_on(detect_language_servers(HashMap::new()));
 
     if found.get("cpp").map(String::is_empty).unwrap_or(true) {
         eprintln!("no C++ language server installed, skipping");

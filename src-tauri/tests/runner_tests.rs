@@ -1,7 +1,7 @@
-use memosmith_lib::runner::{kernel_for, run_code};
+use memosmith_lib::runner::{kernel_for, run_code_blocking};
 
 fn run(session: &str, language: &str, code: &str) -> String {
-    run_code(
+    run_code_blocking(
         session.into(),
         language.into(),
         code.into(),
@@ -34,7 +34,7 @@ fn python_keeps_variables_and_reports_errors() {
 
     assert_eq!(run("python-note", "python", "total"), "42\n");
 
-    let failed = run_code(
+    let failed = run_code_blocking(
         "python-note".into(),
         "python".into(),
         "1 / 0".into(),
@@ -81,7 +81,7 @@ fn java_keeps_variables_and_flags_errors() {
         "42\n"
     );
 
-    let failed = run_code(
+    let failed = run_code_blocking(
         "java-note".into(),
         "java".into(),
         "int broken = missing;".into(),
@@ -104,7 +104,7 @@ fn cpp_wraps_a_snippet_in_a_program() {
         "42\n"
     );
 
-    let failed = run_code(
+    let failed = run_code_blocking(
         "cpp-note".into(),
         "cpp".into(),
         "cout << nope;".into(),
@@ -136,7 +136,7 @@ fn rust_wraps_a_snippet_in_a_program() {
 
     assert_eq!(run("rust-note", "rust", "println!(\"{}\", 6 * 7);"), "42\n");
 
-    let failed = run_code(
+    let failed = run_code_blocking(
         "rust-note".into(),
         "rust".into(),
         "println!(\"{}\", nope);".into(),
@@ -162,7 +162,7 @@ fn r_keeps_variables_between_cells() {
 
 #[test]
 fn a_hung_cell_times_out() {
-    let result = run_code(
+    let result = run_code_blocking(
         "timeout-note".into(),
         "bash".into(),
         "sleep 5".into(),
@@ -172,4 +172,25 @@ fn a_hung_cell_times_out() {
     .expect("cell ran");
 
     assert!(result.timed_out);
+}
+
+/// Two notes sleeping a second each must finish in about a second, not one after the other.
+#[test]
+fn different_sessions_run_in_parallel() {
+    let started = std::time::Instant::now();
+    let threads: Vec<_> = ["parallel-a", "parallel-b"]
+        .map(|session| {
+            std::thread::spawn(move || {
+                run_code_blocking(session.into(), "bash".into(), "sleep 1".into(), None, Some(10_000))
+                    .expect("cell ran")
+            })
+        })
+        .into_iter()
+        .collect();
+
+    for thread in threads {
+        assert_eq!(thread.join().expect("thread finished").status, 0);
+    }
+
+    assert!(started.elapsed().as_millis() < 1_800, "cells queued: {:?}", started.elapsed());
 }

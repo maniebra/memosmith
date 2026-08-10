@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Write};
 use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::mpsc::{channel, Receiver, RecvTimeoutError, Sender};
-use std::sync::{Mutex, OnceLock};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
 /// Printed by every kernel once a cell finished, followed by its exit status.
@@ -135,11 +135,20 @@ impl Session {
     }
 }
 
-/// ponytail: one global lock, so cells run one at a time app-wide. Per-session locks if that bites.
-fn sessions() -> &'static Mutex<HashMap<String, Session>> {
-    static SESSIONS: OnceLock<Mutex<HashMap<String, Session>>> = OnceLock::new();
+/// One slot per note+kernel: the map lock is only held long enough to hand out the slot,
+/// so cells of different notes run at the same time while one note's cells still queue.
+type Slot = Arc<Mutex<Option<Session>>>;
+
+fn sessions() -> &'static Mutex<HashMap<String, Slot>> {
+    static SESSIONS: OnceLock<Mutex<HashMap<String, Slot>>> = OnceLock::new();
 
     SESSIONS.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+fn slot(key: &str) -> Result<Slot, String> {
+    let mut open = sessions().lock().map_err(|error| error.to_string())?;
+
+    Ok(open.entry(key.to_string()).or_default().clone())
 }
 
 /// Which kernel a fenced block's language belongs to; unknown languages are not runnable.
@@ -474,8 +483,29 @@ pub struct RunOutput {
     pub timed_out: bool,
 }
 
+/// Kernels block for as long as a cell takes, so every command hops off the main thread.
+async fn off_main<T, F>(work: F) -> Result<T, String>
+where
+    T: Send + 'static,
+    F: FnOnce() -> Result<T, String> + Send + 'static,
+{
+    tauri::async_runtime::spawn_blocking(work)
+        .await
+        .map_err(|error| error.to_string())?
+}
+
 #[tauri::command]
-pub fn run_code(
+pub async fn run_code(
+    session: String,
+    language: String,
+    code: String,
+    command: Option<String>,
+    timeout_ms: Option<u64>,
+) -> Result<RunOutput, String> {
+    off_main(move || run_code_blocking(session, language, code, command, timeout_ms)).await
+}
+
+pub fn run_code_blocking(
     session: String,
     language: String,
     code: String,
@@ -494,10 +524,10 @@ pub fn run_code(
         return run_compiled(kernel, &session, &code, command.as_deref(), timeout);
     }
 
-    let key = format!("{session}::{kernel}");
-    let mut open = sessions().lock().map_err(|error| error.to_string())?;
-    // The session lives outside the map while it runs, so a dead kernel is simply never put back.
-    let mut entry = match open.remove(&key) {
+    let slot = slot(&format!("{session}::{kernel}"))?;
+    let mut held = slot.lock().map_err(|error| error.to_string())?;
+    // The session leaves its slot while it runs, so a dead kernel is simply never put back.
+    let mut entry = match held.take() {
         Some(entry) => entry,
         None => spawn(kernel, command.as_deref())?,
     };
@@ -531,7 +561,7 @@ pub fn run_code(
                         status = 1;
                     }
 
-                    open.insert(key, entry);
+                    *held = Some(entry);
 
                     return Ok(RunOutput { output, status, timed_out: false });
                 }
@@ -555,18 +585,32 @@ pub fn run_code(
 
 /// Drops the kernel holding a note's variables, so the next run starts from nothing.
 #[tauri::command]
-pub fn reset_session(session: String, language: String) -> Result<(), String> {
-    let kernel = kernel_for(&language).ok_or_else(|| format!("`{language}` is not runnable"))?;
-    let mut open = sessions().lock().map_err(|error| error.to_string())?;
+pub async fn reset_session(session: String, language: String) -> Result<(), String> {
+    off_main(move || reset_session_blocking(session, language)).await
+}
 
-    open.remove(&format!("{session}::{kernel}")).map(Session::stop);
+fn reset_session_blocking(session: String, language: String) -> Result<(), String> {
+    let kernel = kernel_for(&language).ok_or_else(|| format!("`{language}` is not runnable"))?;
+    let removed = sessions()
+        .lock()
+        .map_err(|error| error.to_string())?
+        .remove(&format!("{session}::{kernel}"));
+
+    // Waits out a cell already running in that slot, then kills the kernel it hands back.
+    if let Some(slot) = removed {
+        slot.lock().map_err(|error| error.to_string())?.take().map(Session::stop);
+    }
 
     Ok(())
 }
 
 /// Resolved command per kernel, empty when nothing usable was found.
 #[tauri::command]
-pub fn detect_runtimes(commands: HashMap<String, String>) -> HashMap<String, String> {
+pub async fn detect_runtimes(commands: HashMap<String, String>) -> HashMap<String, String> {
+    off_main(move || Ok(detect_runtimes_blocking(commands))).await.unwrap_or_default()
+}
+
+pub fn detect_runtimes_blocking(commands: HashMap<String, String>) -> HashMap<String, String> {
     KERNELS
         .into_iter()
         .map(|kernel| {
