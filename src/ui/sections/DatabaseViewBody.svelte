@@ -44,6 +44,7 @@
         columns={shownColumns}
         {rows}
         {choices}
+        {onReorderRows}
         groupBy={view.groupBy}
         cardWidth={view.cardWidth}
         onCardWidth={(cardWidth) => onUpdateView({ cardWidth })}

@@ -125,6 +125,12 @@
   }
 
   $: ui = readUi(uiVersion);
+  /**
+   * Recomputed from `ui`, not called straight from the markup: `editor` never
+   * changes, so an inline call would be evaluated once and the open menu would
+   * keep showing the matches for the query it opened with.
+   */
+  $: slashMatches = ui.slashStart === null ? [] : editor.slashMatches();
 
   /** The props these depend on are listed so Svelte knows when to run them. */
   function syncEditor(..._dependencies: unknown[]) {
@@ -291,9 +297,9 @@
   />
 {/if}
 
-{#if ui.slashStart !== null && editor.slashMatches().length}
+{#if ui.slashStart !== null && slashMatches.length}
   <SlashMenu
-    commands={editor.slashMatches()}
+    commands={slashMatches}
     index={ui.slashIndex}
     top={ui.menuPosition.top}
     left={ui.menuPosition.left}

@@ -10,6 +10,7 @@ import {
   EMPTY_PLANTUML,
   SLASH_COMMANDS,
 } from "../../../lib/utils/markdown";
+import { matchCommands } from "../../../lib/utils/slashMatching";
 import { editSurface, type EditSurface } from "./surface";
 import type { Editor, SlashApi, SlashCommand } from "./types";
 
@@ -100,13 +101,13 @@ class EditorSlash {
       ...SLASH_COMMANDS.map((command) => ({
         ...command,
         label: this.slashLabel(command.label),
+        // Matching reads aliases off the English label, which translations lose.
+        source: command.label,
       })),
       ...this.featureCommands(),
     ];
 
-    return commands.filter((command) =>
-      command.label.toLowerCase().includes(query),
-    );
+    return matchCommands(commands, query);
   }
 
   highlightSlash(index: number) {
@@ -129,7 +130,7 @@ class EditorSlash {
 
     const { text, caret } = surface;
     const line = text.slice(lineStartAt(text, caret), caret);
-    const typed = /(?:^|\s)\/([\w ]*)$/.exec(line);
+    const typed = /(?:^|\s)\/([\w -]*)$/.exec(line);
 
     if (!typed) {
       this.closeMenu();

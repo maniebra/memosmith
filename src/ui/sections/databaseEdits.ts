@@ -41,6 +41,17 @@ export function withCell(
   );
 }
 
+/** `ids` with `moving` taken out and put back ahead of `before`. */
+export function movedBefore(ids: string[], moving: string, before: string) {
+  const ordered = ids.filter((id) => id !== moving);
+  const target = ordered.indexOf(before);
+  if (target === -1) {
+    return ids;
+  }
+  ordered.splice(target, 0, moving);
+  return ordered;
+}
+
 /** Rows renumbered to the order they are listed in. */
 export function reordered(rows: Row[], orderedIds: string[]) {
   const positions = new Map(orderedIds.map((id, index) => [id, index + 1]));

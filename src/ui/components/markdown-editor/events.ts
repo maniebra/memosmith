@@ -5,6 +5,7 @@ import {
   mathUnclosed,
   tabEdit,
 } from "../../../lib/utils/markdown";
+import { handleCompletionKeydown, handleSlashKeydown } from "./menuKeys";
 import { editSurface, type EditSurface } from "./surface";
 import { EMBED_SELECTOR } from "./embedLayout";
 import { handleEditorShortcut } from "./shortcuts";
@@ -89,67 +90,6 @@ class EditorEvents {
     e.props.onInput();
   }
 
-  private handleCompletionKeydown(event: KeyboardEvent) {
-    const e = this.e;
-    const completions = e.ui.completions;
-
-    if (!completions.length) {
-      return false;
-    }
-
-    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-      const step = event.key === "ArrowDown" ? 1 : completions.length - 1;
-
-      event.preventDefault();
-      e.ui.completionIndex =
-        (e.ui.completionIndex + step) % completions.length;
-      return true;
-    }
-
-    if (event.key === "Enter" || event.key === "Tab") {
-      event.preventDefault();
-      e.applyCompletion(completions[e.ui.completionIndex]);
-      return true;
-    }
-
-    if (event.key === "Escape") {
-      e.closeCompletions();
-      return true;
-    }
-
-    return false;
-  }
-
-  private handleSlashKeydown(event: KeyboardEvent) {
-    const e = this.e;
-    const matches = e.slashMatches();
-
-    if (!e.props.slashCommands || e.ui.slashStart === null || !matches.length) {
-      return false;
-    }
-
-    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-      const step = event.key === "ArrowDown" ? 1 : matches.length - 1;
-
-      event.preventDefault();
-      e.ui.slashIndex = (e.ui.slashIndex + step) % matches.length;
-      return true;
-    }
-
-    if (event.key === "Enter" || event.key === "Tab") {
-      event.preventDefault();
-      e.runCommand(matches[e.ui.slashIndex].prefix);
-      return true;
-    }
-
-    if (event.key === "Escape") {
-      e.closeMenu();
-      return true;
-    }
-
-    return false;
-  }
-
   private handleRunShortcut(event: KeyboardEvent) {
     const e = this.e;
     const shortcut = event.ctrlKey || event.metaKey;
@@ -158,7 +98,12 @@ class EditorEvents {
       return false;
     }
 
-    const group = e.currentBlock()?.dataset.code;
+    // Keyboard shortcut, so the caret picks the cell — `currentBlock()` would
+    // let a block merely sitting under the mouse pointer run instead.
+    const caret = e.caretOffset();
+    const block =
+      (caret === null ? null : e.blockAtOffset(caret)) ?? e.ui.activeBlock;
+    const group = block?.dataset.code;
     const preview = group
       ? (e.element?.querySelector(
           `.md-run-preview[data-code="${group}"]`,
@@ -291,12 +236,12 @@ class EditorEvents {
 
     if (
       handleEditorShortcut(event, e, surface) ||
-      this.handleCompletionKeydown(event)
+      handleCompletionKeydown(this.e, event)
     ) {
       return;
     }
 
-    if (this.handleSlashKeydown(event) || this.handleRunShortcut(event)) {
+    if (handleSlashKeydown(this.e, event) || this.handleRunShortcut(event)) {
       return;
     }
 

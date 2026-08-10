@@ -12,6 +12,7 @@
     Column,
     Row,
   } from "../../lib/utils/database";
+  import { movedBefore } from "./databaseEdits";
   import DatabaseCell from "../components/DatabaseCell.svelte";
 
   export let columns: Column[];
@@ -26,6 +27,8 @@
   ) => void;
   export let onAddRow: (groupValue: string | null) => void;
   export let onDeleteRow: (rowId: string) => void;
+  /** Rows in their new order, top to bottom, across every group. */
+  export let onReorderRows: (rowIds: string[]) => void = () => {};
   export let onOpenRow: (rowId: string) => void = () => {};
   /** Width of every board column, in pixels; unset uses the default. */
   export let cardWidth: number | undefined = undefined;
@@ -37,6 +40,10 @@
   const DEFAULT_WIDTH = 288;
 
   let dragging: string | null = null;
+  /** Group under the pointer, so the drop target is visible while dragging. */
+  let over: string | null = null;
+  /** Card the dragged one would land ahead of. */
+  let overRow: string | null = null;
   let resizing: {
     startX: number;
     startWidth: number;
@@ -93,24 +100,51 @@
     groupChoices.map((choice) => choice.value),
   );
 
-  function drop(groupKey: string) {
-    if (!dragging || !groupColumn) {
+  /** Cell value a card takes on when it lands in `groupKey`, in that column's shape. */
+  function groupValue(groupKey: string): CellValue {
+    if (!groupColumn) {
+      return null;
+    }
+    const multi =
+      groupColumn.type === "multi_select" || groupColumn.type === "relation";
+    if (groupKey === uncategorized) {
+      return multi ? [] : null;
+    }
+    return multi ? [groupKey] : groupKey;
+  }
+
+  /**
+   * Drops the card into `groupKey`, ahead of `beforeRowId` when it landed on a
+   * card. Order is global — the board only ever shows a slice of it — so the
+   * whole visible list is renumbered from the position the card was dropped at.
+   */
+  function drop(groupKey: string, beforeRowId: string | null = null) {
+    const rowId = dragging;
+    dragging = null;
+    over = null;
+    overRow = null;
+
+    if (!rowId || !groupColumn) {
       return;
     }
 
-    const multi =
-      groupColumn.type === "multi_select" || groupColumn.type === "relation";
-    const value =
-      groupKey === uncategorized
-        ? multi
-          ? []
-          : null
-        : multi
-          ? [groupKey]
-          : groupKey;
+    const current = rows.find((row) => row.id === rowId);
+    const changesGroup =
+      String(current?.data[groupColumn.id] ?? "") !==
+      String(groupValue(groupKey) ?? "");
+    if (changesGroup) {
+      onCell(rowId, groupColumn.id, groupValue(groupKey));
+    }
 
-    onCell(dragging, groupColumn.id, value);
-    dragging = null;
+    if (beforeRowId && beforeRowId !== rowId) {
+      onReorderRows(
+        movedBefore(
+          rows.map((row) => row.id),
+          rowId,
+          beforeRowId,
+        ),
+      );
+    }
   }
 
   /** Only an option column colours its buckets, and never the empty one. */
@@ -144,11 +178,30 @@
   <div class="flex min-h-0 flex-1 gap-3 overflow-x-auto p-3">
     {#each groups as group (group.key)}
       <section
-        class="relative flex max-h-full shrink-0 flex-col rounded-xl bg-stone-500/5 p-2 dark:bg-stone-800/40"
+        class="relative flex max-h-full shrink-0 flex-col rounded-xl p-2 transition-colors {over ===
+        group.key
+          ? 'bg-emerald-600/10 ring-1 ring-emerald-600/30'
+          : 'bg-stone-500/5 dark:bg-stone-800/40'}"
         style="width: {width}px"
         role="list"
-        ondragover={(event) => event.preventDefault()}
-        ondrop={() => drop(group.key)}
+        ondragover={(event) => {
+          event.preventDefault();
+          over = group.key;
+          overRow = null;
+          if (event.dataTransfer) {
+            event.dataTransfer.dropEffect = "move";
+          }
+        }}
+        ondragleave={() => {
+          if (over === group.key) {
+            over = null;
+            overRow = null;
+          }
+        }}
+        ondrop={(event) => {
+          event.preventDefault();
+          drop(group.key);
+        }}
       >
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div
@@ -176,14 +229,45 @@
           <span class="text-xs text-stone-400">{group.rows.length}</span>
         </header>
 
-        <div class="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
+        <div
+          class="flex min-h-16 flex-1 flex-col gap-2 overflow-y-auto"
+        >
           {#each group.rows as row (row.id)}
             <article
-              class="group rounded-lg border border-stone-200/70 bg-white p-2 shadow-sm dark:border-stone-700/70 dark:bg-stone-900"
+              class="group rounded-lg border bg-white p-2 shadow-sm dark:bg-stone-900 {overRow ===
+              row.id
+                ? 'border-t-2 border-t-emerald-600 border-stone-200/70 dark:border-stone-700/70'
+                : 'border-stone-200/70 dark:border-stone-700/70'}"
               role="listitem"
+              ondragover={(event) => {
+                if (!dragging) {
+                  return;
+                }
+                event.preventDefault();
+                event.stopPropagation();
+                over = group.key;
+                overRow = row.id;
+              }}
+              ondragleave={() => overRow === row.id && (overRow = null)}
+              ondrop={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                drop(group.key, row.id);
+              }}
               draggable="true"
-              ondragstart={() => (dragging = row.id)}
-              ondragend={() => (dragging = null)}
+              ondragstart={(event) => {
+                dragging = row.id;
+                // WebKit ignores a drag that carries no payload.
+                event.dataTransfer?.setData("text/plain", row.id);
+                if (event.dataTransfer) {
+                  event.dataTransfer.effectAllowed = "move";
+                }
+              }}
+              ondragend={() => {
+                dragging = null;
+                over = null;
+                overRow = null;
+              }}
             >
               <div class="flex items-start justify-between gap-1">
                 <button

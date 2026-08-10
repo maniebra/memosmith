@@ -13,6 +13,7 @@ import {
 import type { Column, Database, Row, View } from "./database";
 import { evaluateFormula } from "./formula";
 import { fromCsv, parseCsv, toCsv } from "./databaseCsv";
+import { movedBefore } from "../../ui/sections/databaseEdits";
 
 // --- formula ---------------------------------------------------------------
 
@@ -220,6 +221,25 @@ assert(
 assert(
   imported.columns[1].options?.includes("Done"),
   "imported select values become options",
+);
+
+// --- board reordering ------------------------------------------------------
+
+assert(
+  movedBefore(["a", "b", "c", "d"], "d", "b").join() === "a,d,b,c",
+  "a card lands ahead of the one it was dropped on",
+);
+assert(
+  movedBefore(["a", "b", "c"], "a", "c").join() === "b,a,c",
+  "moving forwards keeps the target behind the moved card",
+);
+assert(
+  movedBefore(["a", "b", "c"], "b", "b").join() === "a,b,c",
+  "dropping a card on itself changes nothing",
+);
+assert(
+  movedBefore(["a", "b"], "a", "zz").join() === "a,b",
+  "an unknown target leaves the order alone",
 );
 
 console.log("database features ok");

@@ -104,8 +104,16 @@
           month.getMonth()
             ? ''
             : 'bg-stone-500/5 text-stone-400'}"
-          ondragover={(event) => event.preventDefault()}
-          ondrop={() => drop(date)}
+          ondragover={(event) => {
+            event.preventDefault();
+            if (event.dataTransfer) {
+              event.dataTransfer.dropEffect = "move";
+            }
+          }}
+          ondrop={(event) => {
+            event.preventDefault();
+            drop(date);
+          }}
         >
           <div class="flex items-center justify-between">
             <span
@@ -130,7 +138,14 @@
                 type="button"
                 class="truncate rounded bg-emerald-600/10 px-1.5 py-0.5 text-left text-[0.6875rem] text-emerald-800 dark:text-emerald-300"
                 draggable={editable}
-                ondragstart={() => (dragging = row.id)}
+                ondragstart={(event) => {
+                  dragging = row.id;
+                  // WebKit ignores a drag that carries no payload.
+                  event.dataTransfer?.setData("text/plain", row.id);
+                  if (event.dataTransfer) {
+                    event.dataTransfer.effectAllowed = "move";
+                  }
+                }}
                 ondragend={() => (dragging = null)}
                 onclick={() => onOpenRow(row.id)}
               >
