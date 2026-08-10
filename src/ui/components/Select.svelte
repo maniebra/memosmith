@@ -7,8 +7,9 @@
 
 <script lang="ts">
   import { onMount } from "svelte";
-  import { ChevronDown } from "@lucide/svelte";
+  import { Check, ChevronDown } from "@lucide/svelte";
   import { cn } from "../../lib/utils/cn";
+  import { portal } from "../../lib/utils/portal";
 
   export let value = "";
   export let options: SelectOption[] = [];
@@ -23,6 +24,8 @@
   let activeIndex = 0;
   /** Fixed placement, so a scrolling or clipping ancestor cannot cut the list off. */
   let menu = { left: 0, top: 0, width: 0 };
+  /** The portalled panel, so an outside-click test still recognises it. */
+  let menuElement: HTMLElement | undefined;
 
   onMount(() => {
     function handleSelectOpened(event: Event) {
@@ -36,26 +39,43 @@
         return;
       }
 
-      if (!(event.target instanceof Node) || !root.contains(event.target)) {
+      const target = event.target;
+      const inside =
+        target instanceof Node &&
+        (root.contains(target) || menuElement?.contains(target));
+      if (!inside) {
         close();
       }
     }
 
+    /**
+     * A page scroll moves the trigger away from the placed menu, so it closes —
+     * but the menu scrolling itself is not that, and must not close it.
+     */
+    function handleScroll(event: Event) {
+      const target = event.target;
+      if (target instanceof Node && menuElement?.contains(target)) {
+        return;
+      }
+      close();
+    }
+
     // Capture phase: inner scroll containers do not bubble their scroll events.
     window.addEventListener("pointerdown", handleWindowPointerDown, true);
-    window.addEventListener("scroll", close, true);
+    window.addEventListener("scroll", handleScroll, true);
     window.addEventListener("memosmith:select-opened", handleSelectOpened);
 
     return () => {
       window.removeEventListener("pointerdown", handleWindowPointerDown, true);
-      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("scroll", handleScroll, true);
       window.removeEventListener("memosmith:select-opened", handleSelectOpened);
     };
   });
 
   function placeMenu() {
     const bounds = root.getBoundingClientRect();
-    const height = Math.min(options.length * 32 + 12, 240);
+    // Rows are 28px inside 4px of padding, capped by the panel's max height.
+    const height = Math.min(options.length * 28 + 8, 288);
     const below = window.innerHeight - bounds.bottom - 8;
 
     menu = {
@@ -75,6 +95,10 @@
   $: selected = options[selectedIndex] ?? options[0];
   $: if (!open) {
     activeIndex = selectedIndex;
+  }
+  // Arrow keys walk past the visible rows, so the active one is kept in view.
+  $: if (open && menuElement) {
+    menuElement.children[activeIndex]?.scrollIntoView({ block: "nearest" });
   }
 
   function close() {
@@ -181,7 +205,9 @@
 
   {#if open}
     <div
-      class="fixed z-50 max-h-60 overflow-y-auto rounded-xl border border-stone-200/80 bg-stone-50/90 p-1.5 shadow-lg shadow-stone-900/8 backdrop-blur-2xl dark:border-stone-700/80 dark:bg-stone-800/85 dark:shadow-black/20"
+      bind:this={menuElement}
+      use:portal
+      class="fixed z-50 max-h-72 min-w-40 overflow-y-auto rounded-lg border border-stone-200/70 bg-white p-1 shadow-[0_10px_38px_-10px_rgba(22,23,24,0.35),0_10px_20px_-15px_rgba(22,23,24,0.2)] dark:border-white/10 dark:bg-stone-900"
       style="left: {menu.left}px; top: {menu.top}px; min-width: {menu.width}px;"
       role="listbox"
       tabindex="-1"
@@ -192,16 +218,21 @@
           role="option"
           aria-selected={option.value === value}
           class={cn(
-            "flex h-8 w-full items-center rounded-lg px-2.5 text-left text-sm transition-colors",
-            index === activeIndex && "bg-stone-200/55 dark:bg-stone-700/60",
-            option.value === value
-              ? "font-medium text-emerald-700 dark:text-emerald-300"
-              : "text-stone-600 dark:text-stone-300",
+            "flex h-7 w-full items-center gap-2 rounded-md px-2 text-left text-sm outline-none transition-colors",
+            "text-stone-700 dark:text-stone-200",
+            index === activeIndex && "bg-stone-500/10 dark:bg-white/8",
           )}
           onclick={() => choose(index)}
           onmouseenter={() => (activeIndex = index)}
         >
-          <span class="truncate">{option.label}</span>
+          <span class="min-w-0 flex-1 truncate">{option.label}</span>
+          {#if option.value === value}
+            <Check
+              class="size-3.5 shrink-0 text-stone-400"
+              strokeWidth={2}
+              aria-hidden="true"
+            />
+          {/if}
         </button>
       {/each}
     </div>

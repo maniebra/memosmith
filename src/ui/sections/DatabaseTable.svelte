@@ -63,12 +63,9 @@
   const rowHeights = { short: "2rem", medium: "3.5rem", tall: "6rem" };
   $: cellHeight = rowHeights[rowHeight] ?? rowHeights.short;
   $: groupColumn = allColumns.find((column) => column.id === groupBy);
+  $: groupKeys = (choices[groupColumn?.id ?? ""] ?? []).map((c) => c.value);
   $: groups = groupColumn
-    ? groupRows(
-        rows,
-        groupColumn,
-        (choices[groupColumn.id] ?? []).map((choice) => choice.value),
-      )
+    ? groupRows(rows, groupColumn, groupKeys)
     : [{ key: "", rows }];
   function groupLabel(key: string) {
     const choice = (choices[groupColumn?.id ?? ""] ?? []).find(
@@ -78,7 +75,7 @@
       ? $i18n.t("database.noValue")
       : (choice?.label ?? key);
   }
-  const panelWidth = 240;
+  const panelWidth = 260;
   /** Width being dragged right now; committed to the column on pointerup. */
   let resizing: Resize | null = null;
   function widthOf(column: Column) {
@@ -219,6 +216,7 @@
               >
               <button
                 type="button"
+                data-column-editor-toggle
                 class="flex size-6 shrink-0 items-center justify-center rounded-md text-stone-400 hover:bg-stone-500/10 hover:text-stone-700 dark:hover:text-stone-200"
                 aria-label={$i18n.t("database.editColumn", {
                   name: column.name,
@@ -258,6 +256,7 @@
                 columnTypes={translatedColumnTypes}
                 onUpdate={(patch) => updateColumn(column.id, patch)}
                 onDelete={() => deleteColumn(column.id)}
+                onClose={() => (editingColumn = null)}
               />
             {/if}
           </th>

@@ -53,15 +53,16 @@
   let menu: "view" | "properties" | null = null;
   let bar: HTMLElement | undefined;
 
+  /** Portalled popups (a select's menu) belong to this bar even though they sit on `<body>`. */
   function closeMenuOutside(event: PointerEvent) {
-    if (
-      menu &&
-      event.target instanceof Node &&
-      bar &&
-      !bar.contains(event.target)
-    ) {
-      menu = null;
+    const target = event.target;
+    if (!menu || !bar || !(target instanceof Node) || bar.contains(target)) {
+      return;
     }
+    if (target instanceof Element && target.closest("[data-portal]")) {
+      return;
+    }
+    menu = null;
   }
 
   const viewIcons: Record<string, typeof Table2> = {

@@ -3,6 +3,7 @@
   import { CalendarDays, ChevronLeft, ChevronRight } from "@lucide/svelte";
   import { i18n } from "../../lib/i18n";
   import { cn } from "../../lib/utils/cn";
+  import { portal } from "../../lib/utils/portal";
   import {
     addMonths,
     dateFromIso,
@@ -26,6 +27,8 @@
   let root: HTMLDivElement;
   /** Fixed placement, so a scrolling or clipping ancestor cannot cut the panel off. */
   let panel = { left: 0, top: 0 };
+  /** The portalled panel, so an outside-click test still recognises it. */
+  let panelElement: HTMLElement | undefined;
 
   /** An empty cell shows nothing and selects nothing; today only sets where browsing starts. */
   $: selected = dateFromIso(value);
@@ -48,19 +51,31 @@
       if (!open) {
         return;
       }
-      if (!(event.target instanceof Node) || !root.contains(event.target)) {
+      const target = event.target;
+      const inside =
+        target instanceof Node &&
+        (root.contains(target) || panelElement?.contains(target));
+      if (!inside) {
+        close();
+      }
+    }
+
+    /** The panel's own scrolling must not count as the page moving under it. */
+    function handleScroll(event: Event) {
+      const target = event.target;
+      if (!(target instanceof Node) || !panelElement?.contains(target)) {
         close();
       }
     }
 
     // Capture phase: inner scroll containers do not bubble their scroll events.
     window.addEventListener("pointerdown", handleWindowPointerDown, true);
-    window.addEventListener("scroll", close, true);
+    window.addEventListener("scroll", handleScroll, true);
     window.addEventListener("memosmith:select-opened", handlePickerOpened);
 
     return () => {
       window.removeEventListener("pointerdown", handleWindowPointerDown, true);
-      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("scroll", handleScroll, true);
       window.removeEventListener("memosmith:select-opened", handlePickerOpened);
     };
   });
@@ -141,7 +156,9 @@
 
   {#if open}
     <div
-      class="fixed z-50 w-64 rounded-xl border border-stone-200/80 bg-stone-50/95 p-2 shadow-lg backdrop-blur-2xl dark:border-stone-700/80 dark:bg-stone-800/95"
+      bind:this={panelElement}
+      use:portal
+      class="fixed z-50 w-64 rounded-lg border border-stone-200/70 bg-white p-2 shadow-[0_10px_38px_-10px_rgba(22,23,24,0.35),0_10px_20px_-15px_rgba(22,23,24,0.2)] dark:border-white/10 dark:bg-stone-900"
       style="left: {panel.left}px; top: {panel.top}px;"
       role="dialog"
       aria-label={ariaLabel || $i18n.t("database.columnDate")}
