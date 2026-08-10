@@ -8,6 +8,7 @@ import { createDom } from "./dom";
 import { createDrawings } from "./drawings";
 import { createEmbedLayout } from "./embedLayout";
 import { createEvents } from "./events";
+import { createFind } from "./find";
 import { createLiveDiagrams } from "./liveDiagrams";
 import { createRender } from "./render";
 import { createRunCells } from "./runCells";
@@ -34,6 +35,7 @@ function emptyUi(): EditorUi {
     draggingUnit: null,
     editingDiagram: null,
     editingDrawing: null,
+    find: null,
     generating: false,
     hoveredBlock: undefined,
     menuPosition: { top: 0, left: 0 },
@@ -99,6 +101,7 @@ export function createEditor(host: EditorHost, notify: () => void) {
     createCompletions(editor),
     createContextMenu(editor),
     createEvents(editor),
+    createFind(editor),
   );
 
   return editor;

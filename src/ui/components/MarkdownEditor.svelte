@@ -20,6 +20,7 @@
   import BlockToolbar from "./markdown-editor/BlockToolbar.svelte";
   import CompletionMenu from "./markdown-editor/CompletionMenu.svelte";
   import DecorationLayer from "./markdown-editor/DecorationLayer.svelte";
+  import FindBar from "./markdown-editor/FindBar.svelte";
   import SlashMenu from "./markdown-editor/SlashMenu.svelte";
   import TailAddButton from "./markdown-editor/TailAddButton.svelte";
   import {
@@ -163,6 +164,20 @@
   onpointermove={editor.trackHoveredBlock}
   onmouseleave={editor.scheduleBlockToolbarHide}
 >
+  {#if ui.find}
+    <FindBar
+      state={ui.find}
+      {editable}
+      onQuery={editor.setFindQuery}
+      onReplacement={editor.setFindReplacement}
+      onGoto={editor.gotoMatch}
+      onReplaceOne={editor.replaceCurrent}
+      onReplaceAll={editor.replaceAll}
+      onClose={editor.closeFind}
+      onOpen={editor.openFind}
+    />
+  {/if}
+
   {#if editable && ui.blockToolbar.visible}
     <BlockToolbar
       top={ui.blockToolbar.top}

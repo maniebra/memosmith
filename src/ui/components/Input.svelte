@@ -7,6 +7,7 @@
     type = "text" as "text" | "email" | "password" | "search" | "url",
     className = "",
     oninput = undefined as ((event: Event) => void) | undefined,
+    onkeydown = undefined as ((event: KeyboardEvent) => void) | undefined,
   } = $props();
 </script>
 
@@ -16,6 +17,7 @@
   dir="auto"
   {placeholder}
   {oninput}
+  {onkeydown}
   class={cn(
     "h-10 w-full rounded-md border border-stone-300 bg-white px-3 text-sm text-stone-950 shadow-sm transition-colors",
     "placeholder:text-stone-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700/30",

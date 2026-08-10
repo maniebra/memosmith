@@ -14,6 +14,7 @@ import type {
   withMediaOptions,
 } from "../../../lib/utils/markdown";
 import type { ContextMenuItem } from "../ContextMenu.svelte";
+import type { FindApi, FindState } from "./find";
 import type { EditSurface } from "./surface";
 
 export type Decoration = {
@@ -120,6 +121,7 @@ export type EditorProps = {
 
 /** Everything the markup renders from; every write notifies the component. */
 export type EditorUi = {
+  find: FindState | null;
   composing: boolean;
   editingDrawing: { preview: HTMLElement; scene: string } | null;
   editingDiagram: { preview: HTMLElement; diagram: string } | null;
@@ -381,20 +383,18 @@ export type EventApi = {
 };
 
 export type Editor = EditorHost &
-  DomApi &
-  RenderApi &
+  DomApi & RenderApi &
   SelectionApi &
   BlockApi &
   BlockEditApi &
-  TableApi &
-  SubblockApi &
+  TableApi & SubblockApi &
   TableMenuApi &
   EmbedLayoutApi &
   DrawingApi &
   LiveDiagramApi &
   RunCellApi &
   DatabaseApi &
-  SlashApi &
-  CompletionApi &
+  SlashApi & CompletionApi &
   ContextMenuApi &
-  EventApi & { ui: EditorUi };
+  EventApi & FindApi & { ui: EditorUi };
+

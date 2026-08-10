@@ -30,37 +30,9 @@ import type {
   AppSettings,
   GrammarProfile,
 } from "./settingsTypes";
-export type {
-  ThemePreference,
-  EditorWidth,
-  GrammarCheckMode,
-  FeatureSettings,
-  PlantumlFormat,
-  MermaidTheme,
-  MermaidSettings,
-  PlantumlSettings,
-  RunnerSettings,
-  LspSettings,
-  CalloutDefinition,
-  LlmSettings,
-  AppSettings,
-  GrammarProfile,
-} from "./settingsTypes";
+export type * from "./settingsTypes";
 const SETTINGS_KEY = "memosmith:settings";
-export {
-  defaultCalloutDefinitions,
-  defaultFeatureSettings,
-  defaultLlmSettings,
-  defaultLspSettings,
-  defaultMermaidSettings,
-  defaultPlantumlSettings,
-  defaultProfiles,
-  defaultRunnerSettings,
-  defaultSettings,
-  emptyGrammarProfile,
-  emptyLlmSettings,
-  mergeLlm,
-} from "./settingsDefaults";
+export * from "./settingsDefaults";
 import {
   defaultCalloutDefinitions,
   defaultFeatureSettings,

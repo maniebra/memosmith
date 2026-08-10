@@ -164,6 +164,12 @@ export function handleEditorShortcut(
     return selectAll(event, e, surface);
   }
 
+  if (key === "f" || key === "h") {
+    prepareShortcut(event, e);
+    e.openFind(key === "h");
+    return true;
+  }
+
   if (key === "b") {
     return toggleInlineMark(event, e, surface, "**");
   }
