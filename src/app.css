@@ -908,6 +908,11 @@ textarea,
     @apply border-l-2 border-l-rose-500/70 text-rose-600 dark:text-rose-400;
   }
 
+  /** Saved cell results: part of the note's text, never part of its page. */
+  .md-run-store {
+    @apply hidden;
+  }
+
   .md-run-output {
     @apply mt-1.5 max-h-80 overflow-auto rounded-md border-l-2 bg-stone-500/8 px-3 py-2 font-mono text-[0.8em] leading-relaxed whitespace-pre-wrap text-stone-700 dark:text-stone-200;
     animation: md-run-reveal 260ms cubic-bezier(0.2, 0.8, 0.3, 1) both;

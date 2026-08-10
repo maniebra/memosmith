@@ -1,5 +1,10 @@
 import { resetSession, runCode } from "../../../lib/tauri/runner";
-import { outputKey } from "../../../lib/utils/runner";
+import {
+  outputKey,
+  parseRunStore,
+  runStoreLine,
+  RUN_STORE_LINE,
+} from "../../../lib/utils/runner";
 import type { Editor, RunCellApi } from "./types";
 
 type CellRun = {
@@ -26,8 +31,77 @@ export function createRunCells(e: Editor): RunCellApi {
 class EditorRunCells {
   /** Keyed by cell content, so results follow their block, not its position. */
   private cellRuns = new Map<string, CellRun>();
+  /** The stored lines the map was last read from, so a new note is re-read. */
+  private storedText: string | null = null;
 
   constructor(private e: Editor) {}
+
+  private storedLines(text: string) {
+    return text
+      .split("\n")
+      .filter((line) => RUN_STORE_LINE.test(line))
+      .join("\n");
+  }
+
+  /** The editor outlives the open note, so results are re-read from its text. */
+  private runs() {
+    const stored = this.storedLines(this.e.value);
+
+    if (stored !== this.storedText) {
+      this.storedText = stored;
+      this.cellRuns = new Map(
+        [...parseRunStore<CellRun>(stored)].map(([key, run]) => [
+          key,
+          { ...run, shown: true },
+        ]),
+      );
+    }
+
+    return this.cellRuns;
+  }
+
+  /** Where a cell's stored line sits: right after its closing fence. */
+  private storeRange(preview: HTMLElement) {
+    const e = this.e;
+    const blocks = e.codeSourceBlocks(preview);
+    const last = blocks[blocks.length - 1];
+    const start = last ? e.offsetForPosition(last, e.sourceLength(last)) : null;
+
+    if (start === null) {
+      return null;
+    }
+
+    const stored = /^\n<!--memosmith:run .*-->/.exec(e.value.slice(start));
+
+    return { start, end: start + (stored?.[0].length ?? 0) };
+  }
+
+  /** A finished result is written back under the block that produced it. */
+  private saveRun(preview: HTMLElement, key: string) {
+    const e = this.e;
+    const run = this.runs().get(key);
+    const range = this.storeRange(preview);
+
+    if (!range) {
+      return;
+    }
+
+    const text =
+      run && run.state !== "running"
+        ? `\n${runStoreLine({ key, state: run.state, text: run.text, seconds: run.seconds })}`
+        : "";
+    const previous = e.value.slice(range.start, range.end);
+
+    if (text === previous) {
+      return;
+    }
+
+    const caret = e.caretOffset() ?? 0;
+    const shift = caret > range.end ? text.length - previous.length : 0;
+
+    e.replace(range.start, range.end, text, caret + shift);
+    this.storedText = this.storedLines(e.value);
+  }
 
   private previews() {
     const previews = this.e.element?.querySelectorAll(".md-run-preview");
@@ -61,7 +135,7 @@ class EditorRunCells {
   }
 
   private paintRunPreview(preview: HTMLElement) {
-    const run = this.cellRuns.get(this.cellKey(preview));
+    const run = this.runs().get(this.cellKey(preview));
     const bar = preview.querySelector(".md-run-bar");
     const status = preview.querySelector(".md-run-status");
     let output = preview.querySelector(".md-run-output") as HTMLElement | null;
@@ -113,11 +187,11 @@ class EditorRunCells {
     const code = e.sceneOf(preview);
     const key = outputKey(language, code);
 
-    if (this.cellRuns.get(key)?.state === "running") {
+    if (this.runs().get(key)?.state === "running") {
       return;
     }
 
-    this.cellRuns.set(key, { state: "running", text: "" });
+    this.runs().set(key, { state: "running", text: "" });
     this.paintRunPreviews();
 
     const started = performance.now();
@@ -126,19 +200,30 @@ class EditorRunCells {
     try {
       const result = await runCode(session, language, code, e.props.runner);
 
-      this.cellRuns.set(
+      this.runs().set(
         key,
         this.resultOf(result, (performance.now() - started) / 1000),
       );
     } catch (error) {
-      this.cellRuns.set(key, {
+      this.runs().set(key, {
         state: "error",
         text: error instanceof Error ? error.message : String(error),
         seconds: (performance.now() - started) / 1000,
       });
     }
 
+    const target = this.previewFor(key);
+
+    if (target) {
+      this.saveRun(target, key);
+    }
+
     this.paintRunPreviews();
+  }
+
+  /** A re-render during the run swaps the DOM, so the bar is looked up again. */
+  private previewFor(key: string) {
+    return this.previews().find((preview) => this.cellKey(preview) === key);
   }
 
   async restartCell(preview: HTMLElement) {
@@ -147,15 +232,27 @@ class EditorRunCells {
 
     await resetSession(session, language).catch(() => {});
 
-    for (const other of this.previews()) {
-      if (other.dataset.runLanguage === language) {
-        this.cellRuns.delete(this.cellKey(other));
+    const keys = this.previews()
+      .filter((other) => other.dataset.runLanguage === language)
+      .map((other) => this.cellKey(other));
+
+    for (const key of keys) {
+      this.runs().delete(key);
+    }
+
+    for (const key of keys) {
+      const other = this.previewFor(key);
+
+      if (other) {
+        this.saveRun(other, key);
       }
     }
 
-    preview.classList.add("md-run-restarted");
+    const flashed = preview.isConnected ? preview : this.previewFor(keys[0]);
+
+    flashed?.classList.add("md-run-restarted");
     window.setTimeout(
-      () => preview.classList.remove("md-run-restarted"),
+      () => flashed?.classList.remove("md-run-restarted"),
       600,
     );
     this.paintRunPreviews();

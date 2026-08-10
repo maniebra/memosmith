@@ -3,7 +3,7 @@ import {
   defaultCalloutDefinitions,
   type CalloutDefinition,
 } from "../storage/settings";
-import { isRunnable } from "./runner";
+import { isRunnable, RUN_STORE_LINE } from "./runner";
 import {
   attribute,
   escapeHtml,
@@ -112,6 +112,13 @@ class DocumentRenderer {
     const line = lines[index];
     if (this.mathLines) {
       return this.renderMathBlockLine(line, index);
+    }
+    // Stored cell results stay in the document text, but never on screen.
+    if (this.language === null && RUN_STORE_LINE.test(line)) {
+      this.output.push(
+        `<div class="md-block md-run-store">${escapeHtml(line)}</div>`,
+      );
+      return index + 1;
     }
     const fence = FENCE.exec(line);
     if (fence) {
