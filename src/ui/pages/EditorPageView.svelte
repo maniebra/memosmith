@@ -5,6 +5,7 @@
   import DatabaseManager from "../sections/DatabaseManager.svelte";
   import DatabaseView from "../sections/DatabaseView.svelte";
   import EditorStatusBar from "../sections/EditorStatusBar.svelte";
+  import EditorTabs from "../sections/EditorTabs.svelte";
   import EditorToolbar from "../sections/EditorToolbar.svelte";
   import GrammarPolice from "../sections/GrammarPolice.svelte";
   import NoteEditorForm from "../forms/NoteEditorForm.svelte";
@@ -44,6 +45,13 @@
   export let statusMessage: string;
   export let wikilinkKey: string;
   export let words: number;
+  export let openTabs: string[];
+  export let pinnedTabs: string[];
+  export let activeTab: string | null;
+  export let onSelectTab: (id: string) => void;
+  export let onCloseTab: (id: string) => void;
+  export let onPinTab: (id: string) => void;
+  export let onReorderTabs: (id: string, target: string) => void;
   export let explainGrammarIssue: (issue: any) => Promise<string>;
   export let actions: EditorPageActions;
 </script>
@@ -124,7 +132,19 @@
         ></button>
       </div>
     {/if}
-    <div class="min-w-0 flex-1">
+    <div class="flex min-w-0 flex-1 flex-col">
+      <EditorTabs
+        tabs={openTabs}
+        pinned={pinnedTabs}
+        {activeTab}
+        meta={spaceMeta}
+        {databases}
+        onSelect={onSelectTab}
+        onClose={onCloseTab}
+        onPin={onPinTab}
+        onReorder={onReorderTabs}
+      />
+      <div class="min-h-0 flex-1">
       {#if settings.features.databases && activeDatabaseId && spaceRoot}
         <DatabaseView
           root={spaceRoot}
@@ -200,6 +220,7 @@
           resolveAsset={actions.resolveAsset}
         />
       {/if}
+      </div>
     </div>
     {#if backlinks.length && !activeDatabaseId}
       {#if settings.backlinksPaneOpen}

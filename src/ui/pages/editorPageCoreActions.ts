@@ -41,6 +41,7 @@ export function createCoreActions(context: EditorPageContext) {
     saveActiveNote: service.saveActiveNote.bind(service),
     scheduleNoteSave: service.scheduleNoteSave.bind(service),
     scheduleStats: service.scheduleStats.bind(service),
+    clearActiveNote: service.clearActiveNote.bind(service),
     setEditorText: service.setEditorText.bind(service),
     syncStats: service.syncStats.bind(service),
     toggleSpacePane: service.toggleSpacePane.bind(service),
@@ -118,6 +119,13 @@ class CoreActions {
     this.context.grammarError = "";
     this.context.grammarCheckedText = "";
     this.syncStats();
+  }
+
+  /** Drops back to the empty editor, e.g. once the last tab is closed. */
+  clearActiveNote() {
+    this.context.activeDatabaseId = null;
+    this.setEditorText("", null);
+    this.context.statusMessage = this.context.t("app.selectOrCreateNote");
   }
 
   focusEditor() {

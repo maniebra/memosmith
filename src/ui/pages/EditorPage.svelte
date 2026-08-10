@@ -6,6 +6,7 @@
   import { i18n, locale } from "../../lib/i18n";
   import { loadSettings, saveSettings } from "../../lib/storage/settings";
   import { loadSpaceRoot } from "../../lib/storage/space";
+  import { loadTabs, saveTabs } from "../../lib/storage/tabs";
   import type { GrammarIssue, GrammarReport } from "../../lib/utils/grammar";
   import type { SpaceMeta } from "../../lib/utils/pageMeta";
   import {
@@ -16,10 +17,8 @@
   import { backlinksForNote } from "../../lib/utils/wikilinks";
   import { applyAppearanceTheme } from "../../lib/utils/theme";
   import EditorPageView from "./EditorPageView.svelte";
-  import {
-    countWords,
-    noteBreadcrumbs,
-  } from "./editorPageUtils";
+  import { countWords, noteBreadcrumbs } from "./editorPageUtils";
+  import { createTabActions } from "./editorPageTabActions";
   import type {
     EditorPageActions,
     EditorPageContext,
@@ -82,6 +81,10 @@
     startWidth: number;
   } | null = null;
 
+  const storedTabs = loadTabs();
+  let openTabs = storedTabs.open;
+  let pinnedTabs = storedTabs.pinned;
+
   $: noteDir = path ? path.slice(0, path.lastIndexOf("/")) : null;
   $: spacePrefix = spaceRoot ? `${spaceRoot}/` : null;
   $: activeRelativePath =
@@ -105,6 +108,15 @@
   $: backlinks = backlinksForNote(activeRelativePath, spaceNotes, {
     ...noteContents,
     ...(activeRelativePath ? { [activeRelativePath]: contents } : {}),
+  });
+  $: activeTab = activeDatabaseId
+    ? `db:${activeDatabaseId}`
+    : activeRelativePath;
+  $: openTabs = tabs.sync(activeTab, spaceNotes, databases, pinnedTabs);
+  $: saveTabs({
+    open: openTabs,
+    pinned: pinnedTabs.filter((tab) => openTabs.includes(tab)),
+    active: activeTab,
   });
   $: dirtyMarker = isDirty ? " *" : "";
   $: displayName = `${fileLabel}${dirtyMarker}`;
@@ -174,6 +186,11 @@
     get noteContents() { return noteContents; },
     set noteContents(value) { noteContents = value; },
     get noteDir() { return noteDir; },
+    get openTabs() { return openTabs; },
+    set openTabs(value) { openTabs = value; },
+    get pinnedTabs() { return pinnedTabs; },
+    set pinnedTabs(value) { pinnedTabs = value; },
+    get activeTab() { return activeTab; },
     get noteSaveTimer() { return noteSaveTimer; },
     set noteSaveTimer(value) { noteSaveTimer = value; },
     get path() { return path; },
@@ -213,6 +230,15 @@
     space.spacePath,
   );
   const wikilinks = createWikilinkActions(context, assets, space.spacePath);
+  const tabs = createTabActions(context, {
+    clearActive: core.clearActiveNote,
+    flushNoteSave: core.flushNoteSave,
+    runWithStatus,
+    select: (id) =>
+      id.startsWith("db:")
+        ? databasesApi.selectDatabase(id.slice(3))
+        : space.selectSpaceNote(id),
+  });
 
   const actions: EditorPageActions = {
     ...core,
@@ -270,6 +296,16 @@
     if (!isPrimaryShortcut) {
       return;
     }
+    if (event.key === "Tab") {
+      event.preventDefault();
+      tabs.cycleTabs(event.shiftKey ? -1 : 1);
+      return;
+    }
+    if (event.key.toLowerCase() === "w" && activeTab) {
+      event.preventDefault();
+      void tabs.closeTab(activeTab);
+      return;
+    }
     if (event.key === ",") {
       event.preventDefault();
       settingsOpen = !settingsOpen;
@@ -280,7 +316,10 @@
     }
   }
 
-  runWithStatus(space.refreshSpace);
+  runWithStatus(async () => {
+    await space.refreshSpace();
+    await tabs.restoreTab(storedTabs.active);
+  });
 
   onMount(() => {
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
@@ -329,6 +368,13 @@
   {grammarReport}
   {isDirty}
   {noteTitle}
+  {openTabs}
+  {pinnedTabs}
+  {activeTab}
+  onSelectTab={tabs.openTab}
+  onCloseTab={tabs.closeTab}
+  onPinTab={(id) => (openTabs = tabs.togglePinTab(id))}
+  onReorderTabs={(id, target) => (openTabs = tabs.reorderTabs(id, target))}
   {paneSlide}
   {path}
   bind:pdfPreviewOpen

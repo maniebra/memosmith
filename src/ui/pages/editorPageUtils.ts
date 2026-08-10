@@ -12,6 +12,69 @@ export function countWords(text: string) {
   return trimmedText ? trimmedText.split(/\s+/).length : 0;
 }
 
+/**
+ * Keeps the open tab list in sync: appends the active tab and drops tabs whose
+ * note or database no longer exists (renamed or deleted). Returns the same
+ * array when nothing changed so the reactive statement stays quiet.
+ */
+export function syncTabs(
+  tabs: string[],
+  activeTab: string | null,
+  notes: string[],
+  databases: { id: string }[],
+  pinned: string[] = [],
+): string[] {
+  const exists = (tab: string) =>
+    tab === activeTab ||
+    (tab.startsWith("db:")
+      ? databases.some((entry) => `db:${entry.id}` === tab)
+      : notes.includes(tab));
+  const kept = tabs.filter(exists);
+  if (activeTab && !kept.includes(activeTab)) {
+    return orderTabs([...kept, activeTab], pinned);
+  }
+  return orderTabs(kept.length === tabs.length ? tabs : kept, pinned);
+}
+
+/** Pinned tabs always sit first, keeping their relative order on both sides. */
+export function orderTabs(tabs: string[], pinned: string[]): string[] {
+  const ordered = [
+    ...tabs.filter((tab) => pinned.includes(tab)),
+    ...tabs.filter((tab) => !pinned.includes(tab)),
+  ];
+  return ordered.every((tab, index) => tab === tabs[index]) ? tabs : ordered;
+}
+
+/** Drag-and-drop reorder: drops `tab` at `target`'s slot, then re-applies pinning. */
+export function moveTab(
+  tabs: string[],
+  tab: string,
+  target: string,
+  pinned: string[],
+): string[] {
+  const from = tabs.indexOf(tab);
+  const to = tabs.indexOf(target);
+  if (from < 0 || to < 0 || from === to) {
+    return tabs;
+  }
+  const next = tabs.filter((entry) => entry !== tab);
+  next.splice(to, 0, tab);
+  return orderTabs(next, pinned);
+}
+
+/** Ctrl+Tab / Ctrl+Shift+Tab, wrapping around both ends. */
+export function cycleTab(
+  tabs: string[],
+  active: string | null,
+  step: number,
+): string | null {
+  if (!tabs.length) {
+    return null;
+  }
+  const index = active ? tabs.indexOf(active) : -1;
+  return tabs[(index + step + tabs.length) % tabs.length];
+}
+
 export function noteBreadcrumbs(
   relativePath: string | null,
   notes: string[],

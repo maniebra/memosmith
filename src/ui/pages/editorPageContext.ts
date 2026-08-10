@@ -34,7 +34,10 @@ export type EditorPageContext = {
   readonly noteDir: string | null;
   noteContents: Record<string, string>;
   noteSaveTimer: ReturnType<typeof setTimeout> | undefined;
+  openTabs: string[];
   path: string | null;
+  pinnedTabs: string[];
+  readonly activeTab: string | null;
   resizing: { pane: PaneName; startX: number; startWidth: number } | null;
   settings: AppSettings;
   settingsOpen: boolean;
