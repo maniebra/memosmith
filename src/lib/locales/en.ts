@@ -30,6 +30,7 @@ export const en = {
   "common.check": "Check",
   "common.checking": "Checking",
   "common.close": "Close",
+  "common.confirm": "Confirm",
   "common.copy": "Copy",
   "common.create": "Create",
   "common.cut": "Cut",

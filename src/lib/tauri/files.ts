@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
-import { ask, open } from "@tauri-apps/plugin-dialog";
+import { open } from "@tauri-apps/plugin-dialog";
 import { translate } from "../i18n";
+import { confirm } from "../utils/confirm";
 import type { PageMeta, SpaceMeta } from "../utils/pageMeta";
 
 export function readNote(path: string) {
@@ -54,9 +55,11 @@ export async function chooseFiles() {
 }
 
 export function confirmDelete(name: string) {
-  return ask(translate("dialog.deleteConfirm", { name }), {
+  return confirm({
     title: translate("common.deleteTitle"),
-    kind: "warning",
+    message: translate("dialog.deleteConfirm", { name }),
+    confirmLabel: translate("common.delete"),
+    danger: true,
   });
 }
 

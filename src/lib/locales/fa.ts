@@ -32,6 +32,7 @@ export const fa: Record<I18nKey, string> = {
   "common.check": "بررسی",
   "common.checking": "در حال بررسی",
   "common.close": "بستن",
+  "common.confirm": "تأیید",
   "common.copy": "کپی",
   "common.create": "ایجاد",
   "common.cut": "برش",

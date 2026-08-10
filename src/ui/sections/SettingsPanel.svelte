@@ -71,8 +71,8 @@
             "transition-colors focus-visible:outline-none",
             "focus-visible:ring-2 focus-visible:ring-emerald-600/25",
             activeTab === tab.value
-              ? "bg-white text-stone-900 shadow-sm dark:bg-stone-800"
-              : "text-stone-500 hover:bg-white/60 dark:hover:bg-stone-800",
+              ? "bg-white text-stone-900 shadow-sm dark:bg-stone-800 dark:text-stone-100"
+              : "text-stone-500 hover:bg-white/60 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100",
           )}
           aria-selected={activeTab === tab.value}
           onclick={() => (activeTab = tab.value)}
