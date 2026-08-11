@@ -8,7 +8,7 @@ import {
   renderDocument,
   serializeColumnSubblocks,
   tabEdit,
-} from "./markdown";
+} from "../../../src/lib/utils/markdown";
 
 const columnBlock = renderDocument(DEFAULT_COLUMN_SUBBLOCKS);
 assert(

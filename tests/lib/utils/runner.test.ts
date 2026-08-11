@@ -8,7 +8,7 @@ import {
   parseRunStore,
   runStoreLine,
   RUN_STORE_LINE,
-} from "./runner";
+} from "../../../src/lib/utils/runner";
 
 assert(kernelFor("Python") === "python", "language matching ignores case");
 assert(kernelFor("ts") === "node", "typescript shares the node kernel");

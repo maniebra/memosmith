@@ -7,7 +7,7 @@ import {
   parseWikilinks,
   resolveWikilinkTarget,
   wikilinkCreatePath,
-} from "./wikilinks";
+} from "../../../src/lib/utils/wikilinks";
 
 const notes = [
   "Index.md",

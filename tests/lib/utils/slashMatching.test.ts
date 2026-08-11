@@ -2,8 +2,8 @@ const assert = (ok: unknown, msg: string) => {
   if (!ok) throw new Error(msg);
 };
 
-import { matchCommands } from "./slashMatching";
-import { SLASH_COMMANDS } from "./markdownCommands";
+import { matchCommands } from "../../../src/lib/utils/slashMatching";
+import { SLASH_COMMANDS } from "../../../src/lib/utils/markdownCommands";
 
 const commands = [
   ...SLASH_COMMANDS.map((command) => ({ ...command, source: command.label })),

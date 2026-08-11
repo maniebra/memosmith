@@ -1,7 +1,7 @@
 const assert = (ok: unknown, msg: string) => {
   if (!ok) throw new Error(msg);
 };
-import { assetFolder, assetMarkdown } from "./assets";
+import { assetFolder, assetMarkdown } from "../../../src/lib/utils/assets";
 
 assert(assetFolder("shot.PNG") === "images", "extension match ignores case");
 assert(assetFolder("clip.mp4") === "videos", "video extension");

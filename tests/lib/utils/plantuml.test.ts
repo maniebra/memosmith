@@ -1,7 +1,7 @@
 const assert = (ok: unknown, msg: string) => {
   if (!ok) throw new Error(msg);
 };
-import { themedSource } from "./plantuml";
+import { themedSource } from "../../../src/lib/utils/plantuml";
 
 assert(
   themedSource("@startuml\nA -> B\n@enduml", "") ===

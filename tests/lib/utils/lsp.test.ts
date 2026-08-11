@@ -7,7 +7,7 @@ import {
   rankCompletions,
   shouldComplete,
   wordPrefix,
-} from "./lsp";
+} from "../../../src/lib/utils/lsp";
 
 const note = "intro\n\n```python\nvalue = 1\nva\n```\n\ntail\n";
 const caret = note.indexOf("va\n```") + 2;

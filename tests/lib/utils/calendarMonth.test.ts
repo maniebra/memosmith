@@ -8,7 +8,7 @@ import {
   isoDate,
   monthDays,
   startOfMonth,
-} from "./calendarMonth";
+} from "../../../src/lib/utils/calendarMonth";
 
 assert(isoDate(new Date(2026, 0, 5)) === "2026-01-05", "months and days pad");
 assert(

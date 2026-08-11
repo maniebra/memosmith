@@ -5,8 +5,8 @@ import {
   defaultLlmSettings,
   emptyLlmSettings,
   mergeLlm,
-} from "../storage/settings";
-import { requestOptions } from "./llmOptions";
+} from "../../../src/lib/storage/settings";
+import { requestOptions } from "../../../src/lib/utils/llmOptions";
 
 assert(
   Object.keys(requestOptions(defaultLlmSettings)).length === 0,

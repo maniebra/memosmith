@@ -1,7 +1,7 @@
 const assert = (ok: unknown, msg: string) => {
   if (!ok) throw new Error(msg);
 };
-import { normalizeFontStack } from "./theme.ts";
+import { normalizeFontStack } from "../../../src/lib/utils/theme.ts";
 
 assert(
   normalizeFontStack("Vazirmatn, IRANSans, system-ui") ===

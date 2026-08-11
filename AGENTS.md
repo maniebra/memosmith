@@ -129,7 +129,7 @@ cargo check
 - **Timeout**: Per cell, 30s by default (`settings.runner.timeoutMs`). A timeout kills the kernel and says so in the output.
 - **Outputs**: Held in memory, keyed by cell content (`outputKey` in `src/lib/utils/runner.ts`), so a re-render repaints them and editing a block above does not shuffle results. Nothing is written to the note.
 - **Shortcut**: Ctrl/Cmd+Enter runs the cell holding the caret.
-- **Tests**: `src-tauri/tests/runner_tests.rs` covers kernel reuse, error status, and the timeout; `src/lib/utils/runner.test.ts` covers language mapping and output keys.
+- **Tests**: `src-tauri/tests/runner_tests.rs` covers kernel reuse, error status, and the timeout; `tests/lib/utils/runner.test.ts` covers language mapping and output keys.
 
 ### 💡 Code Suggestions (LSP)
 - **What**: Typing inside a fenced code block asks a language server for completions and shows them in a menu (`Settings > Features > Code suggestions`, off by default). Same languages as code execution, so `kernel_for` picks the server too.
@@ -138,7 +138,7 @@ cargo check
 - **Protocol**: `initialize` (60s, rust-analyzer and jdtls index first), then `didOpen` once per document and `didChange` with the full text before every `textDocument/completion` (15s, since a cold server reads the standard library before its first answer). Requests from the server are always answered so none of them block; `workspace/configuration` gets empty objects. Snippets are declined, so an item that comes back as a snippet inserts its label.
 - **Threading**: The commands are `async`, which is what keeps Tauri from running them on the main thread. A synchronous command that waits on a language server freezes the editor for exactly as long as the server thinks.
 - **Menu**: Asked for 300ms after the last keystroke, only on a word or right after `.`/`:`/`>`, and only the newest request may paint. One request is in flight at a time; a keystroke that lands during one re-schedules instead of queueing. Items are filtered and ranked in the frontend (`src/lib/utils/lsp.ts`); Up/Down move, Enter or Tab accepts, Escape closes.
-- **Tests**: `src/lib/utils/lsp.test.ts` covers fence context, prefix, and ranking; `src-tauri/tests/lsp_tests.rs` round-trips a real completion, skipping itself when no C++ server is installed.
+- **Tests**: `tests/lib/utils/lsp.test.ts` covers fence context, prefix, and ranking; `src-tauri/tests/lsp_tests.rs` round-trips a real completion, skipping itself when no C++ server is installed.
 
 ## 🐛 Debugging & Platform Notes
 

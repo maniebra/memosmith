@@ -1,7 +1,7 @@
 const assert = (ok: unknown, msg: string) => {
   if (!ok) throw new Error(msg);
 };
-import { buildTree } from "./tree";
+import { buildTree } from "../../../src/lib/utils/tree";
 
 const tree = buildTree([
   "b.md",

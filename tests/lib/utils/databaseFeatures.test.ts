@@ -9,11 +9,11 @@ import {
   computeRows,
   searchRows,
   visibleColumns,
-} from "./database";
-import type { Column, Database, Row, View } from "./database";
-import { evaluateFormula } from "./formula";
-import { fromCsv, parseCsv, toCsv } from "./databaseCsv";
-import { movedBefore } from "../../ui/sections/databaseEdits";
+} from "../../../src/lib/utils/database";
+import type { Column, Database, Row, View } from "../../../src/lib/utils/database";
+import { evaluateFormula } from "../../../src/lib/utils/formula";
+import { fromCsv, parseCsv, toCsv } from "../../../src/lib/utils/databaseCsv";
+import { movedBefore } from "../../../src/ui/sections/databaseEdits";
 
 // --- formula ---------------------------------------------------------------
 

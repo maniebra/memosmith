@@ -13,8 +13,8 @@ import {
   sortRows,
   uncategorized,
   visibleRows,
-} from "./database";
-import type { Column, Database, FilterGroup, Row, View } from "./database";
+} from "../../../src/lib/utils/database";
+import type { Column, Database, FilterGroup, Row, View } from "../../../src/lib/utils/database";
 
 const columns: Column[] = [
   { id: "name", name: "Name", type: "text" },

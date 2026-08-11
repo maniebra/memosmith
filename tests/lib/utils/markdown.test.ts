@@ -15,7 +15,7 @@ import {
   renderDocument,
   renderLine,
   withMediaOptions,
-} from "./markdown";
+} from "../../../src/lib/utils/markdown";
 
 // Caret mapping counts source blocks, so previews must never count as lines.
 const sourceBlocksFromHtml = (html: string) =>

@@ -1,7 +1,7 @@
 const assert = (ok: unknown, msg: string) => {
   if (!ok) throw new Error(msg);
 };
-import { liveDiagramFenceLine, renderDocument } from "./markdown";
+import { liveDiagramFenceLine, renderDocument } from "../../../src/lib/utils/markdown";
 const sourceBlocksFromHtml = (html: string) =>
   (html.match(/class="[^"]*\bmd-block\b[^"]*"/g) ?? []).length;
 const sourceBlocks = (text: string) =>

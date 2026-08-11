@@ -11,7 +11,7 @@ import {
   parseReport,
   scoreLabel,
   systemPromptFor,
-} from "./grammar";
+} from "../../../src/lib/utils/grammar";
 
 const raw = `\`\`\`json
 {"score": 82, "summary": "Mostly clean.", "issues": [

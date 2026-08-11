@@ -1,7 +1,7 @@
 const assert = (ok: unknown, msg: string) => {
   if (!ok) throw new Error(msg);
 };
-import { cycleTab, moveTab, orderTabs, syncTabs } from "./editorPageUtils";
+import { cycleTab, moveTab, orderTabs, syncTabs } from "../../../src/ui/pages/editorPageUtils";
 
 const notes = ["a.md", "b.md"];
 const databases = [{ id: "tasks" }];

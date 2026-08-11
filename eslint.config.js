@@ -13,7 +13,7 @@ export default defineConfig(
   ts.configs.recommended,
   svelte.configs.recommended,
   {
-    files: ["src/**/*.{ts,svelte}"],
+    files: ["src/**/*.{ts,svelte}", "tests/**/*.ts"],
     languageOptions: {
       globals: {
         ...globals.browser,
