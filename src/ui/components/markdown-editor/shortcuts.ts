@@ -170,6 +170,22 @@ export function handleEditorShortcut(
     return true;
   }
 
+  if (key === "z" || key === "y") {
+    if (!e.props.editable) {
+      return false;
+    }
+
+    prepareShortcut(event, e);
+
+    if (key === "y" || event.shiftKey) {
+      e.redo();
+    } else {
+      e.undo();
+    }
+
+    return true;
+  }
+
   if (key === "b") {
     return toggleInlineMark(event, e, surface, "**");
   }

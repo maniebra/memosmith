@@ -9,6 +9,7 @@ import { createDrawings } from "./drawings";
 import { createEmbedLayout } from "./embedLayout";
 import { createEvents } from "./events";
 import { createFind } from "./find";
+import { createHistory } from "./history";
 import { createLiveDiagrams } from "./liveDiagrams";
 import { createRender } from "./render";
 import { createRunCells } from "./runCells";
@@ -66,12 +67,17 @@ function createUi(notify: () => void): EditorUi {
  */
 export function createEditor(host: EditorHost, notify: () => void) {
   const editor = { ui: createUi(notify) } as Editor;
+  const history = createHistory(() => editor);
 
   // The text and the bound elements stay live: they are read off the component.
   Object.defineProperties(editor, {
     value: {
       get: () => host.value,
       set: (next: string) => {
+        if (next !== host.value) {
+          history.recordHistory(host.value);
+        }
+
         host.value = next;
       },
     },
@@ -84,6 +90,7 @@ export function createEditor(host: EditorHost, notify: () => void) {
 
   Object.assign(
     editor,
+    history,
     createDom(editor),
     createRender(editor),
     createSelection(editor),

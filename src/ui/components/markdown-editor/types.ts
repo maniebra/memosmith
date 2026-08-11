@@ -7,6 +7,7 @@ import type {
   RunnerSettings,
 } from "../../../lib/storage/settings";
 import type { Completion } from "../../../lib/utils/lsp";
+import type { HistoryApi } from "./history";
 import type {
   editMarkdownTable,
   WikilinkEmbed,
@@ -201,7 +202,6 @@ export type RenderApi = {
   syncFeatures: () => void;
   syncDiagramSettings: () => void;
 };
-
 export type SelectionApi = {
   setActiveBlock: (active: HTMLElement | undefined) => void;
   markActiveBlock: () => void;
@@ -384,7 +384,7 @@ export type EventApi = {
 
 export type Editor = EditorHost &
   DomApi & RenderApi &
-  SelectionApi &
+  HistoryApi & SelectionApi &
   BlockApi &
   BlockEditApi &
   TableApi & SubblockApi &

@@ -109,6 +109,14 @@ cargo check
 - **Re-checking**: While the panel is open, typing schedules a re-check 2.5s after the last keystroke, skipped when the text has not changed since the last run.
 - **Explain**: Each issue has an "Explain" button that asks the model for a short rationale (`explainIssue`); answers are cached per issue in the panel.
 
+### ↩️ Undo / Redo
+- **Where**: `src/ui/components/markdown-editor/history.ts`. Every write to the note's text goes through the editor's `value` setter, so the setter is the only place history has to hook.
+- **Entries**: The text as it was before the write, plus the caret offset. Writes less than 500ms apart join the entry before them, so a typing run undoes as one step; 200 entries are kept.
+- **Applying**: Undo/redo set the value, re-render at the stored caret, and call `onInput`; a flag keeps those writes out of the history.
+- **Reset**: `syncValue` clears the stacks when the text changes underneath the editor (switching notes), since the old entries no longer belong to the open note.
+- **Keys**: Ctrl/Cmd+Z undoes, Ctrl/Cmd+Shift+Z and Ctrl/Cmd+Y redo (`shortcuts.ts`), and the native browser undo is prevented.
+- **Tests**: `history.test.ts`.
+
 ### ▶️ Code Execution
 - **What**: Fenced code blocks become Jupyter-style cells with a run bar (`Settings > Features > Code execution`, off by default). Eight kernels: `bash`/`sh`/`shell`/`zsh`, `python`/`py`, `js`/`javascript`/`ts`/`typescript`, `java`, `kotlin`/`kt`/`kts`, `r`, `cpp`/`c++`/`cc`/`cxx`, and `rust`/`rs`.
 - **Kernels**: One long-lived interpreter process per note and per kernel (`src-tauri/src/runner.rs`), so cells share variables like a notebook. The session key is the note path; the Restart button in the run bar drops the process.
@@ -144,3 +152,16 @@ cargo check
 2. **Implement**: Make your changes following the rules.
 3. **Verify**: Run `pnpm build` and `cargo check`.
 4. **Deliver**: Once verified, you are good to go!
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+When the user types `/graphify`, use the installed graphify skill or instructions before doing anything else.
+
+Rules:
+- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- Dirty graphify-out/ files are expected after hooks or incremental updates; dirty graph files are not a reason to skip graphify. Only skip graphify if the task is about stale or incorrect graph output, or the user explicitly says not to use it.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).

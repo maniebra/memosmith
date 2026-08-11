@@ -249,6 +249,9 @@ class EditorRender {
       return;
     }
 
+    // The write came from outside the editor (another note, an external edit),
+    // so the entries collected for the old text no longer apply.
+    e.resetHistory();
     this.render(e.caretOffset());
   }
 
