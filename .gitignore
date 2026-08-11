@@ -24,3 +24,5 @@ lerna-debug.log*
 .agents/
 .aider*
 public/fonts/
+.claude/
+graphify-out/
