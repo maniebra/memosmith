@@ -31,6 +31,7 @@
     createView,
     reordered,
     withCell,
+    withDefaults,
     withoutMissingGroups,
   } from "./databaseEdits";
   import {
@@ -82,7 +83,7 @@
   $: if (databaseId !== loadedId) {
     loadedId = databaseId;
     if (preloaded && preloaded.id === databaseId) {
-      database = preloaded;
+      database = withDefaults(preloaded);
       activeTableId = tableId ?? preloaded.tables[0]?.id ?? null;
       activeViewId = viewId;
     } else {
@@ -148,8 +149,9 @@
   async function load(id: string) {
     try {
       relations = {};
-      database = await loadDatabase(root, id);
-      activeTableId = tableId ?? database.tables[0]?.id ?? null;
+      const loaded = withDefaults(await loadDatabase(root, id));
+      database = loaded;
+      activeTableId = tableId ?? loaded.tables[0]?.id ?? null;
       activeViewId = viewId;
       filtersOpen = false;
     } catch (error) {

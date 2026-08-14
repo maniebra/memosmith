@@ -2,6 +2,7 @@ import type { I18nKey } from "../../lib/i18n";
 import {
   columnTypes,
   CREATED_AT,
+  defaultTable,
   EDITED_AT,
   emptyFilter,
   isGroup,
@@ -10,6 +11,7 @@ import {
 import type {
   CellValue,
   Column,
+  Database,
   FilterGroup,
   Row,
   Table,
@@ -84,6 +86,24 @@ export function createRow(
           : groupValue;
   }
   return { id: newId(), tableId: table.id, position: lastPosition + 1, data };
+}
+
+/**
+ * A table with no views paints nothing, and databases written before views
+ * existed load exactly like that. Fill the gaps in memory, on every load.
+ */
+export function withDefaults(database: Database): Database {
+  const tables = database.tables.length
+    ? database.tables
+    : [defaultTable("Table 1")];
+  return {
+    ...database,
+    tables: tables.map((table) =>
+      table.views.length
+        ? table
+        : { ...table, views: [createView("table", table.columns)] },
+    ),
+  };
 }
 
 export function createColumn(columns: Column[]): Column {

@@ -13,7 +13,10 @@ export function layoutPortals(entries: PortalBox[], layer: HTMLElement) {
     const height = entry.host.getBoundingClientRect().height;
 
     if (height > 0) {
+      // The card knows its real height now, so the placeholder floor that kept
+      // the space before the view mounted must not pad it out any more.
       entry.card.style.height = `${height}px`;
+      entry.card.style.minHeight = "0px";
     }
   }
 

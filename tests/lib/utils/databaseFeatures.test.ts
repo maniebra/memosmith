@@ -10,6 +10,7 @@ import {
   searchRows,
   visibleColumns,
 } from "../../../src/lib/utils/database";
+import { withDefaults } from "../../../src/ui/sections/databaseEdits";
 import type { Column, Database, Row, View } from "../../../src/lib/utils/database";
 import { evaluateFormula } from "../../../src/lib/utils/formula";
 import { fromCsv, parseCsv, toCsv } from "../../../src/lib/utils/databaseCsv";
@@ -240,6 +241,24 @@ assert(
 assert(
   movedBefore(["a", "b"], "a", "zz").join() === "a,b",
   "an unknown target leaves the order alone",
+);
+
+// --- databases that carry no views -----------------------------------------
+
+const bare = withDefaults({
+  id: "d",
+  name: "Legacy",
+  tables: [{ id: "main", name: "Main", columns: [], views: [] }],
+  rows: [],
+});
+
+assert(
+  bare.tables[0].views.length === 1 && bare.tables[0].views[0].type === "table",
+  "a viewless table gets the default table view",
+);
+assert(
+  withDefaults({ id: "d", name: "Empty", tables: [], rows: [] }).tables.length === 1,
+  "a database with no table gets one",
 );
 
 console.log("database features ok");
