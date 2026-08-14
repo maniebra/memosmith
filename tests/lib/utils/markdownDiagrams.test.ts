@@ -43,6 +43,10 @@ assert(
   (diagram.match(/md-diagram-line/g) ?? []).length === 3,
   "diagram fences and source are collapsed",
 );
+assert(
+  (diagram.match(/contenteditable="false"/g) ?? []).length === 4,
+  "diagram source lines and preview stay uneditable, so the caret never unfolds the XML",
+);
 const staticDiagram = renderDocument(
   '```drawio\n{"svg":"<svg><rect /></svg>"}\n```',
   undefined,

@@ -18,6 +18,9 @@ pub struct PageMeta {
     pub icon: Option<PageIcon>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cover: Option<String>,
+    /// Vertical focus of the cover crop, 0 (top) to 100 (bottom).
+    #[serde(rename = "coverPosition", skip_serializing_if = "Option::is_none")]
+    pub cover_position: Option<f64>,
 }
 
 type SpaceMeta = BTreeMap<String, PageMeta>;

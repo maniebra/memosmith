@@ -1,5 +1,11 @@
 import type { DecorationBox, Editor, SelectionApi } from "./types";
 
+const EMBED_LINE_CLASSES = [
+  "md-database-line",
+  "md-diagram-line",
+  "md-drawing-line",
+];
+
 export function createSelection(e: Editor): SelectionApi {
   const service = new EditorSelection(e);
 
@@ -59,10 +65,10 @@ class EditorSelection {
     const children = Array.from(e.element?.children ?? []) as HTMLElement[];
 
     for (const block of children) {
-      // A database card is live UI, never source to unfold.
+      // An embed card is live UI, never source to unfold.
       block.toggleAttribute(
         "data-active",
-        !block.classList.contains("md-database-line") &&
+        !EMBED_LINE_CLASSES.some((name) => block.classList.contains(name)) &&
           (block === active ||
             (groupName !== null && block.dataset[groupName] === group)),
       );

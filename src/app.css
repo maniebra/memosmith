@@ -710,7 +710,7 @@ textarea,
   }
 
   /* Same collapse trick as block math: never `display: none`, or the caret jumps. */
-  .md-drawing-line:not([data-active]) {
+  .md-drawing-line {
     font-size: 0;
     line-height: 0;
     letter-spacing: 0;
@@ -760,7 +760,7 @@ textarea,
     @apply m-0 px-3 py-4 text-sm text-stone-400;
   }
 
-  .md-diagram-line:not([data-active]) {
+  .md-diagram-line {
     font-size: 0;
     line-height: 0;
     letter-spacing: 0;

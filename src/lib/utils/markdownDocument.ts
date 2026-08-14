@@ -50,6 +50,12 @@ import {
 const EQUATION_BLOCK = /^\s*\$\$\s*(\S.*?)\s*\$\$\s*$/;
 const FENCE = /^\s*```(\w*)([^\n]*)/;
 const MAX_SUBBLOCK_DEPTH = 6;
+/** Embeds whose card is their only face: the raw source never unfolds under the caret. */
+const NON_EDITABLE_EMBEDS = new Set<string | null>([
+  DATABASE_LANGUAGE,
+  DIAGRAM_LANGUAGE,
+  DRAWING_LANGUAGE,
+]);
 class DocumentRenderer {
   private readonly calloutDefinitions: CalloutDefinition[];
   private readonly callouts: boolean;
@@ -209,10 +215,11 @@ class DocumentRenderer {
     const embedClass = embedded ? ` ${embedLineClass(embedded)}` : "";
     const diagramClass =
       opensDiagram || this.diagramLines ? " md-livediagram-line" : "";
-    const editable =
-      embedded === DATABASE_LANGUAGE || this.embedLanguage === DATABASE_LANGUAGE
-        ? ' contenteditable="false"'
-        : "";
+    const editable = NON_EDITABLE_EMBEDS.has(
+      embedded ?? this.embedLanguage ?? "",
+    )
+      ? ' contenteditable="false"'
+      : "";
     return `<div dir="auto" class="md-block ${className}${embedClass}${diagramClass}"${editable} data-code="${index}">${escapeHtml(line)}</div>`;
   }
   private closeFencePreviews(
@@ -265,10 +272,9 @@ class DocumentRenderer {
   private renderCodeLine(line: string, index: number) {
     if (this.embedLanguage) {
       const embedClass = embedLineClass(this.embedLanguage);
-      const editable =
-        this.embedLanguage === DATABASE_LANGUAGE
-          ? ' contenteditable="false"'
-          : "";
+      const editable = NON_EDITABLE_EMBEDS.has(this.embedLanguage)
+        ? ' contenteditable="false"'
+        : "";
       this.embedSourceLines?.push(line);
       this.output.push(
         `<div dir="auto" class="md-block ${embedClass}"${editable} data-code="${this.codeGroup}">${escapeHtml(line)}</div>`,

@@ -1,4 +1,4 @@
-import { AlignCenter, AlignLeft, AlignRight } from "@lucide/svelte";
+import { AlignCenter, AlignLeft, AlignRight, Trash2 } from "@lucide/svelte";
 import {
   isMediaLine,
   liveDiagramFenceLine,
@@ -243,7 +243,30 @@ class EditorEmbedLayout {
     );
   }
 
-  /** Rewrites the whole fenced block a preview card stands for. */
+  /** Offsets of the whole fenced block behind a preview card. */
+  private fenceRange(preview: HTMLElement) {
+    const e = this.e;
+    const blocks = this.codeSourceBlocks(preview);
+    const last = blocks[blocks.length - 1];
+    const start = blocks[0] ? e.offsetForPosition(blocks[0], 0) : null;
+    const end = last ? e.offsetForPosition(last, e.sourceLength(last)) : null;
+    return start === null || end === null ? null : { start, end };
+  }
+
+  /** Drops the fence with the newline that follows it, so no blank line is left. */
+  deleteEmbed(preview: HTMLElement) {
+    const e = this.e;
+    const range = this.fenceRange(preview);
+
+    if (!range) {
+      return;
+    }
+    const end = e.value[range.end] === "\n" ? range.end + 1 : range.end;
+    e.value = e.value.slice(0, range.start) + e.value.slice(end);
+    e.render(null);
+    e.props.onInput();
+  }
+
   replaceFencedSource(
     preview: HTMLElement,
     language: string,
@@ -251,13 +274,9 @@ class EditorEmbedLayout {
     rerender = true,
   ) {
     const e = this.e;
-    const sourceBlocks = this.codeSourceBlocks(preview);
-    const first = sourceBlocks[0];
-    const last = sourceBlocks[sourceBlocks.length - 1];
-    const start = first ? e.offsetForPosition(first, 0) : null;
-    const end = last ? e.offsetForPosition(last, e.sourceLength(last)) : null;
+    const { start, end } = this.fenceRange(preview) ?? {};
 
-    if (start === null || end === null) {
+    if (start === undefined || end === undefined) {
       return;
     }
 
@@ -306,7 +325,6 @@ class EditorEmbedLayout {
     }
 
     event.preventDefault();
-
     const align = mediaOptions(e.value.slice(range.start, range.end)).align;
 
     this.trackResize(media, event, this.resizeFactor(align), (width) =>
@@ -326,6 +344,11 @@ class EditorEmbedLayout {
       {
         label: this.e.t("editor.resetSize"),
         onSelect: () => this.setEmbedOption(preview, { width: null }),
+      },
+      {
+        label: this.e.t("common.delete"),
+        icon: Trash2,
+        onSelect: () => this.deleteEmbed(preview),
       },
       { separator: true },
     ];
