@@ -300,6 +300,7 @@ export const fa: Record<I18nKey, string> = {
   "editor.drawing": "طراحی",
   "editor.diagram": "نمودار",
   "editor.database": "پایگاه داده: {name}",
+  "editor.databaseView": "پایگاه داده: {name} / {table} / {view}",
   "editor.alignLeft": "چپ چین",
   "editor.alignCenter": "وسط چین",
   "editor.alignRight": "راست چین",

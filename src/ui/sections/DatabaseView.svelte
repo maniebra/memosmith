@@ -55,6 +55,9 @@
   export let tableId: string | null = null;
   export let viewId: string | null = null;
   export let onNavigate: (tableId: string, viewId: string) => void = () => {};
+  /** Embedded only: pinned to one table view, chrome hidden. */
+  export let locked = false;
+  export let onLock: ((locked: boolean) => void) | null = null;
   /** Fires whenever the data changes, so callers can keep their own copy fresh. */
   export let onChange: (database: Database) => void = () => {};
   /** Opens this database in the full view; only shown when compact. */
@@ -63,6 +66,10 @@
   let relations: Record<string, Database> = {};
   let activeTableId: string | null = null;
   let activeViewId: string | null = null;
+  /** Own copy: the embed keeps its mounted props, so the toggle drives this. */
+  let pinned = false;
+  $: pinned = locked;
+  const setPinned = (v: boolean) => { pinned = v; onLock?.(v); };
   let filtersOpen = false;
   let loadedId: string | null = null;
   let search = "";
@@ -335,6 +342,8 @@
       {filtersOpen}
       {filterCount}
       {onOpen}
+      locked={pinned}
+      onLock={onLock && setPinned}
       onRenameDatabase={renameDatabase}
       onSelectTable={(id) => {
         activeTableId = id;

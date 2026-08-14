@@ -1,4 +1,5 @@
 import type { I18nKey } from "../../../lib/i18n";
+import type { DatabaseSummary } from "../../../lib/tauri/databases";
 import type {
   CalloutDefinition,
   LspSettings,
@@ -76,12 +77,6 @@ export type ContextMenuState = {
   embedPreview?: HTMLElement | null;
 };
 
-export type DatabaseEmbed = {
-  database?: string;
-  table?: string;
-  view?: string;
-};
-
 export type EditorProps = {
   placeholder: string;
   textSize: number;
@@ -113,7 +108,7 @@ export type EditorProps = {
     | undefined;
   wikilinkKey: string;
   databaseRoot: string;
-  databaseOptions: { id: string; name: string }[];
+  databaseOptions: DatabaseSummary[];
   onOpenDatabase: ((databaseId: string) => void) | null;
   onStatus: (message: string) => void;
   decorations: Decoration[];

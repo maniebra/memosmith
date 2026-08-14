@@ -1,6 +1,7 @@
 const assert = (ok: unknown, msg: string) => {
   if (!ok) throw new Error(msg);
 };
+import { databaseEmbed, emptyDatabaseEmbed } from "../../../src/lib/utils/markdownEmbeds";
 import {
   choicesFor,
   emptyFilter,
@@ -297,3 +298,27 @@ assert(
 );
 
 console.log("database ok");
+
+// A pinned embed carries its table and view, so the note shows only that one.
+const pinned = databaseEmbed({
+  database: "db",
+  table: "t",
+  view: "v",
+  locked: true,
+});
+
+assert(
+  pinned.startsWith("```database\n") && pinned.endsWith("\n```"),
+  "an embed is a database fence",
+);
+assert(
+  JSON.parse(pinned.split("\n")[1]).locked === true &&
+    JSON.parse(pinned.split("\n")[1]).view === "v",
+  "the fence keeps the view and the lock",
+);
+assert(
+  JSON.parse(emptyDatabaseEmbed("db").split("\n")[1]).table === undefined,
+  "an unpinned embed names no table",
+);
+
+console.log("database embeds ok");

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { DatabaseSummary } from "../../lib/tauri/databases";
   import type {
     CalloutDefinition,
     EditorWidth,
@@ -57,7 +58,7 @@
     | undefined = undefined;
   export let wikilinkKey = "";
   export let databaseRoot = "";
-  export let databaseOptions: { id: string; name: string }[] = [];
+  export let databaseOptions: DatabaseSummary[] = [];
   export let onOpenDatabase: ((databaseId: string) => void) | null = null;
   export let onStatus: (message: string) => void = () => {};
   export let decorations: {

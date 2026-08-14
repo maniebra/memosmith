@@ -75,6 +75,8 @@ export const faDatabase = {
   "database.addViewOfType": "افزودن نمای {type}",
   "database.deleteView": "حذف این نما",
   "database.renameView": "نام نما",
+  "database.lockView": "فقط همین نمای جدول",
+  "database.unlockView": "نمایش همه جدول‌ها و نماها",
   "database.properties": "ویژگی‌ها",
   "database.showAll": "نمایش همه",
   "database.hideAll": "پنهان‌کردن همه",

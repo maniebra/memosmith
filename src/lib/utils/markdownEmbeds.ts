@@ -176,8 +176,21 @@ export function liveDiagramPreview(
 /** Language of the fenced block that names a database view to embed, as JSON. */
 export const DATABASE_LANGUAGE = "database";
 
+/** What a `database` fence carries: which view of which table to show. */
+export type DatabaseEmbed = {
+  database?: string;
+  table?: string;
+  view?: string;
+  /** Show only this table and view: no tabs, no toolbar. */
+  locked?: boolean;
+};
+
+export function databaseEmbed(embed: DatabaseEmbed) {
+  return `\`\`\`database\n${JSON.stringify(embed)}\n\`\`\``;
+}
+
 export function emptyDatabaseEmbed(databaseId: string) {
-  return `\`\`\`database\n${JSON.stringify({ database: databaseId })}\n\`\`\``;
+  return databaseEmbed({ database: databaseId });
 }
 
 /** An empty frame: the editor mounts the live database view into it. */

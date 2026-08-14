@@ -1,7 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { Database, Row, Table } from "../utils/database";
 
-export type DatabaseSummary = { id: string; name: string };
+/** Everything but the rows, so menus can list a database's table views cheaply. */
+export type DatabaseSummary = { id: string; name: string; tables?: Table[] };
 
 export function listDatabases(root: string) {
   return invoke<DatabaseSummary[]>("list_databases", { root });

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { DatabaseSummary } from "../../lib/tauri/databases";
   import { onDestroy, onMount } from "svelte";
   import { i18n } from "../../lib/i18n";
   import {
@@ -73,7 +74,7 @@
   /** Space folder the embedded databases live in; empty disables database embeds. */
   export let databaseRoot = "";
   /** Databases offered by the slash menu and by relation columns. */
-  export let databaseOptions: { id: string; name: string }[] = [];
+  export let databaseOptions: DatabaseSummary[] = [];
   export let onOpenDatabase: ((databaseId: string) => void) | null = null;
   export let onStatus: (message: string) => void = () => {};
   /** Source ranges to underline, drawn in an overlay so the editable DOM stays untouched. */

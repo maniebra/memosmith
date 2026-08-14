@@ -297,6 +297,7 @@ export const en = {
   "editor.drawing": "Drawing",
   "editor.diagram": "Diagram",
   "editor.database": "Database: {name}",
+  "editor.databaseView": "Database: {name} / {table} / {view}",
   "editor.alignLeft": "Align left",
   "editor.alignCenter": "Align center",
   "editor.alignRight": "Align right",

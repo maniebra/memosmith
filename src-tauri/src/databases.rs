@@ -17,6 +17,8 @@ pub struct DatabaseRow {
 pub struct DatabaseSummary {
     pub id: String,
     pub name: String,
+    /// `[{ id, name, columns, views }]`, so callers can offer a table view without loading rows.
+    pub tables: serde_json::Value,
 }
 
 #[derive(Serialize)]
@@ -127,11 +129,18 @@ pub fn list_databases(root: String) -> Result<Vec<DatabaseSummary>, String> {
         }
 
         let id = path.file_stem().unwrap_or_default().to_string_lossy().to_string();
-        let name = open(&root, &id)
-            .and_then(|connection| read_meta(&connection, "name"))
-            .unwrap_or_else(|_| id.clone());
+        let (name, tables) = match open(&root, &id) {
+            Ok(connection) => (
+                read_meta(&connection, "name").unwrap_or_else(|_| id.clone()),
+                read_meta(&connection, "tables")
+                    .ok()
+                    .and_then(|raw| serde_json::from_str(&raw).ok())
+                    .unwrap_or_else(|| serde_json::json!([])),
+            ),
+            Err(_) => (id.clone(), serde_json::json!([])),
+        };
 
-        databases.push(DatabaseSummary { id, name });
+        databases.push(DatabaseSummary { id, name, tables });
     }
 
     databases.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));

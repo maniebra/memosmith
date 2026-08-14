@@ -25,6 +25,7 @@
     View,
   } from "../../lib/utils/database";
   import Select from "../components/Select.svelte";
+  import DatabaseEmbedBar from "./DatabaseEmbedBar.svelte";
   import DatabaseFilterGroup from "./DatabaseFilterGroup.svelte";
 
   export let database: Database;
@@ -35,6 +36,9 @@
   export let filtersOpen = false;
   export let filterCount = 0;
   export let onOpen: (() => void) | null = null;
+  /** Embedded only: pinned to this one table view, with the chrome hidden. */
+  export let locked = false;
+  export let onLock: ((locked: boolean) => void) | null = null;
   export let onRenameDatabase: (name: string) => void;
   export let onSelectTable: (id: string) => void;
   export let onRemoveTable: (id: string) => void | Promise<void>;
@@ -105,20 +109,15 @@
     : 'px-4 py-3'}"
 >
   {#if compact}
-    <div class="flex items-center gap-2">
-      <input
-        class="min-w-0 flex-1 bg-transparent text-sm font-semibold text-stone-800 outline-none dark:text-stone-100"
-        value={database.name}
-        oninput={(event) => onRenameDatabase(event.currentTarget.value)}
-      />
-      {#if onOpen}
-        <button
-          type="button"
-          class="rounded-md px-2 py-1 text-xs text-stone-400 hover:bg-stone-500/10 hover:text-stone-700 dark:hover:text-stone-200"
-          onclick={onOpen}>{$i18n.t("common.open")}</button
-        >
-      {/if}
-    </div>
+    <DatabaseEmbedBar
+      {database}
+      {table}
+      {view}
+      {onRenameDatabase}
+      {onOpen}
+      {locked}
+      {onLock}
+    />
   {:else}
     <input
       class="w-full bg-transparent text-2xl font-semibold text-stone-900 outline-none dark:text-stone-100"
@@ -127,6 +126,7 @@
     />
   {/if}
 
+  {#if !locked}
   <div
     class="flex flex-wrap items-center gap-1 border-b border-stone-200/50 pb-2 dark:border-stone-800/80"
   >
@@ -381,8 +381,9 @@
       </button>
     </div>
   </div>
+  {/if}
 
-  {#if filtersOpen}
+  {#if filtersOpen && !locked}
     <div
       class="rounded-lg border border-stone-200/80 p-2 dark:border-stone-700/70"
     >

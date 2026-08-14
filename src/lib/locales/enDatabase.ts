@@ -74,6 +74,8 @@ export const enDatabase = {
   "database.addViewOfType": "Add {type} view",
   "database.deleteView": "Delete this view",
   "database.renameView": "View name",
+  "database.lockView": "Show only this table view",
+  "database.unlockView": "Show all tables and views",
   "database.properties": "Properties",
   "database.showAll": "Show all",
   "database.hideAll": "Hide all",

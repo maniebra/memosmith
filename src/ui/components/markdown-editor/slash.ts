@@ -1,6 +1,8 @@
 import type { I18nKey } from "../../../lib/i18n";
+import type { DatabaseSummary } from "../../../lib/tauri/databases";
 import {
   applyPrefix,
+  databaseEmbed,
   DEFAULT_TABLE_MARKDOWN,
   lineStartAt,
   emptyDatabaseEmbed,
@@ -87,12 +89,38 @@ class EditorSlash {
       ...(props.mermaid
         ? [{ label: "Mermaid", hint: "diagram", prefix: EMPTY_MERMAID }]
         : []),
-      ...databases.map((option) => ({
-        label: this.e.t("editor.database", { name: option.name }),
-        hint: "embed",
-        prefix: emptyDatabaseEmbed(option.id),
-      })),
+      ...databases.flatMap((option) => [
+        {
+          label: this.e.t("editor.database", { name: option.name }),
+          hint: "embed",
+          prefix: emptyDatabaseEmbed(option.id),
+        },
+        ...this.databaseViewCommands(option),
+      ]),
     ];
+  }
+
+  /**
+   * One command per table view, so a note can embed a single table with the
+   * filters and sorts that view already carries, and nothing else.
+   */
+  private databaseViewCommands(option: DatabaseSummary): SlashCommand[] {
+    return (option.tables ?? []).flatMap((table) =>
+      table.views.map((view) => ({
+        label: this.e.t("editor.databaseView", {
+          name: option.name,
+          table: table.name,
+          view: view.name,
+        }),
+        hint: view.type,
+        prefix: databaseEmbed({
+          database: option.id,
+          table: table.id,
+          view: view.id,
+          locked: true,
+        }),
+      })),
+    );
   }
 
   slashMatches() {

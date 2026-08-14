@@ -1,8 +1,9 @@
 import { mount, unmount } from "svelte";
 import type { Database } from "../../../lib/utils/database";
 import { DATABASE_LANGUAGE } from "../../../lib/utils/markdown";
+import type { DatabaseEmbed } from "../../../lib/utils/markdownEmbeds";
 import DatabaseView from "../../sections/DatabaseView.svelte";
-import type { DatabaseApi, DatabaseEmbed, Editor } from "./types";
+import type { DatabaseApi, Editor } from "./types";
 
 type DatabasePortal = {
   view: ReturnType<typeof mount>;
@@ -223,6 +224,10 @@ class EditorDatabase {
       preloaded: this.cache.get(databaseId) ?? null,
       tableId: embed.table ?? null,
       viewId: embed.view ?? null,
+      locked: embed.locked ?? false,
+      onLock: props.editable
+        ? (locked: boolean) => this.patchEmbed(host, anchor, { locked })
+        : null,
       databaseOptions: props.databaseOptions,
       onStatus: props.onStatus,
       onRenamed: () => {},
@@ -230,16 +235,26 @@ class EditorDatabase {
         ? () => props.onOpenDatabase?.(databaseId)
         : null,
       onChange: (database: Database) => this.cache.set(database.id, database),
-      onNavigate: (tableId: string, viewId: string) => {
-        const current = this.entryForHost(host)?.card ?? anchor;
-
-        this.writeDatabaseEmbed(current, {
+      onNavigate: (tableId: string, viewId: string) =>
+        this.patchEmbed(host, anchor, {
           database: databaseId,
           table: tableId,
           view: viewId,
-        });
-      },
+        }),
     };
+  }
+
+  /** Merges onto what the fence says now, not onto the embed as it was mounted. */
+  private patchEmbed(
+    host: HTMLElement,
+    anchor: HTMLElement,
+    patch: Partial<DatabaseEmbed>,
+  ) {
+    const card = this.entryForHost(host)?.card ?? anchor;
+
+    const current = this.embedSource(card) ?? {};
+
+    this.writeDatabaseEmbed(card, { ...current, ...patch });
   }
 
   private mountDatabaseEntry(

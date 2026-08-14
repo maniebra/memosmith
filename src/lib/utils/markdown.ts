@@ -21,6 +21,7 @@ export {
   EMPTY_MERMAID,
   EMPTY_PLANTUML,
   LIVE_DIAGRAM_LANGUAGES,
+  databaseEmbed,
   emptyDatabaseEmbed,
   liveDiagramFenceLine,
   liveDiagramLayout,
