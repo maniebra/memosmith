@@ -95,12 +95,12 @@
     </div>
 
     <div
-      class="grid min-h-0 flex-1 auto-rows-fr grid-cols-7 overflow-y-auto rounded-lg border border-stone-200/70 dark:border-stone-800"
+      class="grid min-h-0 flex-1 grid-cols-7 grid-rows-[repeat(6,minmax(6rem,1fr))] overflow-y-auto rounded-lg border border-stone-200/70 dark:border-stone-800"
     >
       {#each days as date (date.getTime())}
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div
-          class="group flex min-h-24 flex-col border-r border-b border-stone-200/60 p-1 dark:border-stone-800/80 {date.getMonth() ===
+          class="group flex min-h-0 flex-col overflow-hidden border-r border-b border-stone-200/60 p-1 dark:border-stone-800/80 {date.getMonth() ===
           month.getMonth()
             ? ''
             : 'bg-stone-500/5 text-stone-400'}"
@@ -115,7 +115,7 @@
             drop(date);
           }}
         >
-          <div class="flex items-center justify-between">
+          <div class="flex shrink-0 items-center justify-between">
             <span
               class="px-1 text-[0.6875rem] {isoDate(date) === isoDate(today)
                 ? 'rounded bg-emerald-600/15 font-medium text-emerald-700 dark:text-emerald-300'

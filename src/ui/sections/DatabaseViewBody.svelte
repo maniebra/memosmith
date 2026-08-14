@@ -11,6 +11,7 @@
   import DatabaseBoard from "./DatabaseBoard.svelte";
   import DatabaseCalendar from "./DatabaseCalendar.svelte";
   import DatabaseGallery from "./DatabaseGallery.svelte";
+  import DatabaseGantt from "./DatabaseGantt.svelte";
   import DatabaseList from "./DatabaseList.svelte";
   import DatabaseTable from "./DatabaseTable.svelte";
 
@@ -82,6 +83,14 @@
         dateColumn={view.groupBy}
         {onCell}
         onAddRow={(isoDate) => onAddRow(isoDate)}
+        {onOpenRow}
+      />
+    {:else if view.type === "gantt"}
+      <DatabaseGantt
+        columns={shownColumns}
+        {rows}
+        startColumn={view.groupBy}
+        endColumn={view.endBy}
         {onOpenRow}
       />
     {:else}

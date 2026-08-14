@@ -3,6 +3,7 @@
     ArrowDownToLine,
     ArrowUpFromLine,
     CalendarDays,
+    ChartGantt,
     Filter,
     Image,
     LayoutGrid,
@@ -80,6 +81,7 @@
     gallery: Image,
     list: List,
     calendar: CalendarDays,
+    gantt: ChartGantt,
   };
 
   function viewLabel(type: View["type"]) {
@@ -89,9 +91,10 @@
   }
 
   /** Calendars key on a date, everything else on a value that can label a group. */
+  const dateTypes = ["date", "created_time", "edited_time"];
   $: groupableTypes =
-    view.type === "calendar"
-      ? ["date", "created_time", "edited_time"]
+    view.type === "calendar" || view.type === "gantt"
+      ? dateTypes
       : ["select", "status", "multi_select", "relation", "text", "checkbox"];
   $: groupOptions = [
     { value: "", label: "—" },
@@ -237,6 +240,18 @@
             className="h-7 w-32 rounded-md text-xs"
             onChange={(groupBy) =>
               onUpdateView({ groupBy: groupBy || undefined })}
+          />
+        </label>
+      {/if}
+      {#if view.type === "gantt"}
+        <label class="flex items-center gap-1 text-xs text-stone-500">
+          {$i18n.t("database.endDate")}
+          <Select
+            value={view.endBy ?? ""}
+            options={groupOptions}
+            rootClassName=""
+            className="h-7 w-32 rounded-md text-xs"
+            onChange={(endBy) => onUpdateView({ endBy: endBy || undefined })}
           />
         </label>
       {/if}

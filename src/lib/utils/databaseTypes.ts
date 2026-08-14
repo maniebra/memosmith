@@ -103,7 +103,13 @@ export type FilterGroup = {
 };
 export type FilterNode = FilterCondition | FilterGroup;
 export type Sort = { column: string; direction: "asc" | "desc" };
-export type ViewType = "table" | "board" | "gallery" | "list" | "calendar";
+export type ViewType =
+  | "table"
+  | "board"
+  | "gallery"
+  | "list"
+  | "calendar"
+  | "gantt";
 export type View = {
   id: string;
   name: string;
@@ -113,6 +119,8 @@ export type View = {
    * rows on its date. List and gallery ignore it.
    */
   groupBy?: string;
+  /** Gantt only: date column the bars end on. */
+  endBy?: string;
   filter: FilterGroup;
   sorts: Sort[];
   /** Pixel width of board columns; unset means the default. */

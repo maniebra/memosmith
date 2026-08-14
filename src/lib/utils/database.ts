@@ -66,6 +66,7 @@ export const viewTypes: ViewType[] = [
   "gallery",
   "list",
   "calendar",
+  "gantt",
 ];
 const emptyOperators: FilterOperator[] = ["is_empty", "is_not_empty"];
 const textOperators: FilterOperator[] = [

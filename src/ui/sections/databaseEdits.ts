@@ -92,7 +92,7 @@ export function createColumn(columns: Column[]): Column {
 
 export function createView(type: View["type"], columns: Column[]): View {
   // Calendars key on a date, the rest on the first select they can group by.
-  const keyType = type === "calendar" ? "date" : "select";
+  const keyType = type === "calendar" || type === "gantt" ? "date" : "select";
   return {
     id: newId(),
     name: type[0].toUpperCase() + type.slice(1),
@@ -113,10 +113,16 @@ export function countConditions(group: FilterGroup): number {
 
 /** Views with a `groupBy` pointing at a deleted column cleared. */
 export function withoutMissingGroups(views: View[], columns: Column[]) {
+  const exists = (id?: string) =>
+    !id || columns.some((column) => column.id === id);
   return views.map((view) =>
-    view.groupBy && !columns.some((column) => column.id === view.groupBy)
-      ? { ...view, groupBy: undefined }
-      : view,
+    exists(view.groupBy) && exists(view.endBy)
+      ? view
+      : {
+          ...view,
+          groupBy: exists(view.groupBy) ? view.groupBy : undefined,
+          endBy: exists(view.endBy) ? view.endBy : undefined,
+        },
   );
 }
 
