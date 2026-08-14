@@ -18,6 +18,10 @@
   export let onChange: (settings: AppSettings) => void;
 
   let codeOptionsOpen = false;
+  function toggleCodeOptions() {
+    codeOptionsOpen = !codeOptionsOpen;
+    if (codeOptionsOpen) void refreshRuntimes();
+  }
   let runtimes: Record<string, string> = {};
 
   async function refreshRuntimes() {
@@ -43,6 +47,7 @@
     <Switch
       checked={settings.features.codeExecution}
       label={$i18n.t("feature.codeExecution")}
+      onLabel={() => toggleCodeOptions()}
       className="h-10 w-full"
       onChange={(codeExecution) => {
         updateFeatures(settings, onChange, { codeExecution });
@@ -55,8 +60,7 @@
       aria-expanded={codeOptionsOpen}
       aria-label={$i18n.t("feature.codeOptions")}
       onclick={() => {
-        codeOptionsOpen = !codeOptionsOpen;
-        if (codeOptionsOpen) void refreshRuntimes();
+        toggleCodeOptions();
       }}
     >
       <ChevronDown

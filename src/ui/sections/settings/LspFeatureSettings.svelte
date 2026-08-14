@@ -18,6 +18,10 @@
   export let onChange: (settings: AppSettings) => void;
 
   let lspOptionsOpen = false;
+  function toggleLspOptions() {
+    lspOptionsOpen = !lspOptionsOpen;
+    if (lspOptionsOpen) void refreshLanguageServers();
+  }
   let languageServers: Record<string, string> = {};
 
   async function refreshLanguageServers() {
@@ -44,6 +48,7 @@
     <Switch
       checked={settings.features.lsp}
       label={$i18n.t("feature.lsp")}
+      onLabel={() => toggleLspOptions()}
       className="h-10 w-full"
       onChange={(lsp) => {
         updateFeatures(settings, onChange, { lsp });
@@ -60,8 +65,7 @@
       aria-expanded={lspOptionsOpen}
       aria-label={$i18n.t("feature.lspOptions")}
       onclick={() => {
-        lspOptionsOpen = !lspOptionsOpen;
-        if (lspOptionsOpen) void refreshLanguageServers();
+        toggleLspOptions();
       }}
     >
       <ChevronDown

@@ -1,12 +1,16 @@
+import type { I18nKey } from "../../lib/i18n";
 import {
+  columnTypes,
   CREATED_AT,
   EDITED_AT,
   emptyFilter,
+  isGroup,
   newId,
 } from "../../lib/utils/database";
 import type {
   CellValue,
   Column,
+  FilterGroup,
   Row,
   Table,
   View,
@@ -99,6 +103,14 @@ export function createView(type: View["type"], columns: Column[]): View {
   };
 }
 
+/** Conditions in a filter tree, nested groups included. */
+export function countConditions(group: FilterGroup): number {
+  return group.children.reduce(
+    (total, child) => total + (isGroup(child) ? countConditions(child) : 1),
+    0,
+  );
+}
+
 /** Views with a `groupBy` pointing at a deleted column cleared. */
 export function withoutMissingGroups(views: View[], columns: Column[]) {
   return views.map((view) =>
@@ -106,4 +118,17 @@ export function withoutMissingGroups(views: View[], columns: Column[]) {
       ? { ...view, groupBy: undefined }
       : view,
   );
+}
+
+/** `multi_select` -> `database.columnMultiSelect`, so a new type needs no branch here. */
+export function columnTypeOptions(translate: (key: I18nKey) => string) {
+  return columnTypes.map((type) => ({
+    ...type,
+    label: translate(
+      `database.column${type.value
+        .split("_")
+        .map((part) => part[0].toUpperCase() + part.slice(1))
+        .join("")}` as I18nKey,
+    ),
+  }));
 }

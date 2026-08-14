@@ -11,7 +11,6 @@ import type { EmbedLayoutApi, Editor } from "./types";
 /** Drag target for manual sizing, appended inside every embed card. */
 export const RESIZE_HANDLE =
   '<span class="md-resize" aria-hidden="true"></span>';
-
 export const EMBED_SELECTOR =
   ".md-drawing-preview, .md-diagram-preview, .md-livediagram-preview";
 

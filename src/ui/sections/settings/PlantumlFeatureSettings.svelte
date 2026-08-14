@@ -38,6 +38,7 @@
     <Switch
       checked={settings.features.plantuml}
       label={$i18n.t("feature.plantuml")}
+      onLabel={() => plantumlOptionsOpen = !plantumlOptionsOpen}
       className="h-10 w-full"
       onChange={(plantuml) => updateFeatures(settings, onChange, { plantuml })}
     />

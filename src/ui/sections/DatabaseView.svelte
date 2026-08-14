@@ -5,7 +5,6 @@
     choicesFor,
     computeRows,
     defaultTable,
-    isGroup,
     relationColumnsOf,
     rowsOf,
     searchRows,
@@ -25,6 +24,7 @@
   } from "../../lib/utils/database";
   import { exportTableCsv, importTableCsv } from "./databaseCsvActions";
   import {
+    countConditions,
     patched,
     createColumn,
     createRow,
@@ -128,12 +128,6 @@
       : [];
   $: openRow = rows.find((row) => row.id === openRowId) ?? null;
   $: filterCount = view ? countConditions(view.filter) : 0;
-  function countConditions(node: View["filter"]): number {
-    return node.children.reduce(
-      (total, child) => total + (isGroup(child) ? countConditions(child) : 1),
-      0,
-    );
-  }
   /** Relation targets are read once each; their rows label the links and the board columns. */
   async function loadRelations(columns: Column[]) {
     const wanted = columns
@@ -371,6 +365,7 @@
         {shownColumns}
         {relationColumns}
         {compact}
+        locked={pinned}
         databaseOptions={databaseOptions.filter(
           (option) => option.id !== database?.id,
         )}

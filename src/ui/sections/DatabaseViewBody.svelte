@@ -23,6 +23,8 @@
   export let relationColumns: Record<string, Column[]> = {};
   export let databaseOptions: { id: string; name: string }[] = [];
   export let compact = false;
+  /** Pinned embed: the structure is fixed, only the data is editable. */
+  export let locked = false;
   export let onCell: (
     rowId: string,
     columnId: string,
@@ -101,6 +103,7 @@
         {onAddColumn}
         {onReorderRows}
         {onOpenRow}
+        {locked}
         commitCellsOnInput={!compact}
       />
 {/if}

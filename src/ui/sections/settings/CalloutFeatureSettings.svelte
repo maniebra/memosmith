@@ -130,6 +130,7 @@
     <Switch
       checked={settings.features.callouts}
       label={$i18n.t("feature.callouts")}
+      onLabel={() => calloutOptionsOpen = !calloutOptionsOpen}
       className="h-full min-w-0 flex-1"
       onChange={(callouts) => updateFeatures(settings, onChange, { callouts })}
     />

@@ -7,8 +7,6 @@
     Trash2,
   } from "@lucide/svelte";
   import { i18n } from "../../lib/i18n";
-  import type { I18nKey } from "../../lib/i18n";
-  import { columnTypes } from "../../lib/utils/database";
   import type {
     Aggregate,
     CellValue,
@@ -23,6 +21,7 @@
     resizeTo,
   } from "./databaseTableInteractions";
   import type { Resize } from "./databaseTableInteractions";
+  import { columnTypeOptions } from "./databaseEdits";
   import { palette } from "../../lib/utils/optionColors";
   import {
     groupChipStyle,
@@ -61,17 +60,18 @@
     () => {};
   export let rowHeight: "short" | "medium" | "tall" = "short";
   export let onOpenRow: (rowId: string) => void = () => {};
+  export let locked = false;
 
   const rowHeights = { short: "2rem", medium: "3.5rem", tall: "6rem" };
   $: cellHeight = rowHeights[rowHeight];
   $: groupColumn = allColumns.find((column) => column.id === groupBy);
   $: groupChoices = choices[groupColumn?.id ?? ""] ?? [];
   $: groups = tableGroups(rows, groupColumn, groupChoices);
-  function chipStyle(key: string) {
-    return groupChipStyle(groupColumn, key, $palette);
-  }
   function groupLabel(key: string) {
     return groupLabelOf(groupChoices, key, $i18n.t("database.noValue"));
+  }
+  function chipStyle(key: string) {
+    return groupChipStyle(groupColumn, key, $palette);
   }
   const panelWidth = 260;
   /** Width being dragged right now; committed to the column on pointerup. */
@@ -146,16 +146,7 @@
     editingColumn = null;
     onColumnsChange(columns.filter((column) => column.id !== id));
   }
-  /** `multi_select` -> `database.columnMultiSelect`, so a new type needs no branch here. */
-  $: translatedColumnTypes = columnTypes.map((type) => ({
-    ...type,
-    label: $i18n.t(
-      `database.column${type.value
-        .split("_")
-        .map((part) => part[0].toUpperCase() + part.slice(1))
-        .join("")}` as I18nKey,
-    ),
-  }));
+  $: translatedColumnTypes = columnTypeOptions((key) => $i18n.t(key));
 </script>
 <svelte:window
   onkeydown={(event) => event.key === "Escape" && (editingColumn = null)}
@@ -181,6 +172,13 @@
             style={widthOf(column)
               ? `width:${widthOf(column)}px;min-width:${widthOf(column)}px;max-width:${widthOf(column)}px`
               : ""}
+            oncontextmenu={(event) => {
+              if (locked) return;
+              event.preventDefault();
+              // The note's menu owns the card, not this header.
+              event.stopPropagation();
+              toggleEditor(column.id, event);
+            }}
           >
             <div
               class="flex items-center justify-between gap-1"
@@ -212,6 +210,7 @@
                 }}
                 role="none">{column.name}</span
               >
+              {#if !locked}
               <button
                 type="button"
                 data-column-editor-toggle
@@ -227,6 +226,7 @@
                   aria-hidden="true"
                 />
               </button>
+              {/if}
             </div>
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div
@@ -260,6 +260,7 @@
           </th>
         {/each}
         <th class="w-10 px-1 py-1.5">
+          {#if !locked}
           <button
             type="button"
             class="flex size-6 items-center justify-center rounded-md text-stone-400 hover:bg-stone-500/10 hover:text-stone-700 dark:hover:text-stone-200"
@@ -269,6 +270,7 @@
           >
             <Plus class="size-4" strokeWidth={1.8} aria-hidden="true" />
           </button>
+          {/if}
         </th>
       </tr>
     </thead>

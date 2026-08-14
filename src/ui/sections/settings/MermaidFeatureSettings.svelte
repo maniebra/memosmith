@@ -38,6 +38,7 @@
     <Switch
       checked={settings.features.mermaid}
       label={$i18n.t("feature.mermaid")}
+      onLabel={() => mermaidOptionsOpen = !mermaidOptionsOpen}
       className="h-10 w-full"
       onChange={(mermaid) => updateFeatures(settings, onChange, { mermaid })}
     />

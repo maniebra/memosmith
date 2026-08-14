@@ -41,6 +41,7 @@
       <Switch
         checked={settings.features.grammarPolice}
         label={$i18n.t("feature.grammarPolice")}
+        onLabel={() => (grammarOptionsOpen = !grammarOptionsOpen)}
         className="h-full min-w-0 flex-1"
         onChange={(grammarPolice) => patchFeatures({ grammarPolice })}
       />
