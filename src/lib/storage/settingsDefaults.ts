@@ -66,6 +66,7 @@ export const defaultFeatureSettings: FeatureSettings = {
   lsp: false,
   plantuml: false,
   mermaid: false,
+  windowControls: true,
 };
 export const defaultPlantumlSettings: PlantumlSettings = {
   command: "",

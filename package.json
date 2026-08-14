@@ -9,7 +9,7 @@
     "lint": "eslint \"src/**/*.{ts,svelte}\" \"tests/**/*.ts\"",
     "build": "npm run fonts && svelte-check --tsconfig ./tsconfig.json && vite build",
     "preview": "vite preview",
-    "tauri": "GDK_BACKEND=x11 tauri",
+    "tauri": "tauri",
     "fonts": "node -e \"fs.cpSync('node_modules/@excalidraw/excalidraw/dist/prod/fonts','public/fonts',{recursive:true})\""
   },
   "dependencies": {

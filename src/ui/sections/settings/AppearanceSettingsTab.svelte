@@ -18,7 +18,12 @@
   import { cn } from "../../../lib/utils/cn";
   import Input from "../../components/Input.svelte";
   import Select, { type SelectOption } from "../../components/Select.svelte";
-  import { updateAppearance, updateSettings } from "./settingsHelpers";
+  import Switch from "../../components/Switch.svelte";
+  import {
+    updateAppearance,
+    updateFeatures,
+    updateSettings,
+  } from "./settingsHelpers";
   import DatabasePaletteSettings from "./DatabasePaletteSettings.svelte";
 
   export let settings: AppSettings;
@@ -103,6 +108,18 @@
       className="h-9"
       rootClassName={compactSelectRoot}
       onChange={(theme) => patch({ theme: theme as ThemePreference })}
+    />
+  </section>
+  <section class="grid gap-2 sm:grid-cols-[8rem_auto] sm:items-center">
+    <span class="text-sm font-medium text-stone-800 dark:text-stone-200">
+      {$i18n.t("settings.windowControls")}
+    </span>
+    <Switch
+      checked={settings.features.windowControls}
+      label={$i18n.t("settings.windowControlsHint")}
+      className="h-10 w-full"
+      onChange={(windowControls) =>
+        updateFeatures(settings, onChange, { windowControls })}
     />
   </section>
   <section

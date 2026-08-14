@@ -3,11 +3,15 @@
     Database,
     FileDown,
     Link2,
+    Minus,
     PanelLeftClose,
     PanelLeftOpen,
     Settings,
     ShieldCheck,
+    Square,
+    X,
   } from "@lucide/svelte";
+  import { getCurrentWindow } from "@tauri-apps/api/window";
   import { i18n } from "../../lib/i18n";
   import { cn } from "../../lib/utils/cn";
   import Button from "../components/Button.svelte";
@@ -27,6 +31,7 @@
   export let backlinksAvailable = false;
   export let backlinksOpen = true;
   export let backlinksCount = 0;
+  export let windowControlsEnabled = true;
   export let onSelectBreadcrumb: (path: string) => void;
   export let onToggleSpacePane: () => void;
   export let onToggleBacklinks: () => void;
@@ -34,6 +39,13 @@
   export let onToggleDatabases: () => void;
   export let onToggleGrammar: () => void;
   export let onExportPdf: (() => void) | null = null;
+
+  // The window draws its own frame, so the toolbar carries the window controls.
+  const windowControls = [
+    { key: "toolbar.minimize", icon: Minus, run: () => getCurrentWindow().minimize() },
+    { key: "toolbar.maximize", icon: Square, run: () => getCurrentWindow().toggleMaximize() },
+    { key: "toolbar.close", icon: X, run: () => getCurrentWindow().close() },
+  ] as const;
 
   $: visibleBreadcrumbs = breadcrumbs.length
     ? breadcrumbs
@@ -43,6 +55,7 @@
 <header
   class="flex h-12 items-center gap-1.5 border-b border-stone-200/70 bg-stone-50/80 px-3 backdrop-blur dark:border-stone-800 dark:bg-stone-900/70"
   aria-label={$i18n.t("toolbar.aria")}
+  data-tauri-drag-region
 >
   <button
     type="button"
@@ -160,5 +173,26 @@
       variant="ghost"
       size="sm"
     />
+    {#if windowControlsEnabled}
+      <span
+        class="mx-1 h-5 w-px bg-stone-300/70 dark:bg-stone-700"
+        aria-hidden="true"
+      ></span>
+    {/if}
+    {#each windowControlsEnabled ? windowControls : [] as control}
+      <button
+        type="button"
+        class="inline-flex size-8 items-center justify-center rounded-lg text-stone-500 transition-colors hover:bg-stone-500/10 hover:text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/40 dark:text-stone-400 dark:hover:text-stone-100"
+        aria-label={$i18n.t(control.key)}
+        title={$i18n.t(control.key)}
+        onclick={control.run}
+      >
+        <control.icon
+          class="size-4 shrink-0"
+          strokeWidth={1.8}
+          aria-hidden="true"
+        />
+      </button>
+    {/each}
   </div>
 </header>

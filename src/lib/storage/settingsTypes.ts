@@ -19,6 +19,7 @@ export type FeatureSettings = {
   lsp: boolean;
   plantuml: boolean;
   mermaid: boolean;
+  windowControls: boolean;
 };
 
 export type PlantumlFormat = "svg" | "png" | "txt";

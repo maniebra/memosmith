@@ -234,6 +234,10 @@ function readFeatures(value: unknown): FeatureSettings {
       typeof parsed.mermaid === "boolean"
         ? parsed.mermaid
         : defaultFeatureSettings.mermaid,
+    windowControls:
+      typeof parsed.windowControls === "boolean"
+        ? parsed.windowControls
+        : defaultFeatureSettings.windowControls,
   };
 }
 function readRunner(value: unknown): RunnerSettings {

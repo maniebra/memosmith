@@ -77,6 +77,7 @@
     backlinksAvailable={Boolean(backlinks.length) && !activeDatabaseId}
     backlinksOpen={settings.backlinksPaneOpen}
     backlinksCount={backlinks.length}
+    windowControlsEnabled={settings.features.windowControls}
     onSelectBreadcrumb={(relativePath) =>
       actions.runWithStatus(() => actions.selectSpaceNote(relativePath))}
     onToggleSpacePane={actions.toggleSpacePane}
