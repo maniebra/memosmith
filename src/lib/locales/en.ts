@@ -240,6 +240,7 @@ export const en = {
   "page.setUrl": "Set URL",
   "page.addIcon": "Add icon",
   "page.changeIcon": "Change icon",
+  "page.renameTitle": "Note title",
   "page.use": "Use {name}",
   "page.iconPlaceholder": "Emoji or lucide name",
   "page.setIcon": "Set icon",

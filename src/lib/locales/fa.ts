@@ -243,6 +243,7 @@ export const fa: Record<I18nKey, string> = {
   "page.setUrl": "تنظیم URL",
   "page.addIcon": "افزودن آیکن",
   "page.changeIcon": "تغییر آیکن",
+  "page.renameTitle": "عنوان یادداشت",
   "page.use": "استفاده از {name}",
   "page.iconPlaceholder": "ایموجی یا نام lucide",
   "page.setIcon": "تنظیم آیکن",

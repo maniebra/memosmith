@@ -25,7 +25,10 @@
   export let onIconChange: (icon: PageIconType | null) => void | Promise<void>;
   export let onCoverChange: (cover: string | null) => void | Promise<void>;
   export let onPickCover: () => void | Promise<void>;
+  export let onTitleChange: ((name: string) => void | Promise<void>) | null =
+    null;
 
+  let titleElement: HTMLElement | undefined;
   let iconOpen = false;
   let coverMenuOpen = false;
   let coverUrl = "";
@@ -71,6 +74,39 @@
   function removeCover() {
     coverMenuOpen = false;
     void onCoverChange(null);
+  }
+
+  function commitTitle() {
+    if (!titleElement) {
+      return;
+    }
+
+    const next = (titleElement.textContent ?? "").replace(/\s+/g, " ").trim();
+
+    if (!next || next === title) {
+      titleElement.textContent = title;
+      return;
+    }
+
+    void onTitleChange?.(next);
+  }
+
+  function titleKeydown(event: KeyboardEvent) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      titleElement?.blur();
+      return;
+    }
+
+    if (event.key === "Escape") {
+      event.preventDefault();
+
+      if (titleElement) {
+        titleElement.textContent = title;
+      }
+
+      titleElement?.blur();
+    }
   }
 </script>
 
@@ -236,8 +272,18 @@
         <div class="min-w-0 flex-1">
           {#if showTitle}
             <h1
+              bind:this={titleElement}
               dir={titleDirection}
-              class="min-w-0 text-start text-[2.5rem] leading-tight font-bold tracking-normal break-words text-stone-900 dark:text-stone-100"
+              contenteditable={Boolean(onTitleChange)}
+              spellcheck="false"
+              aria-label={$i18n.t("page.renameTitle")}
+              class={cn(
+                "min-w-0 rounded-md text-start text-[2.5rem] leading-tight font-bold tracking-normal break-words text-stone-900 focus-visible:outline-none dark:text-stone-100",
+                onTitleChange &&
+                  "focus:ring-2 focus:ring-emerald-600/25 focus:ring-offset-2 focus:ring-offset-transparent",
+              )}
+              onkeydown={titleKeydown}
+              onblur={commitTitle}
             >
               {title}
             </h1>

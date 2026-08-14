@@ -192,6 +192,12 @@
           onCoverChange={(cover) =>
             actions.runWithStatus(() => actions.updateActiveCover(cover))}
           onPickCover={() => actions.runWithStatus(actions.pickActiveCover)}
+          onTitleChange={activeRelativePath
+            ? (name) =>
+                actions.runWithStatus(() =>
+                  actions.renameSpaceEntry(activeRelativePath, name),
+                )
+            : null}
           onAssets={(source) =>
             actions.storeAssets(source).catch((error) => {
               statusMessage =

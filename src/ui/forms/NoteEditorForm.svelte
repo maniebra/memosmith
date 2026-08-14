@@ -68,6 +68,8 @@
   export let onIconChange: (icon: PageIcon | null) => void | Promise<void>;
   export let onCoverChange: (cover: string | null) => void | Promise<void>;
   export let onPickCover: () => void | Promise<void>;
+  export let onTitleChange: ((name: string) => void | Promise<void>) | null =
+    null;
   export let resolveAsset: (source: string) => string;
 
   const widthClasses: Record<EditorWidth, string> = {
@@ -100,6 +102,7 @@
       {onIconChange}
       {onCoverChange}
       {onPickCover}
+      {onTitleChange}
     />
 
     <MarkdownEditor
