@@ -322,6 +322,14 @@ export const en = {
   "pdf.cancelled": "PDF export cancelled",
   "dialog.deleteConfirm": "Delete {name}? This cannot be undone.",
   "error.llmRequired": "Set an LLM base URL and model in Settings > AI",
+  "welcome.title": "MemoSmith",
+  "welcome.tagline": "Open a note to start writing.",
+  "welcome.start": "Start",
+  "welcome.newNote": "New note",
+  "welcome.openSpace": "Open space",
+  "welcome.recent": "Notes",
+  "welcome.noNotes": "This space has no notes yet",
+  "welcome.untitled": "Untitled",
 } as const;
 
 export type I18nKey = keyof typeof en;

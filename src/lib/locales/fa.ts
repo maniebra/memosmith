@@ -326,4 +326,12 @@ export const fa: Record<I18nKey, string> = {
   "dialog.deleteConfirm": "{name} حذف شود؟ این کار قابل بازگشت نیست.",
   "error.llmRequired":
     "آدرس پایه LLM و مدل را در تنظیمات > هوش مصنوعی وارد کنید",
+  "welcome.title": "MemoSmith",
+  "welcome.tagline": "برای شروع نوشتن یک یادداشت باز کنید.",
+  "welcome.start": "شروع",
+  "welcome.newNote": "یادداشت جدید",
+  "welcome.openSpace": "باز کردن فضا",
+  "welcome.recent": "یادداشت‌ها",
+  "welcome.noNotes": "این فضا هنوز یادداشتی ندارد",
+  "welcome.untitled": "بدون عنوان",
 };

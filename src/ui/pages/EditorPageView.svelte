@@ -12,6 +12,7 @@
   import PdfExportModal from "../components/PdfExportModal.svelte";
   import SettingsPanel from "../sections/SettingsPanel.svelte";
   import SpaceSidebar from "../sections/SpaceSidebar.svelte";
+  import WelcomeDashboard from "../sections/WelcomeDashboard.svelte";
   import type { EditorPageActions } from "./editorPageContext";
 
   export let activeDatabaseId: string | null;
@@ -146,7 +147,21 @@
         onReorder={onReorderTabs}
       />
       <div class="min-h-0 flex-1">
-      {#if settings.features.databases && activeDatabaseId && spaceRoot}
+      {#if !activeTab && !activeDatabaseId}
+        <WelcomeDashboard
+          root={spaceRoot}
+          notes={spaceNotes}
+          onNewNote={() =>
+            actions.runWithStatus(() =>
+              actions.createSpaceNote("", $i18n.t("welcome.untitled")),
+            )}
+          onChooseSpace={() => actions.runWithStatus(actions.chooseSpace)}
+          onOpenNote={(relativePath) =>
+            actions.runWithStatus(() =>
+              actions.selectSpaceNote(relativePath),
+            )}
+        />
+      {:else if settings.features.databases && activeDatabaseId && spaceRoot}
         <DatabaseView
           root={spaceRoot}
           databaseId={activeDatabaseId}
