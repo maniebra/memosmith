@@ -12,7 +12,6 @@
     Search,
     SlidersHorizontal,
     Table2,
-    X,
   } from "@lucide/svelte";
   import { i18n } from "../../lib/i18n";
   import type { I18nKey } from "../../lib/i18n";
@@ -25,6 +24,7 @@
     View,
   } from "../../lib/utils/database";
   import Select from "../components/Select.svelte";
+  import DatabaseTabs from "./DatabaseTabs.svelte";
   import DatabaseEmbedBar from "./DatabaseEmbedBar.svelte";
   import DatabaseFilterGroup from "./DatabaseFilterGroup.svelte";
 
@@ -53,6 +53,11 @@
   export let onSearch: (query: string) => void = () => {};
   export let onExportCsv: () => void = () => {};
   export let onImportCsv: () => void = () => {};
+
+  const activeTableClass =
+    "bg-emerald-600/12 font-medium text-emerald-800 dark:text-emerald-300";
+  const activeViewClass =
+    "bg-stone-500/10 font-medium text-stone-900 dark:text-stone-100";
 
   let menu: "view" | "properties" | null = null;
   let bar: HTMLElement | undefined;
@@ -130,28 +135,15 @@
   <div
     class="flex flex-wrap items-center gap-1 border-b border-stone-200/50 pb-2 dark:border-stone-800/80"
   >
-    {#each database.tables as entry (entry.id)}
-      <div class="group flex items-center">
-        <button
-          type="button"
-          class="rounded-md px-2 py-1 text-xs transition-colors {entry.id ===
-          table.id
-            ? 'bg-emerald-600/12 font-medium text-emerald-800 dark:text-emerald-300'
-            : 'text-stone-500 hover:bg-stone-500/10'}"
-          onclick={() => onSelectTable(entry.id)}>{entry.name}</button
-        >
-        {#if database.tables.length > 1}
-          <button
-            type="button"
-            class="flex size-5 items-center justify-center rounded text-stone-400 opacity-0 transition-opacity group-hover:opacity-100 hover:text-rose-600"
-            aria-label={$i18n.t("database.deleteTable", { name: entry.name })}
-            onclick={() => void onRemoveTable(entry.id)}
-          >
-            <X class="size-3" strokeWidth={2} aria-hidden="true" />
-          </button>
-        {/if}
-      </div>
-    {/each}
+    <DatabaseTabs
+      tabs={database.tables}
+      activeId={table.id}
+      activeClass={activeTableClass}
+      idleClass="text-stone-500 hover:bg-stone-500/10"
+      onSelect={onSelectTable}
+      onDelete={onRemoveTable}
+      deleteLabel={(name) => $i18n.t("database.deleteTable", { name })}
+    />
     <button
       type="button"
       class="flex size-7 items-center justify-center rounded-md text-stone-400 hover:bg-stone-500/10 hover:text-stone-700 dark:hover:text-stone-200"
@@ -170,36 +162,19 @@
   </div>
 
   <div class="flex flex-wrap items-center gap-1" bind:this={bar}>
-    {#each table.views as entry (entry.id)}
-      <div class="group flex items-center">
-        <button
-          type="button"
-          class="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors {entry.id ===
-          view.id
-            ? 'bg-stone-500/10 font-medium text-stone-900 dark:text-stone-100'
-            : 'text-stone-500 hover:bg-stone-500/5'}"
-          onclick={() => onSelectView(entry.id)}
-        >
-          <svelte:component
-            this={viewIcons[entry.type] ?? Table2}
-            class="size-3.5"
-            strokeWidth={1.8}
-            aria-hidden="true"
-          />
-          {entry.name}
-        </button>
-        {#if table.views.length > 1}
-          <button
-            type="button"
-            class="flex size-5 items-center justify-center rounded text-stone-400 opacity-0 transition-opacity group-hover:opacity-100 hover:text-rose-600"
-            aria-label={$i18n.t("database.deleteView")}
-            onclick={() => onDeleteView(entry.id)}
-          >
-            <X class="size-3" strokeWidth={2} aria-hidden="true" />
-          </button>
-        {/if}
-      </div>
-    {/each}
+    <DatabaseTabs
+      tabs={table.views.map((entry) => ({
+        id: entry.id,
+        name: entry.name,
+        icon: viewIcons[entry.type] ?? Table2,
+      }))}
+      activeId={view.id}
+      activeClass={activeViewClass}
+      idleClass="text-stone-500 hover:bg-stone-500/5"
+      onSelect={onSelectView}
+      onDelete={onDeleteView}
+      deleteLabel={() => $i18n.t("database.deleteView")}
+    />
     <div class="relative">
       <button
         type="button"

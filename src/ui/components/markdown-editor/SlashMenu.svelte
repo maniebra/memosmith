@@ -41,7 +41,7 @@
         <span>{command.label}</span>
         <span
           class="rounded border border-stone-200 px-1.5 py-px font-mono text-[0.7rem] text-stone-400 dark:border-stone-700 dark:text-stone-500"
-          >{command.hint}</span
+          >{command.children?.length ? "›" : command.hint}</span
         >
       </button>
     </li>

@@ -49,7 +49,7 @@ export function handleSlashKeydown(e: Editor, event: KeyboardEvent) {
 
   if (event.key === "Enter" || event.key === "Tab") {
     event.preventDefault();
-    e.runCommand(matches[e.ui.slashIndex].prefix);
+    e.pickCommand(matches[e.ui.slashIndex]);
     return true;
   }
 

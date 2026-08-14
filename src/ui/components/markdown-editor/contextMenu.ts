@@ -4,10 +4,23 @@ import {
   FileUp,
   Scissors,
   Sparkles,
+  Trash2,
 } from "@lucide/svelte";
 import type { ContextMenuItem } from "../ContextMenu.svelte";
+import { databaseAnchorFor, databaseMenuItems } from "./databaseMenu";
 import { EMBED_SELECTOR } from "./embedLayout";
 import type { ContextMenuApi, Editor } from "./types";
+
+/** What a right click landed on, and what it left selected. */
+export type ContextMenuState = {
+  x: number;
+  y: number;
+  hasSelection: boolean;
+  textSelection?: { start: number; end: number } | null;
+  embedPreview?: HTMLElement | null;
+  /** The card in the note behind a right-clicked database view. */
+  databaseCard?: HTMLElement | null;
+};
 
 export function createContextMenu(e: Editor): ContextMenuApi {
   const service = new EditorContextMenu(e);
@@ -180,8 +193,19 @@ class EditorContextMenu {
 
     const target = event.target as HTMLElement;
 
-    // Same as a left click: the database card owns no caret position.
-    if (target.closest(".md-database-preview")) {
+    // Same as a left click: the database card owns no caret position. Its own
+    // menu still opens, or the webview's would take over the card.
+    const databaseCard = databaseAnchorFor(target, e.element);
+
+    if (databaseCard) {
+      e.ui.contextMenu = {
+        databaseCard,
+        x: event.clientX,
+        y: event.clientY,
+        hasSelection: false,
+        textSelection: null,
+      };
+
       return;
     }
 
@@ -276,6 +300,18 @@ class EditorContextMenu {
   contextItems(): ContextMenuItem[] {
     const e = this.e;
     const props = e.props;
+    const databaseCard = e.ui.contextMenu?.databaseCard;
+
+    // The card is one block the note owns: it is deleted, not edited in place.
+    if (databaseCard) {
+      return databaseMenuItems(databaseCard, {
+        editable: props.editable,
+        label: (key) => e.t(key as Parameters<Editor["t"]>[0]),
+        icon: Trash2,
+        onDelete: (anchor) => e.deleteEmbed(anchor),
+      });
+    }
+
     const hasSelection = Boolean(e.ui.contextMenu?.hasSelection);
     const generating = e.ui.generating;
 
@@ -285,9 +321,7 @@ class EditorContextMenu {
       ...e.tableItems(),
       ...this.clipboardItems(hasSelection),
       {
-        label: generating
-          ? e.t("editor.generating")
-          : e.t("editor.generateAi"),
+        label: generating ? e.t("editor.generating") : e.t("editor.generateAi"),
         icon: Sparkles,
         disabled:
           !props.editable || !props.onGenerate || !hasSelection || generating,

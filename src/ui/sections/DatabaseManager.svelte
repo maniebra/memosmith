@@ -3,6 +3,7 @@
   import { i18n } from "../../lib/i18n";
   import type { DatabaseSummary } from "../../lib/tauri/databases";
   import Button from "../components/Button.svelte";
+  import ContextMenu from "../components/ContextMenu.svelte";
 
   export let databases: DatabaseSummary[];
   export let activeDatabaseId: string | null;
@@ -12,6 +13,8 @@
   export let onClose: () => void;
 
   let newName = "";
+  let contextMenu: { x: number; y: number; id: string; name: string } | null =
+    null;
 
   function create() {
     const name = newName.trim();
@@ -64,7 +67,19 @@
 
   <div class="min-h-0 flex-1 overflow-y-auto p-2">
     {#each databases as database (database.id)}
-      <div class="group flex items-center gap-1">
+      <div
+        class="group flex items-center gap-1"
+        role="presentation"
+        oncontextmenu={(event) => {
+          event.preventDefault();
+          contextMenu = {
+            x: event.clientX,
+            y: event.clientY,
+            id: database.id,
+            name: database.name,
+          };
+        }}
+      >
         <button
           type="button"
           class="flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-2 text-left text-sm transition-colors {database.id ===
@@ -99,3 +114,19 @@
     {/if}
   </div>
 </div>
+
+{#if contextMenu}
+  <ContextMenu
+    x={contextMenu.x}
+    y={contextMenu.y}
+    items={[
+      {
+        label: $i18n.t("database.delete", { name: contextMenu.name }),
+        icon: Trash2,
+        danger: true,
+        onSelect: () => onDelete(contextMenu!.id),
+      },
+    ]}
+    onClose={() => (contextMenu = null)}
+  />
+{/if}

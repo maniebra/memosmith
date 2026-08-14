@@ -36,6 +36,7 @@ export function createSlash(e: Editor): SlashApi {
     closeMenu: service.closeMenu.bind(service),
     highlightSlash: service.highlightSlash.bind(service),
     runCommand: service.runCommand.bind(service),
+    pickCommand: service.pickCommand.bind(service),
     slashMatches: service.slashMatches.bind(service),
     syncMenu: service.syncMenu.bind(service),
   };
@@ -89,14 +90,35 @@ class EditorSlash {
       ...(props.mermaid
         ? [{ label: "Mermaid", hint: "diagram", prefix: EMPTY_MERMAID }]
         : []),
-      ...databases.flatMap((option) => [
-        {
-          label: this.e.t("editor.database", { name: option.name }),
+      ...this.databaseCommands(databases),
+    ];
+  }
+
+  /** One entry, not one per view: the databases hang off it as submenus. */
+  private databaseCommands(databases: DatabaseSummary[]): SlashCommand[] {
+    if (!databases.length) {
+      return [];
+    }
+
+    return [
+      {
+        label: this.e.t("editor.databaseGroup"),
+        hint: "embed",
+        prefix: "",
+        children: databases.map((option) => ({
+          label: option.name,
           hint: "embed",
-          prefix: emptyDatabaseEmbed(option.id),
-        },
-        ...this.databaseViewCommands(option),
-      ]),
+          prefix: "",
+          children: [
+            {
+              label: this.e.t("editor.databaseWhole"),
+              hint: "embed",
+              prefix: emptyDatabaseEmbed(option.id),
+            },
+            ...this.databaseViewCommands(option),
+          ],
+        })),
+      },
     ];
   }
 
@@ -107,11 +129,7 @@ class EditorSlash {
   private databaseViewCommands(option: DatabaseSummary): SlashCommand[] {
     return (option.tables ?? []).flatMap((table) =>
       table.views.map((view) => ({
-        label: this.e.t("editor.databaseView", {
-          name: option.name,
-          table: table.name,
-          view: view.name,
-        }),
+        label: `${table.name} · ${view.name}`,
         hint: view.type,
         prefix: databaseEmbed({
           database: option.id,
@@ -124,8 +142,8 @@ class EditorSlash {
   }
 
   slashMatches() {
-    const query = this.e.ui.slashQuery.toLowerCase();
-    const commands = [
+    const ui = this.e.ui;
+    let commands: SlashCommand[] = [
       ...SLASH_COMMANDS.map((command) => ({
         ...command,
         label: this.slashLabel(command.label),
@@ -135,7 +153,29 @@ class EditorSlash {
       ...this.featureCommands(),
     ];
 
-    return matchCommands(commands, query);
+    for (const label of ui.slashPath) {
+      commands =
+        commands.find((command) => command.label === label)?.children ??
+        commands;
+    }
+
+    // Inside a submenu only what was typed after drilling in filters it.
+    return matchCommands(
+      commands,
+      ui.slashQuery.toLowerCase().slice(ui.slashPathQuery),
+    );
+  }
+
+  /** A command with children opens its submenu; a leaf inserts. */
+  pickCommand(command: SlashCommand) {
+    if (!command.children?.length) {
+      this.runCommand(command.prefix);
+      return;
+    }
+
+    this.e.ui.slashPath = [...this.e.ui.slashPath, command.label];
+    this.e.ui.slashPathQuery = this.e.ui.slashQuery.length;
+    this.e.ui.slashIndex = 0;
   }
 
   highlightSlash(index: number) {
@@ -146,6 +186,8 @@ class EditorSlash {
     this.e.ui.slashStart = null;
     this.e.ui.slashQuery = "";
     this.e.ui.slashIndex = 0;
+    this.e.ui.slashPath = [];
+    this.e.ui.slashPathQuery = 0;
   }
 
   syncMenu(surface: EditSurface) {
@@ -168,6 +210,12 @@ class EditorSlash {
     e.ui.slashStart = caret - typed[1].length - 1;
     e.ui.slashQuery = typed[1];
     e.ui.slashIndex = 0;
+
+    // Backspacing past where the submenu was opened leaves it.
+    if (typed[1].length < e.ui.slashPathQuery) {
+      e.ui.slashPath = [];
+      e.ui.slashPathQuery = 0;
+    }
 
     const rect = getSelection()?.getRangeAt(0).getBoundingClientRect();
 

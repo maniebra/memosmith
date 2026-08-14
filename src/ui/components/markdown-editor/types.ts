@@ -16,6 +16,7 @@ import type {
   withMediaOptions,
 } from "../../../lib/utils/markdown";
 import type { ContextMenuItem } from "../ContextMenu.svelte";
+import type { ContextMenuState } from "./contextMenu";
 import type { FindApi, FindState } from "./find";
 import type { EditSurface } from "./surface";
 
@@ -37,6 +38,7 @@ export type SlashCommand = {
   label: string;
   hint: string;
   prefix: string;
+  /** Children open a submenu, not an insert. */ children?: SlashCommand[];
 };
 
 export type BlockUnit = {
@@ -59,23 +61,13 @@ export type UnitContext = {
 };
 
 export type UnitRect =
-  | { top: number; bottom: number; height: number }
-  | DOMRect
-  | null;
+  { top: number; bottom: number; height: number } | DOMRect | null;
 
 export type ScrollSnapshot = {
   node: HTMLElement;
   top: number;
   left: number;
 }[];
-
-export type ContextMenuState = {
-  x: number;
-  y: number;
-  hasSelection: boolean;
-  textSelection?: { start: number; end: number } | null;
-  embedPreview?: HTMLElement | null;
-};
 
 export type EditorProps = {
   placeholder: string;
@@ -104,8 +96,7 @@ export type EditorProps = {
   onWikilink: ((target: string) => void | Promise<void>) | null;
   resolveWikilink: WikilinkResolver | undefined;
   renderWikilinkEmbed:
-    | ((target: string, depth: number) => WikilinkEmbed | null)
-    | undefined;
+    ((target: string, depth: number) => WikilinkEmbed | null) | undefined;
   wikilinkKey: string;
   databaseRoot: string;
   databaseOptions: DatabaseSummary[];
@@ -125,6 +116,9 @@ export type EditorUi = {
   slashStart: number | null;
   slashQuery: string;
   slashIndex: number;
+  /** Submenus drilled into; query length when the last opened. */
+  slashPath: string[];
+  slashPathQuery: number;
   menuPosition: { top: number; left: number };
   completions: Completion[];
   completionIndex: number;
@@ -258,10 +252,7 @@ export type TableApi = {
 
 export type SubblockApi = {
   handleSubblockInput: (body: HTMLElement) => void;
-  handleSubblockKeydown: (
-    event: KeyboardEvent,
-    body: HTMLElement,
-  ) => boolean;
+  handleSubblockKeydown: (event: KeyboardEvent, body: HTMLElement) => boolean;
   handleSubblockPointerDown: (
     event: PointerEvent,
     body: HTMLElement,
@@ -304,6 +295,7 @@ export type EmbedLayoutApi = {
   ) => void;
   startMediaResize: (event: PointerEvent, handle: HTMLElement) => void;
   embedAlignItems: () => ContextMenuItem[];
+  deleteEmbed: (preview: HTMLElement) => void;
   alignItems: () => ContextMenuItem[];
 };
 
@@ -348,6 +340,7 @@ export type SlashApi = {
   closeMenu: () => void;
   syncMenu: (surface: EditSurface) => void;
   runCommand: (prefix: string) => void;
+  pickCommand: (command: SlashCommand) => void;
 };
 
 export type CompletionApi = {
@@ -378,18 +371,22 @@ export type EventApi = {
 };
 
 export type Editor = EditorHost &
-  DomApi & RenderApi &
-  HistoryApi & SelectionApi &
+  DomApi &
+  RenderApi &
+  HistoryApi &
+  SelectionApi &
   BlockApi &
   BlockEditApi &
-  TableApi & SubblockApi &
+  TableApi &
+  SubblockApi &
   TableMenuApi &
   EmbedLayoutApi &
   DrawingApi &
   LiveDiagramApi &
   RunCellApi &
   DatabaseApi &
-  SlashApi & CompletionApi &
+  SlashApi &
+  CompletionApi &
   ContextMenuApi &
-  EventApi & FindApi & { ui: EditorUi };
-
+  EventApi &
+  FindApi & { ui: EditorUi };

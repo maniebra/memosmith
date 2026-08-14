@@ -3,6 +3,7 @@ import type { Database } from "../../../lib/utils/database";
 import { DATABASE_LANGUAGE } from "../../../lib/utils/markdown";
 import type { DatabaseEmbed } from "../../../lib/utils/markdownEmbeds";
 import DatabaseView from "../../sections/DatabaseView.svelte";
+import { layoutPortals } from "./databaseLayout";
 import type { DatabaseApi, Editor } from "./types";
 
 type DatabasePortal = {
@@ -138,25 +139,6 @@ class EditorDatabase {
     return `${preview.dataset.code}:${preview.dataset.embed}`;
   }
 
-  private positionDatabaseEntry(entry: DatabasePortal) {
-    if (!this.e.databaseLayer || !entry.card.isConnected) {
-      return;
-    }
-
-    const card = entry.card.getBoundingClientRect();
-    const layer = this.e.databaseLayer.getBoundingClientRect();
-
-    entry.host.style.left = `${card.left - layer.left}px`;
-    entry.host.style.top = `${card.top - layer.top}px`;
-    entry.host.style.width = `${card.width}px`;
-
-    const height = entry.host.getBoundingClientRect().height;
-
-    if (height > 0) {
-      entry.card.style.height = `${height}px`;
-    }
-  }
-
   scheduleDatabaseLayout() {
     if (this.layoutFrame !== undefined) {
       return;
@@ -165,9 +147,14 @@ class EditorDatabase {
     this.layoutFrame = requestAnimationFrame(() => {
       this.layoutFrame = undefined;
 
-      for (const entry of this.views.values()) {
-        this.positionDatabaseEntry(entry);
+      if (!this.e.databaseLayer) {
+        return;
       }
+
+      layoutPortals(
+        [...this.views.values()].filter((entry) => entry.card.isConnected),
+        this.e.databaseLayer,
+      );
     });
   }
 

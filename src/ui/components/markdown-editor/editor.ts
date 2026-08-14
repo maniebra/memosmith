@@ -42,6 +42,8 @@ function emptyUi(): EditorUi {
     menuPosition: { top: 0, left: 0 },
     selectedTableCell: null,
     slashIndex: 0,
+    slashPath: [],
+    slashPathQuery: 0,
     slashQuery: "",
     slashStart: null,
     tailAddTop: 0,

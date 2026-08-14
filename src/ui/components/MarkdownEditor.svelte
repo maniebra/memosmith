@@ -255,6 +255,7 @@
     class="pointer-events-none absolute inset-0 z-10"
     role="presentation"
     onfocusout={editor.handleDatabaseBlur}
+    oncontextmenu={editor.openContextMenu}
   ></div>
 
   {#if editable}
@@ -306,7 +307,7 @@
     left={ui.menuPosition.left}
     label={$i18n.t("editor.commands")}
     onHover={editor.highlightSlash}
-    onPick={(command) => editor.runCommand(command.prefix)}
+    onPick={editor.pickCommand}
   />
 {/if}
 

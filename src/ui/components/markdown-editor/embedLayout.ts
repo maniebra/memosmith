@@ -22,6 +22,7 @@ export function createEmbedLayout(e: Editor): EmbedLayoutApi {
     alignItems: service.alignItems.bind(service),
     applyEmbedLayout: service.applyEmbedLayout.bind(service),
     codeSourceBlocks: service.codeSourceBlocks.bind(service),
+    deleteEmbed: service.deleteEmbed.bind(service),
     embedAlignItems: service.embedAlignItems.bind(service),
     replaceFencedSource: service.replaceFencedSource.bind(service),
     sceneOf: service.sceneOf.bind(service),
