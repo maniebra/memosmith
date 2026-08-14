@@ -191,6 +191,10 @@
             actions.runWithStatus(() => actions.updateActiveIcon(icon))}
           onCoverChange={(cover) =>
             actions.runWithStatus(() => actions.updateActiveCover(cover))}
+          onCoverPositionChange={(position) =>
+            actions.runWithStatus(() =>
+              actions.updateActiveCoverPosition(position),
+            )}
           onPickCover={() => actions.runWithStatus(actions.pickActiveCover)}
           onTitleChange={activeRelativePath
             ? (name) =>

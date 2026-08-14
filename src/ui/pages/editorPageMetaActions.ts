@@ -31,8 +31,16 @@ export function createMetaActions(context: EditorPageContext) {
   }
 
   function updateActiveCover(cover: string | null) {
-    return updateActiveMeta({ ...context.activePageMeta, cover });
+    return updateActiveMeta({
+      ...context.activePageMeta,
+      cover,
+      coverPosition: null,
+    });
   }
 
-  return { updateActiveCover, updateActiveIcon };
+  function updateActiveCoverPosition(coverPosition: number) {
+    return updateActiveMeta({ ...context.activePageMeta, coverPosition });
+  }
+
+  return { updateActiveCover, updateActiveCoverPosition, updateActiveIcon };
 }

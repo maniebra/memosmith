@@ -98,6 +98,7 @@ export type EditorPageActions = {
   toggleGrammar: () => void;
   toggleSpacePane: () => void;
   updateActiveCover: (cover: string | null) => Promise<void>;
+  updateActiveCoverPosition: (position: number) => Promise<void>;
   updateActiveIcon: (icon: any) => Promise<void>;
   updateGrammarProfile: (profile: GrammarProfile) => void;
   updateNote: () => void;

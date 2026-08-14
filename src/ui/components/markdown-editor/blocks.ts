@@ -218,7 +218,7 @@ class EditorBlocks {
   trackHoveredBlock(event: PointerEvent) {
     const e = this.e;
 
-    if (e.ui.draggingUnit) {
+    if (e.ui.draggingUnit || !e.props.editable) {
       return;
     }
 

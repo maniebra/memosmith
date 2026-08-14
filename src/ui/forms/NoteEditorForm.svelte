@@ -67,6 +67,9 @@
   }[] = [];
   export let onIconChange: (icon: PageIcon | null) => void | Promise<void>;
   export let onCoverChange: (cover: string | null) => void | Promise<void>;
+  export let onCoverPositionChange: (
+    position: number,
+  ) => void | Promise<void> = () => {};
   export let onPickCover: () => void | Promise<void>;
   export let onTitleChange: ((name: string) => void | Promise<void>) | null =
     null;
@@ -101,6 +104,7 @@
       {resolveAsset}
       {onIconChange}
       {onCoverChange}
+      {onCoverPositionChange}
       {onPickCover}
       {onTitleChange}
     />

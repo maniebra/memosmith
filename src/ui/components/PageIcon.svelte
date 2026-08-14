@@ -1,58 +1,18 @@
 <script lang="ts">
-  import {
-    BookOpen,
-    Briefcase,
-    Calendar,
-    CheckSquare,
-    Code,
-    FileText,
-    Folder,
-    Heart,
-    Image as ImageIcon,
-    Lightbulb,
-    ListTodo,
-    Map,
-    Music,
-    PenLine,
-    Rocket,
-    Sparkles,
-    Star,
-    Tag,
-    Target,
-    Users,
-  } from "@lucide/svelte";
+  import { FileText } from "@lucide/svelte";
   import type { PageIcon } from "../../lib/utils/pageMeta";
+  import { lucideIconComponents } from "../../lib/utils/pageIconComponents";
+  import type { LucideIconName } from "../../lib/utils/pageIcons";
   import { cn } from "../../lib/utils/cn";
 
   export let icon: PageIcon | null | undefined = null;
   export let fallback: any = FileText;
   export let className = "";
 
-  const lucideIcons: Record<string, any> = {
-    BookOpen,
-    Briefcase,
-    Calendar,
-    CheckSquare,
-    Code,
-    FileText,
-    Folder,
-    Heart,
-    Image: ImageIcon,
-    Lightbulb,
-    ListTodo,
-    Map,
-    Music,
-    PenLine,
-    Rocket,
-    Sparkles,
-    Star,
-    Tag,
-    Target,
-    Users,
-  };
-
   $: component =
-    icon?.type === "lucide" ? (lucideIcons[icon.value] ?? fallback) : fallback;
+    icon?.type === "lucide"
+      ? (lucideIconComponents[icon.value as LucideIconName] ?? fallback)
+      : fallback;
 </script>
 
 {#if icon?.type === "emoji"}

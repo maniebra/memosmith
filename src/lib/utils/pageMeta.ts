@@ -1,3 +1,5 @@
+import { emojiIconGroups, lucideIconGroups } from "./pageIcons";
+
 export type PageIcon = {
   type: "emoji" | "lucide";
   value: string;
@@ -6,47 +8,15 @@ export type PageIcon = {
 export type PageMeta = {
   icon?: PageIcon | null;
   cover?: string | null;
+  /** Vertical focus of the cover crop, 0 (top) to 100 (bottom). */
+  coverPosition?: number | null;
 };
 
 export type SpaceMeta = Record<string, PageMeta>;
 
-export const lucideIconNames = [
-  "BookOpen",
-  "Briefcase",
-  "Calendar",
-  "CheckSquare",
-  "Code",
-  "FileText",
-  "Folder",
-  "Heart",
-  "Image",
-  "Lightbulb",
-  "ListTodo",
-  "Map",
-  "Music",
-  "PenLine",
-  "Rocket",
-  "Sparkles",
-  "Star",
-  "Tag",
-  "Target",
-  "Users",
-] as const;
+export const lucideIconNames = lucideIconGroups.flatMap((group) => group.names);
 
-export const emojiIconChoices = [
-  "📝",
-  "📚",
-  "💡",
-  "✅",
-  "⭐",
-  "🎯",
-  "🚀",
-  "🧠",
-  "📌",
-  "🗓️",
-  "🔖",
-  "🧪",
-] as const;
+export const emojiIconChoices = emojiIconGroups.flatMap((group) => group.names);
 
 const lucideLookup = new Map(
   lucideIconNames.map((name) => [normalizeLucideName(name), name]),
@@ -61,6 +31,10 @@ export function cleanPageMeta(meta: PageMeta): PageMeta {
 
   if (meta.cover) {
     next.cover = meta.cover;
+
+    if (typeof meta.coverPosition === "number") {
+      next.coverPosition = Math.min(100, Math.max(0, meta.coverPosition));
+    }
   }
 
   return next;

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Check, FileText, Image, Link, Trash2, Upload } from "@lucide/svelte";
+  import { Check, FileText, Image } from "@lucide/svelte";
   import { i18n } from "../../lib/i18n";
   import { cn } from "../../lib/utils/cn";
   import {
@@ -7,15 +7,13 @@
     type StrongTextDirection,
   } from "../../lib/utils/textDirection";
   import {
-    emojiIconChoices,
-    lucideIconNames,
-    parsePageIcon,
     type PageIcon as PageIconType,
     type PageMeta,
   } from "../../lib/utils/pageMeta";
   import Button from "./Button.svelte";
-  import Input from "./Input.svelte";
   import PageIcon from "./PageIcon.svelte";
+  import PageIconPicker from "./PageIconPicker.svelte";
+  import PageCoverMenu from "./PageCoverMenu.svelte";
 
   export let title = "";
   export let meta: PageMeta = {};
@@ -24,6 +22,9 @@
   export let resolveAsset: (source: string) => string;
   export let onIconChange: (icon: PageIconType | null) => void | Promise<void>;
   export let onCoverChange: (cover: string | null) => void | Promise<void>;
+  export let onCoverPositionChange: (
+    position: number,
+  ) => void | Promise<void> = () => {};
   export let onPickCover: () => void | Promise<void>;
   export let onTitleChange: ((name: string) => void | Promise<void>) | null =
     null;
@@ -31,37 +32,33 @@
   let titleElement: HTMLElement | undefined;
   let iconOpen = false;
   let coverMenuOpen = false;
-  let coverUrl = "";
-  let iconInput = "";
   let pageChromeDirection: StrongTextDirection = "ltr";
+  let repositioning = false;
+  let dragPosition: number | null = null;
+  let dragStartY = 0;
+  let dragStartPosition = 50;
+  let coverElement: HTMLElement | undefined;
 
   $: coverSource = meta.cover ? resolveAsset(meta.cover) : "";
   $: titleDirection = preferredTextDirection(title);
   $: pageChromeDirection =
     titleDirection === "rtl" || $i18n.dir === "rtl" ? "rtl" : "ltr";
+  $: coverPosition = dragPosition ?? meta.coverPosition ?? 50;
+  function closeMenus(event: MouseEvent) {
+    if ((event.target as HTMLElement | null)?.closest("[data-menu]")) {
+      return;
+    }
+
+    iconOpen = false;
+    coverMenuOpen = false;
+  }
 
   function selectIcon(icon: PageIconType | null) {
-    iconInput = "";
     iconOpen = false;
     void onIconChange(icon);
   }
 
-  function applyIconInput() {
-    const icon = parsePageIcon(iconInput);
-
-    if (icon) {
-      selectIcon(icon);
-    }
-  }
-
-  function applyCoverUrl() {
-    const url = coverUrl.trim();
-
-    if (!url) {
-      return;
-    }
-
-    coverUrl = "";
+  function applyCoverUrl(url: string) {
     coverMenuOpen = false;
     void onCoverChange(url);
   }
@@ -73,7 +70,56 @@
 
   function removeCover() {
     coverMenuOpen = false;
+    repositioning = false;
     void onCoverChange(null);
+  }
+
+  function startReposition() {
+    coverMenuOpen = false;
+    repositioning = true;
+  }
+
+  function finishReposition() {
+    repositioning = false;
+
+    if (dragPosition !== null) {
+      const next = dragPosition;
+      dragPosition = null;
+      void onCoverPositionChange(next);
+    }
+  }
+
+  function dragStart(event: PointerEvent) {
+    if (!repositioning) {
+      return;
+    }
+
+    event.preventDefault();
+    dragStartY = event.clientY;
+    dragStartPosition = coverPosition;
+    dragPosition = coverPosition;
+    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+  }
+
+  function dragMove(event: PointerEvent) {
+    if (dragPosition === null || !coverElement) {
+      return;
+    }
+
+    // Dragging down reveals the upper part of the image, like Notion.
+    const height = coverElement.clientHeight || 1;
+    const delta = ((event.clientY - dragStartY) / height) * 100;
+    dragPosition = Math.min(100, Math.max(0, dragStartPosition - delta));
+  }
+
+  function dragEnd() {
+    if (dragPosition === null) {
+      return;
+    }
+
+    const next = dragPosition;
+    dragPosition = null;
+    void onCoverPositionChange(next);
   }
 
   function commitTitle() {
@@ -110,78 +156,86 @@
   }
 </script>
 
+<svelte:window
+  onclick={closeMenus}
+  onkeydown={(event) => {
+    if (event.key === "Escape") {
+      iconOpen = false;
+      coverMenuOpen = false;
+      repositioning = false;
+    }
+  }}
+/>
+
 {#if editable}
   <div class="mb-8">
     {#if meta.cover}
       <div
-        class="group/cover relative -mx-6 mb-7 h-44 bg-stone-200 sm:-mx-10 sm:h-56 dark:bg-stone-800"
+        bind:this={coverElement}
+        class="group/cover relative -mx-6 -mt-14 mb-7 h-44 overflow-hidden bg-stone-200 sm:-mx-10 sm:h-56 dark:bg-stone-800"
       >
         <img
           src={coverSource}
           alt=""
-          class="h-full w-full object-cover"
-          draggable="false"
-        />
-        <button
-          type="button"
           class={cn(
-            "absolute top-3 inline-flex h-8 items-center gap-1.5 rounded-md border border-stone-200/80 bg-stone-50/90 px-2.5 text-[0.8125rem] font-medium text-stone-700 opacity-0 shadow-sm backdrop-blur transition-opacity hover:bg-white focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/30 group-hover/cover:opacity-100 dark:border-stone-700/80 dark:bg-stone-900/90 dark:text-stone-200 dark:hover:bg-stone-800",
-            pageChromeDirection === "rtl" ? "left-3" : "right-3",
+            "h-full w-full object-cover select-none",
+            repositioning && "cursor-grab active:cursor-grabbing",
           )}
-          aria-haspopup="menu"
-          aria-expanded={coverMenuOpen}
-          onclick={() => (coverMenuOpen = !coverMenuOpen)}
-        >
-          <Image class="size-3.5" strokeWidth={1.8} aria-hidden="true" />
-          <span>{$i18n.t("page.cover")}</span>
-        </button>
+          style={`object-position: 50% ${coverPosition}%`}
+          draggable="false"
+          onpointerdown={dragStart}
+          onpointermove={dragMove}
+          onpointerup={dragEnd}
+          onpointercancel={dragEnd}
+        />
 
-        {#if coverMenuOpen}
+        {#if repositioning}
           <div
-            class={cn(
-              "absolute top-12 z-50 w-80 rounded-xl border border-stone-200/80 bg-stone-50/95 p-3 shadow-lg shadow-stone-900/8 backdrop-blur dark:border-stone-700/80 dark:bg-stone-900/95 dark:shadow-black/20",
-              pageChromeDirection === "rtl" ? "left-3" : "right-3",
-            )}
+            class="absolute inset-x-0 bottom-3 flex justify-center"
+            data-menu
           >
-            <div class="flex gap-2">
+            <div
+              class="flex items-center gap-3 rounded-md border border-stone-200/80 bg-stone-50/90 px-3 py-1.5 text-[0.8125rem] text-stone-700 shadow-sm backdrop-blur dark:border-stone-700/80 dark:bg-stone-900/90 dark:text-stone-200"
+            >
+              <span>{$i18n.t("page.repositionHint")}</span>
               <Button
-                label={$i18n.t("common.upload")}
-                icon={Upload}
+                label={$i18n.t("common.save")}
+                icon={Check}
                 size="sm"
-                variant="secondary"
-                onClick={pickCover}
-              />
-              <Button
-                label={$i18n.t("common.remove")}
-                icon={Trash2}
-                size="sm"
-                variant="ghost"
-                onClick={removeCover}
+                variant="primary"
+                onClick={finishReposition}
               />
             </div>
-
-            <form
-              class="mt-3 flex gap-2"
-              onsubmit={(event) => {
-                event.preventDefault();
-                applyCoverUrl();
-              }}
-            >
-              <Input
-                bind:value={coverUrl}
-                type="url"
-                placeholder={$i18n.t("page.pasteImageUrl")}
-                className="h-8"
-              />
-              <Button
-                label={$i18n.t("page.setUrl")}
-                icon={Link}
-                size="sm"
-                variant="ghost"
-                onClick={applyCoverUrl}
-              />
-            </form>
           </div>
+        {:else}
+          <button
+            type="button"
+            class={cn(
+              "absolute top-3 inline-flex h-8 items-center gap-1.5 rounded-md border border-stone-200/80 bg-stone-50/90 px-2.5 text-[0.8125rem] font-medium text-stone-700 opacity-0 shadow-sm backdrop-blur transition-opacity hover:bg-white focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/30 group-hover/cover:opacity-100 dark:border-stone-700/80 dark:bg-stone-900/90 dark:text-stone-200 dark:hover:bg-stone-800",
+              pageChromeDirection === "rtl" ? "left-3" : "right-3",
+            )}
+            aria-haspopup="menu"
+            aria-expanded={coverMenuOpen}
+            onclick={(event) => {
+              event.stopPropagation();
+              iconOpen = false;
+              coverMenuOpen = !coverMenuOpen;
+            }}
+          >
+            <Image class="size-3.5" strokeWidth={1.8} aria-hidden="true" />
+            <span>{$i18n.t("page.cover")}</span>
+          </button>
+        {/if}
+
+        {#if coverMenuOpen}
+          <PageCoverMenu
+            hasCover
+            direction={pageChromeDirection}
+            onUpload={pickCover}
+            onUrl={applyCoverUrl}
+            onReposition={startReposition}
+            onRemove={removeCover}
+          />
         {/if}
       </div>
     {/if}
@@ -196,7 +250,11 @@
           )}
           aria-haspopup="menu"
           aria-expanded={coverMenuOpen}
-          onclick={() => (coverMenuOpen = !coverMenuOpen)}
+          onclick={(event) => {
+            event.stopPropagation();
+            iconOpen = false;
+            coverMenuOpen = !coverMenuOpen;
+          }}
         >
           <Image class="size-3.5" strokeWidth={1.8} aria-hidden="true" />
           <span>{$i18n.t("page.cover")}</span>
@@ -204,44 +262,11 @@
       {/if}
 
       {#if coverMenuOpen && !meta.cover}
-        <div
-          class={cn(
-            "absolute top-10 z-50 w-80 rounded-xl border border-stone-200/80 bg-stone-50/95 p-3 shadow-lg shadow-stone-900/8 backdrop-blur dark:border-stone-700/80 dark:bg-stone-900/95 dark:shadow-black/20",
-            pageChromeDirection === "rtl" ? "left-0" : "right-0",
-          )}
-        >
-          <div class="flex gap-2">
-            <Button
-              label={$i18n.t("common.upload")}
-              icon={Upload}
-              size="sm"
-              variant="secondary"
-              onClick={pickCover}
-            />
-          </div>
-
-          <form
-            class="mt-3 flex gap-2"
-            onsubmit={(event) => {
-              event.preventDefault();
-              applyCoverUrl();
-            }}
-          >
-            <Input
-              bind:value={coverUrl}
-              type="url"
-              placeholder={$i18n.t("page.pasteImageUrl")}
-              className="h-8"
-            />
-            <Button
-              label={$i18n.t("page.setUrl")}
-              icon={Link}
-              size="sm"
-              variant="ghost"
-              onClick={applyCoverUrl}
-            />
-          </form>
-        </div>
+        <PageCoverMenu
+          direction={pageChromeDirection}
+          onUpload={pickCover}
+          onUrl={applyCoverUrl}
+        />
       {/if}
 
       <div
@@ -264,7 +289,11 @@
           aria-label={meta.icon
             ? $i18n.t("page.changeIcon")
             : $i18n.t("page.addIcon")}
-          onclick={() => (iconOpen = !iconOpen)}
+          onclick={(event) => {
+            event.stopPropagation();
+            coverMenuOpen = false;
+            iconOpen = !iconOpen;
+          }}
         >
           <PageIcon icon={meta.icon} fallback={FileText} className="size-7" />
         </button>
@@ -292,69 +321,7 @@
       </div>
 
       {#if iconOpen}
-        <div
-          class="absolute top-14 left-0 z-40 w-80 rounded-xl border border-stone-200/80 bg-stone-50/95 p-3 shadow-lg shadow-stone-900/8 backdrop-blur dark:border-stone-700/80 dark:bg-stone-900/95 dark:shadow-black/20"
-        >
-          <div class="grid grid-cols-6 gap-1">
-            {#each emojiIconChoices as emoji}
-              <button
-                type="button"
-                class="flex size-9 items-center justify-center rounded-md text-xl transition-colors hover:bg-stone-200/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 dark:hover:bg-stone-800"
-                aria-label={$i18n.t("page.use", { name: emoji })}
-                onclick={() => selectIcon({ type: "emoji", value: emoji })}
-              >
-                {emoji}
-              </button>
-            {/each}
-          </div>
-
-          <div class="mt-3 grid grid-cols-5 gap-1">
-            {#each lucideIconNames as name}
-              <button
-                type="button"
-                class="flex size-9 items-center justify-center rounded-md text-stone-600 transition-colors hover:bg-stone-200/70 hover:text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 dark:text-stone-300 dark:hover:bg-stone-800 dark:hover:text-stone-100"
-                title={name}
-                aria-label={$i18n.t("page.use", { name })}
-                onclick={() => selectIcon({ type: "lucide", value: name })}
-              >
-                <PageIcon
-                  icon={{ type: "lucide", value: name }}
-                  className="size-4"
-                />
-              </button>
-            {/each}
-          </div>
-
-          <form
-            class="mt-3 flex items-center gap-2"
-            onsubmit={(event) => {
-              event.preventDefault();
-              applyIconInput();
-            }}
-          >
-            <Input
-              bind:value={iconInput}
-              placeholder={$i18n.t("page.iconPlaceholder")}
-              className="h-8 min-w-0 flex-1"
-            />
-            <Button
-              label={$i18n.t("page.setIcon")}
-              icon={Check}
-              size="sm"
-              variant="primary"
-              onClick={applyIconInput}
-            />
-            {#if meta.icon}
-              <Button
-                label={$i18n.t("page.removeIcon")}
-                icon={Trash2}
-                size="sm"
-                variant="ghost"
-                onClick={() => selectIcon(null)}
-              />
-            {/if}
-          </form>
-        </div>
+        <PageIconPicker current={meta.icon} onSelect={selectIcon} />
       {/if}
     </div>
   </div>

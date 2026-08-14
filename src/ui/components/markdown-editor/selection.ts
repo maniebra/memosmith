@@ -42,6 +42,11 @@ class EditorSelection {
   setActiveBlock(active: HTMLElement | undefined) {
     const e = this.e;
 
+    // A read-only surface (no note open) never highlights a block.
+    if (!e.props.editable) {
+      active = undefined;
+    }
+
     // selectionchange fires far more often than the active block moves.
     if (active === e.ui.activeBlock) {
       return;
