@@ -21,6 +21,13 @@
     xml = "";
   }
 
+  /** `atob` yields latin1 bytes; the SVG is UTF-8, so non-Latin text needs a real decode. */
+  function decodeBase64Utf8(data: string) {
+    const binary = atob(data);
+    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+    return new TextDecoder().decode(bytes);
+  }
+
   function post(message: unknown) {
     frame?.contentWindow?.postMessage(JSON.stringify(message), "*");
   }
@@ -54,7 +61,7 @@
 
     if (message.event === "export") {
       const svg = message.data?.startsWith("data:image/svg+xml;base64,")
-        ? atob(message.data.slice("data:image/svg+xml;base64,".length))
+        ? decodeBase64Utf8(message.data.slice("data:image/svg+xml;base64,".length))
         : "";
 
       onSave(JSON.stringify({ xml, svg }));
