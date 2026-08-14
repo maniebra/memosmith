@@ -22,6 +22,7 @@ pub fn run() {
             notes::search_notes,
             notes::load_space_meta,
             notes::save_page_meta,
+            notes::save_space_meta,
             notes::rename_page_meta,
             notes::delete_page_meta,
             assets::write_asset,

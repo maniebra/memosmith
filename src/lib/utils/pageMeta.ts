@@ -10,6 +10,8 @@ export type PageMeta = {
   cover?: string | null;
   /** Vertical focus of the cover crop, 0 (top) to 100 (bottom). */
   coverPosition?: number | null;
+  /** Manual sibling position set by drag and drop; unset means sort by name. */
+  order?: number | null;
 };
 
 export type SpaceMeta = Record<string, PageMeta>;
@@ -24,6 +26,10 @@ const lucideLookup = new Map(
 
 export function cleanPageMeta(meta: PageMeta): PageMeta {
   const next: PageMeta = {};
+
+  if (typeof meta.order === "number") {
+    next.order = meta.order;
+  }
 
   if (meta.icon?.value) {
     next.icon = meta.icon;
@@ -41,7 +47,9 @@ export function cleanPageMeta(meta: PageMeta): PageMeta {
 }
 
 export function hasPageMeta(meta: PageMeta) {
-  return Boolean(meta.icon?.value || meta.cover);
+  return Boolean(
+    meta.icon?.value || meta.cover || typeof meta.order === "number",
+  );
 }
 
 export function parsePageIcon(input: string): PageIcon | null {

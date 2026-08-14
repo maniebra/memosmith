@@ -12,7 +12,11 @@
   import { cn } from "../../lib/utils/cn";
   import { displayNoteName } from "../../lib/utils/path";
   import type { SpaceMeta } from "../../lib/utils/pageMeta";
-  import type { TreeNode } from "../../lib/utils/tree";
+  import {
+    movedPath,
+    reorderedSiblings,
+    type TreeNode,
+  } from "../../lib/utils/tree";
   import PageIcon from "../components/PageIcon.svelte";
   import ContextMenu, {
     type ContextMenuItem,
@@ -33,10 +37,18 @@
   export let onRename: (relativePath: string, name: string) => void;
   export let onCreate: (parentPath: string, name: string) => void;
   export let onDelete: (relativePath: string) => void;
+  export let onMove: (
+    relativePath: string,
+    destFolder: string,
+    siblingOrder?: string[],
+  ) => void;
   export let onCancelEdit: () => void;
   export let depth = 0;
 
   let collapsed: Record<string, boolean> = {};
+  let dropHint: { path: string; where: "before" | "inside" | "after" } | null =
+    null;
+  let expandTimer: ReturnType<typeof setTimeout> | undefined;
   let contextMenu: {
     x: number;
     y: number;
@@ -49,6 +61,81 @@
 
   function toggle(node: TreeNode) {
     collapsed = { ...collapsed, [node.path]: !collapsed[node.path] };
+  }
+
+  /** Dropping on a folder moves into it; dropping on a note targets its parent. */
+  function dropFolder(node: TreeNode) {
+    if (node.children) {
+      return node.path;
+    }
+    return node.path.includes("/")
+      ? node.path.slice(0, node.path.lastIndexOf("/"))
+      : "";
+  }
+
+  /** Parent folder of a node's row, used when dropping between rows. */
+  function parentFolder(node: TreeNode) {
+    return node.path.includes("/")
+      ? node.path.slice(0, node.path.lastIndexOf("/"))
+      : "";
+  }
+
+  function handleDragOver(event: DragEvent, node: TreeNode) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const box = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    const offset = (event.clientY - box.top) / box.height;
+    const where = offset < 0.25 ? "before" : offset > 0.75 ? "after" : "inside";
+
+    if (dropHint?.path !== node.path || dropHint.where !== where) {
+      dropHint = { path: node.path, where };
+      clearTimeout(expandTimer);
+
+      // Hovering a collapsed folder long enough opens it, so nested drops work.
+      if (where === "inside" && node.children && collapsed[node.path]) {
+        expandTimer = setTimeout(() => {
+          collapsed = { ...collapsed, [node.path]: false };
+        }, 700);
+      }
+    }
+  }
+
+  function clearHint() {
+    clearTimeout(expandTimer);
+    dropHint = null;
+  }
+
+  function handleDrop(event: DragEvent, node: TreeNode) {
+    const source = event.dataTransfer?.getData("text/memosmith-path");
+    const where = dropHint?.where ?? "inside";
+
+    clearHint();
+
+    if (!source || source === node.path) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (where === "inside") {
+      onMove(source, dropFolder(node));
+      return;
+    }
+
+    const destFolder = parentFolder(node);
+
+    onMove(
+      source,
+      destFolder,
+      reorderedSiblings(
+        nodes.map((sibling) => sibling.path),
+        movedPath(source, destFolder),
+        node.path,
+        where === "after",
+      ),
+    );
   }
 
   function openContextMenu(event: MouseEvent, node: TreeNode) {
@@ -126,9 +213,26 @@
             node.note && node.note === activePath
               ? "bg-emerald-600/12 text-emerald-800 dark:text-emerald-300"
               : "text-stone-600 hover:bg-stone-500/10 dark:text-stone-400",
+            dropHint?.path === node.path &&
+              {
+                inside: "ring-1 ring-emerald-600/50",
+                before: "border-t border-emerald-600",
+                after: "border-b border-emerald-600",
+              }[dropHint.where],
           )}
           role="presentation"
+          draggable="true"
           oncontextmenu={(event) => openContextMenu(event, node)}
+          ondragstart={(event) => {
+            event.dataTransfer?.setData("text/memosmith-path", node.path);
+            if (event.dataTransfer) {
+              event.dataTransfer.effectAllowed = "move";
+            }
+          }}
+          ondragend={clearHint}
+          ondragover={(event) => handleDragOver(event, node)}
+          ondragleave={clearHint}
+          ondrop={(event) => handleDrop(event, node)}
         >
           {#if node.children}
             <button
@@ -234,6 +338,7 @@
           {onRename}
           {onCreate}
           {onDelete}
+          {onMove}
           {onCancelEdit}
           depth={depth + 1}
         />

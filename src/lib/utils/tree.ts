@@ -1,3 +1,4 @@
+import type { SpaceMeta } from "./pageMeta";
 import { dirNoteName } from "./path";
 
 export type TreeNode = {
@@ -9,8 +10,11 @@ export type TreeNode = {
   children?: TreeNode[];
 };
 
-/** Builds a folder tree from sorted space-relative note paths. */
-export function buildTree(paths: string[]): TreeNode[] {
+/**
+ * Builds a folder tree from sorted space-relative note paths. Siblings with a
+ * manual `order` in `meta` come first, in that order; the rest sort by name.
+ */
+export function buildTree(paths: string[], meta: SpaceMeta = {}): TreeNode[] {
   const roots: TreeNode[] = [];
 
   for (const path of paths) {
@@ -45,21 +49,57 @@ export function buildTree(paths: string[]): TreeNode[] {
     });
   }
 
-  return sortNodes(roots);
+  return sortNodes(roots, meta);
 }
 
-function sortNodes(nodes: TreeNode[]): TreeNode[] {
+/** Where `source` lands when dropped into `destFolder` ("" = space root). */
+export function movedPath(source: string, destFolder: string) {
+  const name = source.slice(source.lastIndexOf("/") + 1);
+
+  return destFolder ? `${destFolder}/${name}` : name;
+}
+
+/** `siblings` with `source` placed just before or after `target`. */
+export function reorderedSiblings(
+  siblings: string[],
+  source: string,
+  target: string,
+  after: boolean,
+) {
+  const rest = siblings.filter((path) => path !== source);
+  const index = rest.indexOf(target);
+
+  if (index === -1) {
+    return siblings;
+  }
+
+  rest.splice(index + (after ? 1 : 0), 0, source);
+
+  return rest;
+}
+
+function sortNodes(nodes: TreeNode[], meta: SpaceMeta): TreeNode[] {
   for (const node of nodes) {
     if (node.children) {
-      sortNodes(node.children);
+      sortNodes(node.children, meta);
     }
   }
 
-  nodes.sort(
-    (a, b) =>
+  const order = (node: TreeNode) => meta[node.path]?.order ?? null;
+
+  nodes.sort((a, b) => {
+    const left = order(a);
+    const right = order(b);
+
+    if (left !== null || right !== null) {
+      return (left ?? Infinity) - (right ?? Infinity);
+    }
+
+    return (
       Number(Boolean(b.children)) - Number(Boolean(a.children)) ||
-      a.name.localeCompare(b.name),
-  );
+      a.name.localeCompare(b.name)
+    );
+  });
 
   return nodes;
 }

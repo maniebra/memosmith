@@ -68,6 +68,11 @@ export type EditorPageActions = {
   ) => Promise<void>;
   deleteSpaceDatabase: (id: string) => Promise<void>;
   deleteSpaceEntry: (relativePath: string) => Promise<void>;
+  moveSpaceEntry: (
+    relativePath: string,
+    destFolder: string,
+    siblingOrder?: string[],
+  ) => Promise<void>;
   dismissGrammarIssue: (issue: any) => void;
   flushNoteSave: () => Promise<void>;
   generateFromPrompt: (prompt: string) => Promise<string>;

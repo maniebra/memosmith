@@ -2,14 +2,9 @@ import {
   chooseSpaceRoot,
   confirmDelete,
   createNote,
-  deletePageMeta,
-  deletePath,
   listSpace,
   loadSpaceMeta,
-  pruneAssets,
   readNote,
-  renamePageMeta,
-  renamePath,
 } from "../../lib/tauri/files";
 import {
   createDatabase,
@@ -20,7 +15,6 @@ import { saveSpaceRoot } from "../../lib/storage/space";
 import { defaultTable, slugify } from "../../lib/utils/database";
 import {
   basename,
-  dirNoteName,
   dirNotePath,
   displayNotePath,
   withNoteExtension,
@@ -30,13 +24,7 @@ import {
   wikilinkCreatePath,
 } from "../../lib/utils/wikilinks";
 import type { EditorPageContext } from "./editorPageContext";
-import {
-  deletedMeta,
-  deletedNoteContents,
-  renamedMeta,
-  renamedNoteContents,
-  safeName,
-} from "./editorPageUtils";
+import { safeName } from "./editorPageUtils";
 
 type CoreActions = {
   flushNoteSave: () => Promise<void>;
@@ -246,136 +234,4 @@ class DatabaseActions {
       name,
     });
   }
-}
-
-export function createEntryActions(
-  context: EditorPageContext,
-  core: Pick<CoreActions, "flushNoteSave" | "setEditorText">,
-  refreshSpace: () => Promise<void>,
-  spacePath: (relativePath: string) => string,
-) {
-  const service = new EntryActions(context, core, refreshSpace, spacePath);
-  return {
-    deleteSpaceEntry: service.deleteSpaceEntry.bind(service),
-    renameSpaceEntry: service.renameSpaceEntry.bind(service),
-  };
-}
-
-class EntryActions {
-  constructor(
-    private context: EditorPageContext,
-    private core: Pick<CoreActions, "flushNoteSave" | "setEditorText">,
-    private refreshSpace: () => Promise<void>,
-    private spacePath: (relativePath: string) => string,
-  ) {}
-
-  async renameSpaceEntry(relativePath: string, name: string) {
-    await this.core.flushNoteSave();
-    const next = renameTarget(this.context.spaceNotes, relativePath, name);
-    await renamePath(this.spacePath(relativePath), this.spacePath(next.path));
-    await renameDirectoryNote(this.context, relativePath, next, this.spacePath);
-    this.updateOpenPath(relativePath, next);
-    await renamePageMeta(
-      this.context.spaceRoot!,
-      relativePath,
-      next.path,
-      next.folder,
-    );
-    this.context.spaceMeta = renamedMeta(
-      this.context.spaceMeta,
-      relativePath,
-      next.path,
-      next.folder,
-    );
-    this.context.noteContents = renamedNoteContents(
-      this.context.noteContents,
-      relativePath,
-      next.path,
-      next.folder,
-    );
-    await this.refreshSpace();
-    this.context.statusMessage = this.context.t("app.renamedTo", {
-      name: displayNotePath(next.path),
-    });
-  }
-
-  async deleteSpaceEntry(relativePath: string) {
-    await this.core.flushNoteSave();
-    if (!(await confirmDelete(relativePath))) {
-      return;
-    }
-    await deletePath(this.spacePath(relativePath));
-    if (this.context.path === this.spacePath(relativePath)) {
-      this.core.setEditorText("", null);
-    }
-    const isFolder = !this.context.spaceNotes.includes(relativePath);
-    await deletePageMeta(this.context.spaceRoot!, relativePath, isFolder);
-    this.context.spaceMeta = deletedMeta(
-      this.context.spaceMeta,
-      relativePath,
-      isFolder,
-    );
-    this.context.noteContents = deletedNoteContents(
-      this.context.noteContents,
-      relativePath,
-      isFolder,
-    );
-    await pruneAssets(this.pruneRoot(relativePath));
-    await this.refreshSpace();
-    this.context.statusMessage = this.context.t("app.deleted", {
-      name: displayNotePath(relativePath),
-    });
-  }
-
-  private updateOpenPath(
-    from: string,
-    next: ReturnType<typeof renameTarget>,
-  ) {
-    const fromPath = this.spacePath(from);
-    if (this.context.path === fromPath) {
-      this.context.path = this.spacePath(next.path);
-    } else if (next.folder && this.context.path?.startsWith(`${fromPath}/`)) {
-      this.context.path = this.context.path.replace(
-        fromPath,
-        this.spacePath(next.path),
-      );
-    }
-  }
-
-  private pruneRoot(relativePath: string) {
-    const parent = relativePath.includes("/")
-      ? relativePath.slice(0, relativePath.lastIndexOf("/"))
-      : "";
-    return parent ? this.spacePath(parent) : this.context.spaceRoot!;
-  }
-}
-
-function renameTarget(notes: string[], relativePath: string, name: string) {
-  const parent = relativePath.includes("/")
-    ? `${relativePath.slice(0, relativePath.lastIndexOf("/"))}/`
-    : "";
-  const folder = !notes.includes(relativePath);
-  const relativeName = folder
-    ? safeName(name)
-    : withNoteExtension(safeName(name));
-  return { folder, path: `${parent}${relativeName}` };
-}
-
-async function renameDirectoryNote(
-  context: EditorPageContext,
-  from: string,
-  next: ReturnType<typeof renameTarget>,
-  spacePath: (relativePath: string) => string,
-) {
-  if (!next.folder) {
-    return;
-  }
-  const dirNote = `${from}/${dirNoteName(basename(from))}`;
-  if (!context.spaceNotes.includes(dirNote)) {
-    return;
-  }
-  await renamePath(
-    spacePath(`${next.path}/${dirNoteName(basename(from))}`),
-    spacePath(dirNotePath(next.path)),
-  );
 }

@@ -2,8 +2,10 @@ import {
   dirNotePath,
   isDirNotePath,
   stripNoteExtension,
+  withNoteExtension,
 } from "../../lib/utils/path";
 import type { SpaceMeta } from "../../lib/utils/pageMeta";
+import { movedPath } from "../../lib/utils/tree";
 
 export type Breadcrumb = { label: string; path?: string };
 
@@ -105,6 +107,48 @@ export function noteBreadcrumbs(
       path,
     };
   });
+}
+
+/** True when `target` is already a note or a folder in the space. */
+export function pathTaken(notes: string[], target: string) {
+  return notes.some(
+    (note) => note === target || note.startsWith(`${target}/`),
+  );
+}
+
+/** Destination path for renaming `relativePath` to `name`, keeping its parent. */
+export function renameTarget(
+  notes: string[],
+  relativePath: string,
+  name: string,
+) {
+  const parent = relativePath.includes("/")
+    ? `${relativePath.slice(0, relativePath.lastIndexOf("/"))}/`
+    : "";
+  const folder = !notes.includes(relativePath);
+  const relativeName = folder
+    ? safeName(name)
+    : withNoteExtension(safeName(name));
+  return { folder, path: `${parent}${relativeName}` };
+}
+
+/**
+ * Destination path for dragging `relativePath` into `destFolder` ("" = root),
+ * or null when the move is a no-op or would put a folder inside itself.
+ */
+export function moveTarget(relativePath: string, destFolder: string) {
+  const cut = relativePath.lastIndexOf("/");
+  const parent = cut === -1 ? "" : relativePath.slice(0, cut);
+
+  if (
+    destFolder === parent ||
+    destFolder === relativePath ||
+    destFolder.startsWith(`${relativePath}/`)
+  ) {
+    return null;
+  }
+
+  return movedPath(relativePath, destFolder);
 }
 
 export function safeName(name: string) {

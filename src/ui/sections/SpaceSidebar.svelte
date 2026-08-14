@@ -33,6 +33,11 @@
     folder: boolean,
   ) => void;
   export let onDelete: (relativePath: string) => void;
+  export let onMove: (
+    relativePath: string,
+    destFolder: string,
+    siblingOrder?: string[],
+  ) => void;
   export let width = 240;
 
   let renaming: string | null = null;
@@ -47,7 +52,7 @@
   let searchQuery = "";
   let searchResults: TreeNode[] | null = null;
 
-  $: tree = buildTree(notes);
+  $: tree = buildTree(notes, meta);
   $: displayTree = searchQuery ? (searchResults ?? []) : tree;
 
   let searchTimeout: ReturnType<typeof setTimeout>;
@@ -224,6 +229,14 @@
     class="min-h-0 flex-1 overflow-y-auto p-1.5"
     role="presentation"
     oncontextmenu={openContextMenu}
+    ondragover={(event) => event.preventDefault()}
+    ondrop={(event) => {
+      const source = event.dataTransfer?.getData("text/memosmith-path");
+      if (source) {
+        event.preventDefault();
+        onMove(source, "");
+      }
+    }}
   >
     {#if !root}
       <p class="px-2 py-6 text-center text-xs leading-relaxed text-stone-400">
@@ -257,6 +270,7 @@
         onRename={commitRename}
         onCreate={commitCreate}
         {onDelete}
+        {onMove}
         onCancelEdit={cancelEdit}
       />
     {/if}

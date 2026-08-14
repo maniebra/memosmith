@@ -15,6 +15,7 @@ export const en = {
   "app.deleted": "Deleted {name}",
   "app.deletedDatabase": "Deleted database {name}",
   "app.renamedTo": "Renamed to {name}",
+  "app.moveConflict": "{name} already exists",
   "app.selected": "Selected {name}",
   "app.space": "Space {name}",
   "app.updatedCover": "Updated cover",

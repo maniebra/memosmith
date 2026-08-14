@@ -31,9 +31,9 @@
   } from "./editorPageCoreActions";
   import {
     createDatabaseActions,
-    createEntryActions,
     createSpaceActions,
   } from "./editorPageSpaceActions";
+  import { createEntryActions } from "./editorPageEntryActions";
   import { createMetaActions } from "./editorPageMetaActions";
   import { createAssetActions } from "./editorPageAssetActions";
   import { createGrammarActions } from "./editorPageGrammarActions";

@@ -123,6 +123,10 @@
             actions.runWithStatus(() =>
               actions.deleteSpaceEntry(relativePath),
             )}
+          onMove={(relativePath, destFolder, siblingOrder) =>
+            actions.runWithStatus(() =>
+              actions.moveSpaceEntry(relativePath, destFolder, siblingOrder),
+            )}
         />
         <button
           type="button"

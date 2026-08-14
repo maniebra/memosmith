@@ -21,9 +21,12 @@ pub struct PageMeta {
     /// Vertical focus of the cover crop, 0 (top) to 100 (bottom).
     #[serde(rename = "coverPosition", skip_serializing_if = "Option::is_none")]
     pub cover_position: Option<f64>,
+    /// Manual sibling position set by drag and drop; unset means sort by name.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub order: Option<f64>,
 }
 
-type SpaceMeta = BTreeMap<String, PageMeta>;
+pub type SpaceMeta = BTreeMap<String, PageMeta>;
 
 #[tauri::command]
 pub fn read_note(path: String) -> Result<String, String> {
@@ -136,13 +139,18 @@ pub fn save_page_meta(root: String, path: String, meta: PageMeta) -> Result<(), 
     let root = std::path::PathBuf::from(root);
     let mut space_meta = read_space_meta(&root)?;
 
-    if meta.icon.is_none() && meta.cover.is_none() {
+    if meta.icon.is_none() && meta.cover.is_none() && meta.order.is_none() {
         space_meta.remove(&path);
     } else {
         space_meta.insert(path, meta);
     }
 
     write_space_meta(&root, &space_meta)
+}
+
+#[tauri::command]
+pub fn save_space_meta(root: String, meta: SpaceMeta) -> Result<(), String> {
+    write_space_meta(&std::path::PathBuf::from(root), &meta)
 }
 
 #[tauri::command]

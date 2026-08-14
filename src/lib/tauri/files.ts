@@ -75,6 +75,10 @@ export function savePageMeta(root: string, path: string, meta: PageMeta) {
   return invoke("save_page_meta", { root, path, meta });
 }
 
+export function saveSpaceMeta(root: string, meta: SpaceMeta) {
+  return invoke("save_space_meta", { root, meta });
+}
+
 export function renamePageMeta(
   root: string,
   from: string,

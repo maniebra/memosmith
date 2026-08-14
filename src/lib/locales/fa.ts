@@ -16,6 +16,7 @@ export const fa: Record<I18nKey, string> = {
   "app.deleted": "{name} حذف شد",
   "app.deletedDatabase": "پایگاه داده {name} حذف شد",
   "app.renamedTo": "به {name} تغییر نام یافت",
+  "app.moveConflict": "{name} از قبل وجود دارد",
   "app.selected": "{name} انتخاب شد",
   "app.space": "فضا {name}",
   "app.updatedCover": "کاور به روز شد",
