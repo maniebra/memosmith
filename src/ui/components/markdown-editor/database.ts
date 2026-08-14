@@ -33,8 +33,21 @@ class EditorDatabase {
   /** Loaded databases, so a re-render repaints without another round trip. */
   private cache = new Map<string, Database>();
   private layoutFrame: number | undefined;
+  /** Watches the layer so a note that was hidden lays its cards out on show. */
+  private layerObserver: ResizeObserver | undefined;
 
   constructor(private e: Editor) {}
+
+  private watchLayer(layer: HTMLElement) {
+    if (this.layerObserver) {
+      return;
+    }
+
+    this.layerObserver = new ResizeObserver(() =>
+      this.scheduleDatabaseLayout(),
+    );
+    this.layerObserver.observe(layer);
+  }
 
   private embedSource(preview: HTMLElement) {
     try {
@@ -66,12 +79,16 @@ class EditorDatabase {
     };
   }
 
+  /**
+   * An event decides on its own target: focus can still sit in a card the user
+   * has just clicked away from, and that must not swallow the note's own input.
+   */
   databaseCardFor(event?: Event) {
-    const target = event?.target as HTMLElement | null;
-    const active = document.activeElement as HTMLElement | null;
+    const node = (event?.target ??
+      document.activeElement) as HTMLElement | null;
 
-    return (target?.closest?.(".md-database-preview") ??
-      active?.closest?.(".md-database-preview")) as HTMLElement | null;
+    return (node?.closest?.(".md-database-preview") ??
+      null) as HTMLElement | null;
   }
 
   enterDatabaseIsland(event?: Event) {
@@ -87,7 +104,9 @@ class EditorDatabase {
     return true;
   }
 
-  private restoreDatabaseFocus(focus: ReturnType<EditorDatabase["databaseFocus"]>) {
+  private restoreDatabaseFocus(
+    focus: ReturnType<EditorDatabase["databaseFocus"]>,
+  ) {
     if (!focus) {
       return;
     }
@@ -95,9 +114,9 @@ class EditorDatabase {
     const cell = `[data-row="${focus.row}"][data-column="${focus.column}"]`;
     const input = this.e.databaseLayer
       ?.querySelector(`.md-database-portal[data-code="${focus.code}"]`)
-      ?.querySelector(`${cell} input, ${cell} textarea`) as
-      | HTMLInputElement
-      | null;
+      ?.querySelector(
+        `${cell} input, ${cell} textarea`,
+      ) as HTMLInputElement | null;
 
     // Focus survived the re-render: leave the caret where the user has it.
     if (!input || document.activeElement === input) {
@@ -151,6 +170,15 @@ class EditorDatabase {
         return;
       }
 
+      // Laid out while the note is hidden every rect reads 0, and the cards
+      // would settle at the top of the layer. The observer lays them out again
+      // as soon as it has a box.
+      this.watchLayer(this.e.databaseLayer);
+
+      if (this.e.databaseLayer.getBoundingClientRect().width === 0) {
+        return;
+      }
+
       layoutPortals(
         [...this.views.values()].filter((entry) => entry.card.isConnected),
         this.e.databaseLayer,
@@ -165,6 +193,9 @@ class EditorDatabase {
   }
 
   disposeDatabaseViews() {
+    this.layerObserver?.disconnect();
+    this.layerObserver = undefined;
+
     for (const entry of this.views.values()) {
       this.disposeDatabaseEntry(entry);
     }
