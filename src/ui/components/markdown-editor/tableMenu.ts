@@ -132,6 +132,29 @@ class EditorTableMenu {
     selection?.addRange(range);
   }
 
+  /** Ctrl+Enter: a row under the caret's one, with the caret in it. */
+  private insertRowBelow(cell: HTMLElement) {
+    const preview = cell.closest(".md-table-preview") as HTMLElement | null;
+    const group = preview?.dataset.table;
+
+    if (!preview || group === undefined) {
+      return;
+    }
+
+    const row = Math.max(1, Number(cell.dataset.row) + 1);
+
+    this.e.handleTableCellInput(cell);
+    this.tableAction(preview, cell, "insert-row");
+
+    // The insert re-rendered the document, so the old card is gone.
+    const target = this.e.element?.querySelector(
+      `.md-table-preview[data-table="${group}"] ` +
+        `[data-table-cell][data-row="${row}"][data-column="0"]`,
+    );
+
+    this.focusCell(target instanceof HTMLElement ? target : null);
+  }
+
   private handleTableShortcut(event: KeyboardEvent, cell: HTMLElement) {
     const key = event.key.toLowerCase();
 
@@ -148,6 +171,12 @@ class EditorTableMenu {
 
     if (key === "i") {
       this.toggleTableInlineMark(event, cell, "*");
+      return true;
+    }
+
+    if (key === "enter") {
+      event.preventDefault();
+      this.insertRowBelow(cell);
       return true;
     }
 
