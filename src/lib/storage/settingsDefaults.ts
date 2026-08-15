@@ -60,6 +60,7 @@ export const defaultFeatureSettings: FeatureSettings = {
   databases: true,
   fancyTableEditor: true,
   callouts: true,
+  badges: true,
   drawings: false,
   diagrams: false,
   codeExecution: false,

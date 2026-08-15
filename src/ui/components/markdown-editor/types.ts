@@ -182,7 +182,12 @@ export type RenderApi = {
     offset: number | null,
     revealOffset?: number | null,
   ) => void;
-  replace: (start: number, end: number, text: string, caret?: number) => void;
+  replace: (
+    start: number,
+    end: number,
+    text: string,
+    caret?: number | null,
+  ) => void;
   replaceSelection: (text: string) => void;
   scrollSnapshot: () => ScrollSnapshot;
   restoreScrollSnapshot: (snapshot: ScrollSnapshot) => void;

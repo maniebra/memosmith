@@ -28,6 +28,7 @@ export function syncEditorPageEffects(
     pdfPreviewOpen ? "light" : context.settings.theme,
     context.settings.appearance,
     prefersDark,
+    context.settings.features.badges,
   );
   saveSettings(context.settings);
 }

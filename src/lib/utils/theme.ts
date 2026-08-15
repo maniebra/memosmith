@@ -227,6 +227,7 @@ export function applyAppearanceTheme(
   theme: ColorMode,
   appearance: AppearanceSettings,
   systemPrefersDark: boolean,
+  badges = true,
 ) {
   const root = document.documentElement;
   const useDark = theme === "dark" || (theme === "system" && systemPrefersDark);
@@ -236,6 +237,7 @@ export function applyAppearanceTheme(
   root.style.colorScheme = useDark ? "dark" : "light";
   root.dataset.density = appearance.density;
   root.dataset.corners = appearance.cornerStyle;
+  root.toggleAttribute("data-badges", badges);
 
   for (const [step, rgb] of Object.entries(palette)) {
     root.style.setProperty(`--color-emerald-${step}`, `rgb(${rgb})`);

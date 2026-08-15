@@ -116,7 +116,7 @@ class EditorRender {
     start: number,
     end: number,
     text: string,
-    caret = start + text.length,
+    caret: number | null = start + text.length,
   ) {
     const e = this.e;
 

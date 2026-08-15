@@ -170,6 +170,7 @@ export const en = {
   "feature.databases": "Databases",
   "feature.fancyTableEditor": "Fancy table editor",
   "feature.callouts": "Callouts",
+  "feature.badges": "Tag badges (#tag pills)",
   "feature.drawings": "Drawing blocks (Excalidraw)",
   "feature.diagrams": "Diagram blocks (draw.io)",
   "feature.codeExecution": "Code execution (Jupyter-style cells)",

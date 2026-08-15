@@ -369,3 +369,20 @@ assert(
   sourceBlocks("![[Note]]") === 1,
   "wikilink embed preview does not add a source block",
 );
+
+const badge = renderLine("tagged #IAmABadge here");
+assert(badge.includes('class="md-badge"'), "hashtag renders as a badge");
+assert(badge.includes("#IAmABadge"), "badge keeps its source text");
+assert(badge.includes("--chip-bg:"), "badge gets a palette colour");
+assert(
+  !renderLine("# Heading").includes("md-badge"),
+  "heading marker is not a badge",
+);
+assert(
+  !renderLine("`#code`").includes("md-badge"),
+  "hashtag inside code is not a badge",
+);
+assert(
+  !renderLine("[a](x#frag)").includes("md-badge"),
+  "link fragment is not a badge",
+);

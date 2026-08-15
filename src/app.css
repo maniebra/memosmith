@@ -281,7 +281,7 @@ textarea,
 
   .md-task::before {
     content: "☐  ";
-    @apply text-stone-400 dark:text-stone-500;
+    @apply cursor-pointer text-stone-400 dark:text-stone-500;
   }
 
   .md-task-done {
@@ -290,7 +290,7 @@ textarea,
 
   .md-task-done::before {
     content: "☑  ";
-    @apply text-emerald-600 no-underline dark:text-emerald-400;
+    @apply cursor-pointer text-emerald-600 no-underline dark:text-emerald-400;
   }
 
   .md-rule {
@@ -393,6 +393,17 @@ textarea,
 
   .md-link {
     @apply text-emerald-700 underline decoration-emerald-700/30 underline-offset-2 dark:text-emerald-400 dark:decoration-emerald-400/30;
+  }
+
+  :root[data-badges] .md-badge {
+    background: var(--chip-bg);
+    color: var(--chip-fg);
+    @apply rounded-full px-2 py-0.5 text-[0.9em] font-medium;
+  }
+
+  :root[data-badges].dark .md-badge {
+    background: var(--chip-bg-dark);
+    color: var(--chip-fg-dark);
   }
 
   .md-wikilink {

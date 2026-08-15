@@ -1,5 +1,7 @@
 import hljs from "highlight.js/lib/common";
 import katex from "katex";
+import { defaultDatabasePalette } from "../storage/settingsDefaults";
+import { chipStyle } from "./optionColors";
 import { parseWikilink, type WikilinkResolution } from "./wikilinks";
 
 type BlockRule = {
@@ -28,7 +30,18 @@ const BLOCK_RULES: BlockRule[] = [
 
 /** One pass so replacements are never rescanned as markdown. */
 const INLINE =
-  /`([^`\n]+)`|\$([^$\n]+)\$|\[\[([^\]\n]+)\]\]|\*\*([^*\n]+)\*\*|~~([^~\n]+)~~|__([^_\n]+)__|(?<![*\w])\*(\S|\S[^*\n]*\S)\*(?!\*)|\[([^\]\n]*)\]\(([^)\n]*)\)/g;
+  /`([^`\n]+)`|\$([^$\n]+)\$|\[\[([^\]\n]+)\]\]|\*\*([^*\n]+)\*\*|~~([^~\n]+)~~|__([^_\n]+)__|(?<![*\w])\*(\S|\S[^*\n]*\S)\*(?!\*)|\[([^\]\n]*)\]\(([^)\n]*)\)|(?<![\w#])#(\p{L}[\p{L}\p{N}_-]*)/gu;
+
+/** Stable per-name colour, so a tag keeps the same pill everywhere. */
+function badgeStyle(name: string) {
+  let hash = 0;
+  for (const character of name) {
+    hash = (hash * 31 + character.charCodeAt(0)) % 1_000_003;
+  }
+  return chipStyle(
+    defaultDatabasePalette[hash % defaultDatabasePalette.length]!.hex,
+  );
+}
 
 function mark(text: string) {
   return `<span class="md-mark">${text}</span>`;
@@ -121,6 +134,7 @@ export function renderInline(
       italic,
       linkText,
       href,
+      badge,
     ) => {
       if (code) {
         return `<span class="md-code">${mark("`")}${code}${mark("`")}</span>`;
@@ -152,6 +166,10 @@ export function renderInline(
 
       if (linkText !== undefined) {
         return `<span class="md-link">${mark("[")}${linkText}${mark(`](${href})`)}</span>`;
+      }
+
+      if (badge) {
+        return `<span class="md-badge" style="${badgeStyle(badge)}">#${badge}</span>`;
       }
 
       return all;

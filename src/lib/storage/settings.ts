@@ -212,6 +212,10 @@ function readFeatures(value: unknown): FeatureSettings {
       typeof parsed.callouts === "boolean"
         ? parsed.callouts
         : defaultFeatureSettings.callouts,
+    badges:
+      typeof parsed.badges === "boolean"
+        ? parsed.badges
+        : defaultFeatureSettings.badges,
     drawings:
       typeof parsed.drawings === "boolean"
         ? parsed.drawings

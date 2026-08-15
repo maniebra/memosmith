@@ -172,6 +172,7 @@ export const fa: Record<I18nKey, string> = {
   "feature.databases": "پایگاه داده ها",
   "feature.fancyTableEditor": "ویرایشگر جدول پیشرفته",
   "feature.callouts": "کال اوت ها",
+  "feature.badges": "نشان های برچسب (#تگ)",
   "feature.drawings": "بلوک های طراحی (Excalidraw)",
   "feature.diagrams": "بلوک های نمودار (draw.io)",
   "feature.codeExecution": "اجرای کد (سلول های شبیه Jupyter)",

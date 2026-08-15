@@ -140,6 +140,7 @@
     pdfPreviewOpen ? "light" : settings.theme,
     settings.appearance,
     prefersDark,
+    settings.features.badges,
   );
   // Database chips read the palette from a store, not from drilled props.
   $: palette.set(settings.databasePalette);

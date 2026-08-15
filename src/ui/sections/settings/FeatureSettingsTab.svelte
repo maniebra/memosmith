@@ -103,6 +103,12 @@
     />
     <CalloutFeatureSettings {settings} {onChange} />
     <Switch
+      checked={settings.features.badges}
+      label={$i18n.t("feature.badges")}
+      className="h-10 w-full"
+      onChange={(badges) => patchFeatures({ badges })}
+    />
+    <Switch
       checked={settings.features.drawings}
       label={$i18n.t("feature.drawings")}
       className="h-10 w-full"

@@ -13,6 +13,7 @@ export type FeatureSettings = {
   databases: boolean;
   fancyTableEditor: boolean;
   callouts: boolean;
+  badges: boolean;
   drawings: boolean;
   diagrams: boolean;
   codeExecution: boolean;
