@@ -10,7 +10,7 @@
     "build": "npm run fonts && svelte-check --tsconfig ./tsconfig.json && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
-    "fonts": "node -e \"fs.cpSync('node_modules/@excalidraw/excalidraw/dist/prod/fonts','public/fonts',{recursive:true})\""
+    "fonts": "node -e \"fs.cpSync('node_modules/@excalidraw/excalidraw/dist/prod/fonts','public/fonts',{recursive:true,filter:p=>!p.includes('Xiaolai')})\""
   },
   "dependencies": {
     "@excalidraw/excalidraw": "^0.18.1",

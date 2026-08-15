@@ -11,6 +11,8 @@ const host = (
 export default defineConfig(async () => ({
   plugins: [tailwindcss(), svelte()],
   clearScreen: false,
+  // ponytail: bundle ships local in Tauri, size warning is noise; revisit if a web build lands
+  build: { chunkSizeWarningLimit: 2000 },
   server: {
     port: 1420,
     strictPort: true,
