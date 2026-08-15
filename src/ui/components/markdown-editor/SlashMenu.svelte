@@ -11,6 +11,9 @@
   export let label = "";
   export let onHover: (index: number) => void = () => {};
   export let onPick: (command: SlashCommand) => void = () => {};
+
+  let items: HTMLElement[] = [];
+  $: items[index]?.scrollIntoView({ block: "nearest" });
 </script>
 
 <ul
@@ -25,6 +28,7 @@
       <button
         type="button"
         role="option"
+        bind:this={items[commandIndex]}
         aria-selected={commandIndex === index}
         class={cn(
           "flex w-full items-center justify-between gap-3 rounded-lg px-2.5 py-2 text-left text-sm transition-colors",
@@ -36,7 +40,7 @@
           event.preventDefault();
           onPick(command);
         }}
-        onmouseenter={() => onHover(commandIndex)}
+        onmousemove={() => onHover(commandIndex)}
       >
         <span>{command.label}</span>
         <span
