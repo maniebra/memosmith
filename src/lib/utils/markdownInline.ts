@@ -28,7 +28,7 @@ const BLOCK_RULES: BlockRule[] = [
 
 /** One pass so replacements are never rescanned as markdown. */
 const INLINE =
-  /`([^`\n]+)`|\$([^$\n]+)\$|\[\[([^\]\n]+)\]\]|\*\*([^*\n]+)\*\*|(?<![*\w])\*(\S|\S[^*\n]*\S)\*(?!\*)|\[([^\]\n]*)\]\(([^)\n]*)\)/g;
+  /`([^`\n]+)`|\$([^$\n]+)\$|\[\[([^\]\n]+)\]\]|\*\*([^*\n]+)\*\*|~~([^~\n]+)~~|__([^_\n]+)__|(?<![*\w])\*(\S|\S[^*\n]*\S)\*(?!\*)|\[([^\]\n]*)\]\(([^)\n]*)\)/g;
 
 function mark(text: string) {
   return `<span class="md-mark">${text}</span>`;
@@ -110,7 +110,18 @@ export function renderInline(
 ) {
   return escaped.replace(
     INLINE,
-    (all, code, math, wiki, bold, italic, linkText, href) => {
+    (
+      all,
+      code,
+      math,
+      wiki,
+      bold,
+      strike,
+      underline,
+      italic,
+      linkText,
+      href,
+    ) => {
       if (code) {
         return `<span class="md-code">${mark("`")}${code}${mark("`")}</span>`;
       }
@@ -125,6 +136,14 @@ export function renderInline(
 
       if (bold) {
         return `<span class="md-bold">${mark("**")}${bold}${mark("**")}</span>`;
+      }
+
+      if (strike) {
+        return `<span class="md-strike">${mark("~~")}${strike}${mark("~~")}</span>`;
+      }
+
+      if (underline) {
+        return `<span class="md-underline">${mark("__")}${underline}${mark("__")}</span>`;
       }
 
       if (italic) {

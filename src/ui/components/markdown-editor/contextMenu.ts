@@ -9,6 +9,7 @@ import {
 import type { ContextMenuItem } from "../ContextMenu.svelte";
 import { databaseAnchorFor, databaseMenuItems } from "./databaseMenu";
 import { EMBED_SELECTOR } from "./embedLayout";
+import { formatMenuItems } from "./formatMenu";
 import type { ContextMenuApi, Editor } from "./types";
 
 /** What a right click landed on, and what it left selected. */
@@ -320,6 +321,9 @@ class EditorContextMenu {
       ...e.alignItems(),
       ...e.tableItems(),
       ...this.clipboardItems(hasSelection),
+      { separator: true },
+      ...formatMenuItems(e, hasSelection),
+      { separator: true },
       {
         label: generating ? e.t("editor.generating") : e.t("editor.generateAi"),
         icon: Sparkles,

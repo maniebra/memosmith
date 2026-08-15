@@ -379,6 +379,14 @@ textarea,
     @apply italic;
   }
 
+  .md-strike {
+    @apply line-through;
+  }
+
+  .md-underline {
+    @apply underline;
+  }
+
   .md-code {
     @apply rounded-md bg-stone-500/12 px-1.5 py-0.5 font-mono text-[0.85em] text-rose-700 dark:text-rose-300;
   }

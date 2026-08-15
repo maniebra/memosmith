@@ -50,6 +50,12 @@ assert(
   renderLine("2 * 3 * 4").includes("md-italic") === false,
   "no stray italics",
 );
+assert(renderLine("a ~~b~~ c").includes("md-strike"), "strikethrough");
+assert(renderLine("a __b__ c").includes("md-underline"), "underline");
+assert(
+  renderLine("__b__").includes("md-bold") === false,
+  "underline is not re-matched as bold",
+);
 assert(renderLine("[t](u)").includes("md-link"), "link");
 assert(renderLine("[[Note]]").includes("md-wikilink"), "wikilink");
 assert(

@@ -194,5 +194,13 @@ export function handleEditorShortcut(
     return toggleInlineMark(event, e, surface, "*");
   }
 
+  if (key === "u") {
+    return toggleInlineMark(event, e, surface, "__");
+  }
+
+  if (key === "x" && event.shiftKey) {
+    return toggleInlineMark(event, e, surface, "~~");
+  }
+
   return false;
 }

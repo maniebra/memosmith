@@ -66,7 +66,7 @@ export type TextEdit = {
   caret: number;
 };
 
-export type InlineMarker = "*" | "**";
+export type InlineMarker = "*" | "**" | "~~" | "__";
 
 export function lineStartAt(text: string, offset: number) {
   return text.lastIndexOf("\n", offset - 1) + 1;
