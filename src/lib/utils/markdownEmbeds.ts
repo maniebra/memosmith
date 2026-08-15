@@ -2,6 +2,7 @@ import { kernelFor, KERNEL_LABELS } from "./runner";
 import type { CalloutDefinition } from "../storage/settings";
 import { calloutIconSvg } from "./calloutIcons";
 import { preferredTextDirection } from "./textDirection";
+import type { QuizLabels } from "./markdownQuiz";
 import {
   attribute,
   escapeHtml,
@@ -23,6 +24,8 @@ export type RenderDocumentOptions = {
   calloutDefinitions?: CalloutDefinition[];
   drawings?: boolean;
   diagrams?: boolean;
+  quizzes?: boolean;
+  quizLabels?: QuizLabels;
   resolveWikilink?: WikilinkResolver;
   renderWikilinkEmbed?: (target: string, depth: number) => WikilinkEmbed | null;
   wikilinkEmbedDepth?: number;

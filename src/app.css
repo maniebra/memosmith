@@ -940,6 +940,101 @@ textarea,
     @apply border-l-2 border-l-rose-500/70 text-rose-600 dark:text-rose-400;
   }
 
+  /* Quiz source folds away under its card, the same trick diagrams use. */
+  .md-quiz-line:not([data-active]),
+  .md-fence-open:not([data-active]) + .md-codeblock.md-quiz-line:not([data-active]),
+  .md-codeblock.md-quiz-line:not([data-active]):has(+ .md-fence-close:not([data-active])) {
+    font-size: 0;
+    line-height: 0;
+    letter-spacing: 0;
+    @apply my-0 overflow-hidden rounded-none bg-transparent px-0 py-0;
+  }
+
+  .md-fence-open:not([data-active])
+    + .md-codeblock.md-quiz-line[data-language]:not([data-language=""])::after {
+    content: none;
+  }
+
+  .md-quiz-preview {
+    @apply my-3 rounded-md border border-stone-200 px-4 py-3 dark:border-stone-700;
+    user-select: none;
+  }
+
+  .md-quiz-question {
+    @apply font-semibold;
+  }
+
+  .md-quiz-options {
+    @apply mt-2 grid gap-1.5;
+  }
+
+  .md-quiz-option {
+    @apply flex w-full items-start gap-2 rounded-md border border-stone-200 px-3 py-1.5 text-left text-[0.95em] dark:border-stone-700;
+  }
+
+  .md-quiz-preview:not([data-quiz-answered]) .md-quiz-option {
+    @apply cursor-pointer hover:bg-stone-100 dark:hover:bg-stone-800;
+  }
+
+  .md-quiz-mark {
+    @apply mt-[0.35em] size-3 shrink-0 rounded-full border border-stone-400 dark:border-stone-500;
+  }
+
+  .md-quiz-preview[data-quiz-answered] .md-quiz-option[data-quiz-correct] {
+    @apply border-emerald-500/70 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400;
+  }
+
+  .md-quiz-preview[data-quiz-answered]
+    .md-quiz-option[data-quiz-picked]:not([data-quiz-correct]) {
+    @apply border-rose-500/70 bg-rose-500/10 text-rose-600 dark:text-rose-400;
+  }
+
+  .md-quiz-preview[data-quiz-answered] .md-quiz-option[data-quiz-correct] .md-quiz-mark {
+    @apply border-emerald-500 bg-emerald-500;
+  }
+
+  .md-quiz-preview[data-quiz-answered]
+    .md-quiz-option[data-quiz-picked]:not([data-quiz-correct])
+    .md-quiz-mark {
+    @apply border-rose-500 bg-rose-500;
+  }
+
+  /* Before checking, a pick is just a filled marker: no verdict yet. */
+  .md-quiz-preview:not([data-quiz-answered]) .md-quiz-option[data-quiz-picked] {
+    @apply border-stone-400 dark:border-stone-500;
+  }
+
+  .md-quiz-preview:not([data-quiz-answered])
+    .md-quiz-option[data-quiz-picked]
+    .md-quiz-mark {
+    @apply border-stone-500 bg-stone-500;
+  }
+
+  .md-quiz-multi .md-quiz-mark {
+    @apply rounded-sm;
+  }
+
+  .md-quiz-actions {
+    @apply mt-2 flex items-center gap-3 text-[0.9em];
+  }
+
+  .md-quiz-score {
+    @apply font-medium;
+  }
+
+  .md-quiz-check,
+  .md-quiz-reset {
+    @apply cursor-pointer rounded-md border border-stone-200 px-3 py-1 hover:bg-stone-100 dark:border-stone-700 dark:hover:bg-stone-800;
+  }
+
+  .md-quiz-explanation {
+    @apply mt-2 hidden text-[0.9em] text-stone-600 dark:text-stone-300;
+  }
+
+  .md-quiz-preview[data-quiz-answered] .md-quiz-explanation {
+    @apply block;
+  }
+
   /** Saved cell results: part of the note's text, never part of its page. */
   .md-run-store {
     @apply hidden;

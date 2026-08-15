@@ -190,58 +190,23 @@ function readAppearance(value: unknown): AppearanceSettings {
       : defaultAppearanceSettings.editorLineHeight,
   };
 }
+/** Every feature flag but the one that is not a boolean. */
+const BOOLEAN_FEATURES = Object.keys(defaultFeatureSettings).filter(
+  (key) => key !== "grammarCheckMode",
+) as Exclude<keyof FeatureSettings, "grammarCheckMode">[];
 function readFeatures(value: unknown): FeatureSettings {
   const parsed = (value ?? {}) as Partial<FeatureSettings>;
+  const booleans = Object.fromEntries(
+    BOOLEAN_FEATURES.map((key) => [
+      key,
+      typeof parsed[key] === "boolean" ? parsed[key] : defaultFeatureSettings[key],
+    ]),
+  ) as Omit<FeatureSettings, "grammarCheckMode">;
   return {
-    grammarPolice:
-      typeof parsed.grammarPolice === "boolean"
-        ? parsed.grammarPolice
-        : defaultFeatureSettings.grammarPolice,
+    ...booleans,
     grammarCheckMode: isGrammarCheckMode(parsed.grammarCheckMode)
       ? parsed.grammarCheckMode
       : defaultFeatureSettings.grammarCheckMode,
-    databases:
-      typeof parsed.databases === "boolean"
-        ? parsed.databases
-        : defaultFeatureSettings.databases,
-    fancyTableEditor:
-      typeof parsed.fancyTableEditor === "boolean"
-        ? parsed.fancyTableEditor
-        : defaultFeatureSettings.fancyTableEditor,
-    callouts:
-      typeof parsed.callouts === "boolean"
-        ? parsed.callouts
-        : defaultFeatureSettings.callouts,
-    badges:
-      typeof parsed.badges === "boolean"
-        ? parsed.badges
-        : defaultFeatureSettings.badges,
-    drawings:
-      typeof parsed.drawings === "boolean"
-        ? parsed.drawings
-        : defaultFeatureSettings.drawings,
-    diagrams:
-      typeof parsed.diagrams === "boolean"
-        ? parsed.diagrams
-        : defaultFeatureSettings.diagrams,
-    codeExecution:
-      typeof parsed.codeExecution === "boolean"
-        ? parsed.codeExecution
-        : defaultFeatureSettings.codeExecution,
-    lsp:
-      typeof parsed.lsp === "boolean" ? parsed.lsp : defaultFeatureSettings.lsp,
-    plantuml:
-      typeof parsed.plantuml === "boolean"
-        ? parsed.plantuml
-        : defaultFeatureSettings.plantuml,
-    mermaid:
-      typeof parsed.mermaid === "boolean"
-        ? parsed.mermaid
-        : defaultFeatureSettings.mermaid,
-    windowControls:
-      typeof parsed.windowControls === "boolean"
-        ? parsed.windowControls
-        : defaultFeatureSettings.windowControls,
   };
 }
 function readRunner(value: unknown): RunnerSettings {

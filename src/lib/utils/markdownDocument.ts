@@ -47,6 +47,7 @@ import {
   type LiveDiagramEngine,
   type RenderDocumentOptions,
 } from "./markdownEmbeds";
+import { QUIZ_LANGUAGE, quizPreview } from "./markdownQuiz";
 const EQUATION_BLOCK = /^\s*\$\$\s*(\S.*?)\s*\$\$\s*$/;
 const FENCE = /^\s*```(\w*)([^\n]*)/;
 const MAX_SUBBLOCK_DEPTH = 6;
@@ -65,6 +66,7 @@ class DocumentRenderer {
   private readonly fancyTableEditor: boolean;
   private readonly inlineOptions: RenderInlineOptions;
   private readonly output: string[] = [];
+  private readonly quizzes: boolean;
   private calloutGroup = 0;
   private codeGroup = 0;
   private diagramEngine: LiveDiagramEngine | null = null;
@@ -76,6 +78,8 @@ class DocumentRenderer {
   private language: string | null = null;
   private mathGroup = 0;
   private mathLines: string[] | null = null;
+  private quizInfo = "";
+  private quizLines: string[] | null = null;
   private tableGroup = 0;
   private runLanguage: string | null = null;
   private subblockGroup = 0;
@@ -91,6 +95,7 @@ class DocumentRenderer {
     this.diagrams = options.diagrams ?? false;
     this.drawings = options.drawings ?? false;
     this.fancyTableEditor = options.fancyTableEditor ?? true;
+    this.quizzes = options.quizzes ?? false;
     this.inlineOptions = {
       resolveWikilink: options.resolveWikilink,
     };
@@ -200,6 +205,9 @@ class DocumentRenderer {
         this.codeExecution && !embedded && isRunnable(this.language ?? "")
           ? this.language
           : null;
+      this.quizLines =
+        this.quizzes && this.language === QUIZ_LANGUAGE ? [] : null;
+      this.quizInfo = this.quizLines ? info : "";
       this.diagramLines = opensDiagram ? [] : null;
       this.diagramEngine = opensDiagram;
       this.diagramInfo = opensDiagram ? info : "";
@@ -214,7 +222,8 @@ class DocumentRenderer {
   ) {
     const embedClass = embedded ? ` ${embedLineClass(embedded)}` : "";
     const diagramClass =
-      opensDiagram || this.diagramLines ? " md-livediagram-line" : "";
+      (opensDiagram || this.diagramLines ? " md-livediagram-line" : "") +
+      (this.quizLines ? " md-quiz-line" : "");
     const editable = NON_EDITABLE_EMBEDS.has(
       embedded ?? this.embedLanguage ?? "",
     )
@@ -232,6 +241,7 @@ class DocumentRenderer {
       return;
     }
     this.pushRunPreview(index);
+    this.pushQuizPreview(index);
     this.pushLiveDiagramPreview(index);
     if (embedded) {
       this.pushEmbedPreview(line, embedded, index);
@@ -241,6 +251,20 @@ class DocumentRenderer {
     if (this.runLanguage) {
       this.output.push(runPreview(index, this.runLanguage));
       this.runLanguage = null;
+    }
+  }
+  private pushQuizPreview(index: number) {
+    if (this.quizLines) {
+      this.output.push(
+        quizPreview(
+          index,
+          this.quizLines.join("\n"),
+          this.quizInfo,
+          this.inlineOptions,
+          this.options.quizLabels,
+        ),
+      );
+      this.quizLines = null;
     }
   }
   private pushLiveDiagramPreview(index: number) {
@@ -282,8 +306,9 @@ class DocumentRenderer {
       return index + 1;
     }
     this.diagramLines?.push(line);
+    this.quizLines?.push(line);
     this.output.push(
-      `<div dir="auto" class="md-block md-codeblock${this.diagramLines ? " md-livediagram-line" : ""}" data-code="${this.codeGroup}" data-language="${attribute(this.language ?? "")}">${renderCode(line, this.language ?? "")}</div>`,
+      `<div dir="auto" class="md-block md-codeblock${this.diagramLines ? " md-livediagram-line" : ""}${this.quizLines ? " md-quiz-line" : ""}" data-code="${this.codeGroup}" data-language="${attribute(this.language ?? "")}">${renderCode(line, this.language ?? "")}</div>`,
     );
     return index + 1;
   }

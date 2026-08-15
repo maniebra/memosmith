@@ -189,6 +189,7 @@
           calloutDefinitions={settings.callouts}
           drawings={settings.features.drawings}
           diagrams={settings.features.diagrams}
+          quizzes={settings.features.quizzes}
           codeExecution={settings.features.codeExecution}
           plantuml={settings.features.plantuml}
           plantumlSettings={settings.plantuml}

@@ -63,6 +63,7 @@ export const defaultFeatureSettings: FeatureSettings = {
   badges: true,
   drawings: false,
   diagrams: false,
+  quizzes: true,
   codeExecution: false,
   lsp: false,
   plantuml: false,

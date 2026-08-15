@@ -42,6 +42,7 @@
   export let calloutDefinitions: CalloutDefinition[] = [];
   export let drawings = false;
   export let diagrams = false;
+  export let quizzes = true;
   export let codeExecution = false;
   export let plantuml = false;
   export let plantumlSettings: PlantumlSettings = defaultPlantumlSettings;
@@ -88,7 +89,8 @@
 
   $: props = {
     placeholder, textSize, spellcheck, slashCommands, fancyTableEditor,
-    callouts, calloutDefinitions, drawings, diagrams, codeExecution, plantuml,
+    callouts, calloutDefinitions, drawings, diagrams, quizzes, codeExecution,
+    plantuml,
     plantumlSettings, mermaid, mermaidSettings, runSession, runner, lsp,
     lspSettings, editable, onInput, onAssets, onPickAssets, onGenerate,
     onWikilink, resolveWikilink, renderWikilinkEmbed, wikilinkKey, databaseRoot,

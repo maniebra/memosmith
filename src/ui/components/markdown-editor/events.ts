@@ -9,6 +9,7 @@ import { handleCompletionKeydown, handleSlashKeydown } from "./menuKeys";
 import { editSurface, type EditSurface } from "./surface";
 import { EMBED_SELECTOR } from "./embedLayout";
 import { handleEditorShortcut } from "./shortcuts";
+import { handleQuizPointer } from "./quiz";
 import { toggleTaskAt } from "./taskToggle";
 import type { Editor, EventApi } from "./types";
 
@@ -363,6 +364,7 @@ class EditorEvents {
       event.button !== 0 ||
       this.handleWikilinkPointer(event, handle) ||
       this.handleCalloutPointer(event, handle) ||
+      handleQuizPointer(e, event, handle) ||
       toggleTaskAt(this.e, event, handle)
     ) {
       return;

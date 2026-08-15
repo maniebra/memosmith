@@ -29,6 +29,20 @@ export {
   type RenderDocumentOptions,
 } from "./markdownEmbeds";
 export {
+  EMPTY_QUIZ,
+  QUIZ_LANGUAGE,
+  isMultiQuiz,
+  parseQuiz,
+  parseQuizState,
+  quizFenceLine,
+  quizPreview,
+  quizScore,
+  type Quiz,
+  type QuizLabels,
+  type QuizScore,
+  type QuizState,
+} from "./markdownQuiz";
+export {
   escapeHtml,
   insideFence,
   lineClass,

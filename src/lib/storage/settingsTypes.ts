@@ -16,6 +16,7 @@ export type FeatureSettings = {
   badges: boolean;
   drawings: boolean;
   diagrams: boolean;
+  quizzes: boolean;
   codeExecution: boolean;
   lsp: boolean;
   plantuml: boolean;

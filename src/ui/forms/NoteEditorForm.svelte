@@ -28,6 +28,7 @@
   export let calloutDefinitions: CalloutDefinition[] = [];
   export let drawings: boolean;
   export let diagrams: boolean;
+  export let quizzes: boolean;
   export let codeExecution: boolean;
   export let plantuml: boolean;
   export let plantumlSettings: PlantumlSettings;
@@ -122,6 +123,7 @@
       {calloutDefinitions}
       {drawings}
       {diagrams}
+      {quizzes}
       {codeExecution}
       {plantuml}
       {plantumlSettings}

@@ -79,6 +79,7 @@ export type EditorProps = {
   calloutDefinitions: CalloutDefinition[];
   drawings: boolean;
   diagrams: boolean;
+  quizzes: boolean;
   codeExecution: boolean;
   plantuml: boolean;
   plantumlSettings: PlantumlSettings;

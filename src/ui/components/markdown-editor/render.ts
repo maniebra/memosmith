@@ -1,4 +1,7 @@
-import { renderDocument } from "../../../lib/utils/markdown";
+import {
+  renderDocument,
+  type QuizScore,
+} from "../../../lib/utils/markdown";
 import type { Editor, RenderApi } from "./types";
 
 export function createRender(e: Editor): RenderApi {
@@ -37,6 +40,7 @@ class EditorRender {
       callouts: props.callouts,
       drawings: props.drawings,
       diagrams: props.diagrams,
+      quizzes: props.quizzes,
       codeExecution: props.codeExecution,
       plantuml: props.plantuml,
       mermaid: props.mermaid,
@@ -52,6 +56,17 @@ class EditorRender {
       calloutDefinitions: props.calloutDefinitions,
       drawings: props.drawings,
       diagrams: props.diagrams,
+      quizzes: props.quizzes,
+      quizLabels: {
+        check: this.e.t("editor.quizCheck"),
+        retry: this.e.t("editor.quizRetry"),
+        score: ({ hits, correct, misses }: QuizScore) =>
+          this.e.t(misses ? "editor.quizScoreWrong" : "editor.quizScore", {
+            hits,
+            total: correct,
+            misses,
+          }),
+      },
       codeExecution: props.codeExecution,
       resolveWikilink: props.resolveWikilink,
       renderWikilinkEmbed: props.renderWikilinkEmbed,

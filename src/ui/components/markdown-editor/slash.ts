@@ -10,6 +10,7 @@ import {
   EMPTY_DRAWING,
   EMPTY_MERMAID,
   EMPTY_PLANTUML,
+  EMPTY_QUIZ,
   SLASH_COMMANDS,
 } from "../../../lib/utils/markdown";
 import { matchCommands } from "../../../lib/utils/slashMatching";
@@ -89,6 +90,9 @@ class EditorSlash {
         : []),
       ...(props.mermaid
         ? [{ label: "Mermaid", hint: "diagram", prefix: EMPTY_MERMAID }]
+        : []),
+      ...(props.quizzes
+        ? [{ label: this.e.t("editor.quiz"), hint: "quiz", prefix: EMPTY_QUIZ }]
         : []),
       ...this.databaseCommands(databases),
     ];
