@@ -312,6 +312,8 @@ export const fa: Record<I18nKey, string> = {
   "editor.resetSize": "بازنشانی اندازه",
   "editor.addRowBelow": "افزودن ردیف زیر",
   "editor.addColumnRight": "افزودن ستون راست",
+  "editor.deleteRow": "حذف ردیف",
+  "editor.deleteColumn": "حذف ستون",
   "editor.mergeRight": "ادغام به راست",
   "editor.mergeDown": "ادغام به پایین",
   "editor.splitCell": "تقسیم سلول",

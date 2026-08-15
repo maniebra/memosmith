@@ -1,5 +1,13 @@
 import type { ContextMenuItem } from "../ContextMenu.svelte";
+import { withoutEmptyCaret } from "./dom";
 import type { Editor, TableMenuApi } from "./types";
+
+const ARROW_STEPS: Record<string, { row: number; column: number }> = {
+  ArrowUp: { row: -1, column: 0 },
+  ArrowDown: { row: 1, column: 0 },
+  ArrowLeft: { row: 0, column: -1 },
+  ArrowRight: { row: 0, column: 1 },
+};
 
 const CELL_COLORS = [
   { labelKey: "editor.colorRed", color: "#fee2e2" },
@@ -37,6 +45,10 @@ class EditorTableMenu {
       update(preview, { type: "insert-row", row });
     } else if (actionName === "insert-column") {
       update(preview, { type: "insert-column", column });
+    } else if (actionName === "delete-row") {
+      update(preview, { type: "delete-row", row });
+    } else if (actionName === "delete-column") {
+      update(preview, { type: "delete-column", column });
     } else if (actionName === "merge-right") {
       update(preview, { type: "merge-right", row, column });
     } else if (actionName === "merge-down") {
@@ -55,16 +67,56 @@ class EditorTableMenu {
     }
   }
 
+  private previewCells(preview: HTMLElement) {
+    return Array.from(
+      preview.querySelectorAll("[data-table-cell]"),
+    ) as HTMLElement[];
+  }
+
   private focusTableCell(
     preview: HTMLElement,
     from: HTMLElement,
     direction: 1 | -1,
   ) {
-    const cells = Array.from(
-      preview.querySelectorAll("[data-table-cell]"),
-    ) as HTMLElement[];
-    const target = cells[cells.indexOf(from) + direction];
+    const cells = this.previewCells(preview);
 
+    this.focusCell(cells[cells.indexOf(from) + direction]);
+  }
+
+  /** The cell one step away in the grid, skipping the gaps merges leave. */
+  private cellInDirection(
+    preview: HTMLElement,
+    from: HTMLElement,
+    rowStep: number,
+    columnStep: number,
+  ) {
+    const cells = this.previewCells(preview);
+    const lastRow = Math.max(...cells.map((cell) => Number(cell.dataset.row)));
+    const lastColumn = Math.max(
+      ...cells.map((cell) => Number(cell.dataset.column)),
+    );
+    let row = Number(from.dataset.row) + rowStep;
+    let column = Number(from.dataset.column) + columnStep;
+
+    while (row >= 0 && column >= 0 && row <= lastRow && column <= lastColumn) {
+      const target = cells.find(
+        (cell) =>
+          Number(cell.dataset.row) === row &&
+          Number(cell.dataset.column) === column,
+      );
+
+      if (target) {
+        return target;
+      }
+
+      row += rowStep;
+      column += columnStep;
+    }
+
+    return null;
+  }
+
+  private focusCell(target: HTMLElement | null | undefined) {
     if (!target) {
       return;
     }
@@ -151,7 +203,9 @@ class EditorTableMenu {
       return true;
     }
 
-    if (event.key !== "Tab") {
+    const arrow = ARROW_STEPS[event.key];
+
+    if (event.key !== "Tab" && !arrow) {
       return false;
     }
 
@@ -161,11 +215,59 @@ class EditorTableMenu {
       return false;
     }
 
+    if (arrow) {
+      // Left and right walk the text first and only leave the cell at its edge;
+      // up and down always change row, the way a grid is expected to behave.
+      const rtl = getComputedStyle(cell).direction === "rtl";
+      const columnStep = rtl ? -arrow.column : arrow.column;
+
+      if (columnStep && !this.atCellEdge(cell, columnStep)) {
+        return false;
+      }
+
+      const target = this.cellInDirection(preview, cell, arrow.row, columnStep);
+
+      if (!target) {
+        return false;
+      }
+
+      event.preventDefault();
+      this.e.handleTableCellInput(cell);
+      this.focusCell(target);
+      return true;
+    }
+
     event.preventDefault();
     this.e.handleTableCellInput(cell);
     this.focusTableCell(preview, cell, event.shiftKey ? -1 : 1);
 
     return true;
+  }
+
+  /** True when nothing but the empty-cell anchor sits on that side of the caret. */
+  private atCellEdge(cell: HTMLElement, side: number) {
+    const selection = getSelection();
+
+    if (!selection?.rangeCount || !selection.isCollapsed) {
+      return false;
+    }
+
+    const focus = selection.focusNode;
+
+    if (!focus || !cell.contains(focus)) {
+      return false;
+    }
+
+    const range = document.createRange();
+    range.selectNodeContents(cell);
+
+    if (side < 0) {
+      range.setEnd(focus, selection.focusOffset);
+    } else {
+      range.setStart(focus, selection.focusOffset);
+    }
+
+    return withoutEmptyCaret(range.toString()).length === 0;
   }
 
   handleTablePointerDown(event: PointerEvent) {
@@ -225,6 +327,8 @@ class EditorTableMenu {
     return [
       this.item(preview, cell, "editor.addRowBelow", "insert-row"),
       this.item(preview, cell, "editor.addColumnRight", "insert-column"),
+      this.item(preview, cell, "editor.deleteRow", "delete-row"),
+      this.item(preview, cell, "editor.deleteColumn", "delete-column"),
       this.item(preview, cell, "editor.mergeRight", "merge-right"),
       this.item(preview, cell, "editor.mergeDown", "merge-down"),
       this.item(preview, cell, "editor.splitCell", "split-cell"),

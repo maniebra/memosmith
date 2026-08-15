@@ -95,8 +95,16 @@ class EditorRender {
     }
 
     if (offset !== null) {
-      e.setActiveBlock(e.blockAtOffset(offset));
-      e.setCaret(offset);
+      const block = e.blockAtOffset(offset);
+
+      // A caret that came from a table cell (undo, an external write) maps back
+      // onto the hidden source lines: put it in the card, not in the markdown.
+      if (block?.classList.contains("md-table-line")) {
+        e.focusTableSource(block);
+      } else {
+        e.setActiveBlock(block);
+        e.setCaret(offset);
+      }
     }
 
     e.markActiveBlock();

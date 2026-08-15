@@ -244,11 +244,18 @@ class EditorSlash {
     this.closeMenu();
 
     if (prefix === DEFAULT_TABLE_MARKDOWN) {
+      // A table touching the line above or below is parsed as one table, so it
+      // needs a blank line on either side to stay its own.
+      const rest = text.slice(lineEnd);
+      const lead =
+        start === 0 || text.slice(0, start).endsWith("\n\n") ? "" : "\n";
+      const trail = rest === "" || rest.startsWith("\n\n") ? "" : "\n";
+
       surface.apply({
         start,
         end: lineEnd,
-        text: prefix,
-        caret: start + prefix.length,
+        text: `${lead}${prefix}${trail}`,
+        caret: start + lead.length + prefix.length,
       });
       return;
     }

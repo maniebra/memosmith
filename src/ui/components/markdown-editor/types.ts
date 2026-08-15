@@ -231,6 +231,7 @@ export type BlockEditApi = {
 
 export type TableApi = {
   bindTableToolbars: () => void;
+  focusTableSource: (block: HTMLElement) => void;
   markSelectedTableCell: () => void;
   selectTableCell: (cell: HTMLElement) => void;
   selectedCellIn: (preview: HTMLElement) => HTMLElement | null;

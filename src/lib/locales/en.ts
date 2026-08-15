@@ -309,6 +309,8 @@ export const en = {
   "editor.resetSize": "Reset size",
   "editor.addRowBelow": "Add row below",
   "editor.addColumnRight": "Add column right",
+  "editor.deleteRow": "Delete row",
+  "editor.deleteColumn": "Delete column",
   "editor.mergeRight": "Merge right",
   "editor.mergeDown": "Merge down",
   "editor.splitCell": "Split cell",

@@ -10,6 +10,7 @@ export function createTables(e: Editor): TableApi {
     markSelectedTableCell: service.markSelectedTableCell.bind(service),
     replaceTableCellSelection:
       service.replaceTableCellSelection.bind(service),
+    focusTableSource: service.focusTableSource.bind(service),
     selectTableCell: service.selectTableCell.bind(service),
     selectTableCellContents: service.selectTableCellContents.bind(service),
     selectedCellIn: service.selectedCellIn.bind(service),
@@ -165,6 +166,29 @@ class EditorTables {
     this.markSelectedTableCell();
   }
 
+  /** Moves the caret from a table's hidden source line into its card. */
+  focusTableSource(block: HTMLElement) {
+    const preview = this.e.element?.querySelector(
+      `.md-table-preview[data-table="${block.dataset.table}"]`,
+    ) as HTMLElement | null;
+    const cell = preview ? this.selectedCellIn(preview) : null;
+
+    if (!cell) {
+      this.e.setActiveBlock(undefined);
+      return;
+    }
+
+    cell.focus();
+    this.selectTableCell(cell);
+
+    const range = document.createRange();
+    range.selectNodeContents(cell);
+    range.collapse(false);
+    const selection = getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+  }
+
   private cellAt(preview: HTMLElement, row: number, column: number) {
     const cell = preview.querySelector(
       `[data-table-cell][data-row="${row}"][data-column="${column}"]`,
@@ -310,7 +334,10 @@ class EditorTables {
         type: "set-cell-text",
         row: Number(cell.dataset.row),
         column: Number(cell.dataset.column),
-        text: cell.innerText.replace(/\s*\n\s*/g, " ").trim(),
+        // `sourceText` drops the zero-width anchor an empty cell renders with:
+        // left in, it lands in the markdown and the re-render throws the caret
+        // into the source lines.
+        text: this.e.sourceText(cell).replace(/\s*\n\s*/g, " ").trim(),
       },
       false,
     );

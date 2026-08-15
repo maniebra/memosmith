@@ -178,7 +178,14 @@ class EditorSelection {
 
     const preview = e.previewForNode(selection?.focusNode ?? null);
 
-    if (!preview) {
+    // A table card is edited in place, so a caret landing in it stays put
+    // instead of being pushed onto the source line above. Arrow keys still walk
+    // past it, hence the navigation check.
+    if (
+      !preview ||
+      (!this.previewNavigation &&
+        preview.classList.contains("md-table-preview"))
+    ) {
       return false;
     }
 
@@ -241,6 +248,17 @@ class EditorSelection {
     if (tableCell) {
       this.setActiveBlock(undefined);
       e.selectTableCell(tableCell);
+      return;
+    }
+
+    // Anywhere else in the table card (toolbar, padding, scroll area) is still
+    // the table editor: it must not unfold the source lines behind it.
+    if (
+      e.previewForNode(selection?.focusNode ?? null)?.classList.contains(
+        "md-table-preview",
+      )
+    ) {
+      this.setActiveBlock(undefined);
       return;
     }
 

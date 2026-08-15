@@ -14,6 +14,8 @@ export type TableEdit =
   | { type: "set-cell-text"; row: number; column: number; text: string }
   | { type: "insert-row"; row: number }
   | { type: "insert-column"; column: number }
+  | { type: "delete-row"; row: number }
+  | { type: "delete-column"; column: number }
   | { type: "merge-right"; row: number; column: number }
   | { type: "merge-down"; row: number; column: number }
   | { type: "split-cell"; row: number; column: number }
@@ -304,11 +306,35 @@ function splitTableCell(
     }
   }
 }
+/** Drops a row or a column, unless it is the last one left. */
+function deleteTableLine(
+  table: MarkdownTable,
+  index: number,
+  type: "delete-row" | "delete-column",
+) {
+  if (type === "delete-row") {
+    if (table.rows.length > 1) {
+      table.rows.splice(index, 1);
+    }
+    return;
+  }
+  if (tableWidth(table) > 1) {
+    table.alignments.splice(index, 1);
+    for (const row of table.rows) {
+      row.splice(index, 1);
+    }
+  }
+}
 function applyTableEdit(table: MarkdownTable, edit: TableEdit): MarkdownTable {
   const row = "row" in edit ? Math.max(0, edit.row) : 0;
   const column = "column" in edit ? Math.max(0, edit.column) : 0;
   const next = ensureCell(table, row, column);
   const width = tableWidth(next);
+  // Deletions run before the cell guard: a merged-over cell is still removable.
+  if (edit.type === "delete-row" || edit.type === "delete-column") {
+    deleteTableLine(next, edit.type === "delete-row" ? row : column, edit.type);
+    return normalizeTable(next);
+  }
   const cell = tableCellAt(next, row, column);
   if (!cell || cell.covered) {
     return next;
