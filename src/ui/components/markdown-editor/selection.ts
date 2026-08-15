@@ -1,5 +1,11 @@
 import type { DecorationBox, Editor, SelectionApi } from "./types";
 
+/** Cards edited in place: a caret inside them never unfolds the source above. */
+const IN_PLACE_PREVIEWS = ["md-table-preview", "md-quiz-preview"];
+
+const inPlacePreview = (preview: Element | null | undefined) =>
+  IN_PLACE_PREVIEWS.some((name) => preview?.classList.contains(name));
+
 const EMBED_LINE_CLASSES = [
   "md-database-line",
   "md-diagram-line",
@@ -178,14 +184,10 @@ class EditorSelection {
 
     const preview = e.previewForNode(selection?.focusNode ?? null);
 
-    // A table card is edited in place, so a caret landing in it stays put
-    // instead of being pushed onto the source line above. Arrow keys still walk
-    // past it, hence the navigation check.
-    if (
-      !preview ||
-      (!this.previewNavigation &&
-        preview.classList.contains("md-table-preview"))
-    ) {
+    // A caret landing in such a card stays put instead of being pushed onto the
+    // source line above. Arrow keys still walk past it, hence the navigation
+    // check.
+    if (!preview || (!this.previewNavigation && inPlacePreview(preview))) {
       return false;
     }
 
@@ -251,13 +253,9 @@ class EditorSelection {
       return;
     }
 
-    // Anywhere else in the table card (toolbar, padding, scroll area) is still
-    // the table editor: it must not unfold the source lines behind it.
-    if (
-      e.previewForNode(selection?.focusNode ?? null)?.classList.contains(
-        "md-table-preview",
-      )
-    ) {
+    // Anywhere else in such a card (toolbar, padding, a quiz field) is still
+    // its own editor: it must not unfold the source lines behind it.
+    if (inPlacePreview(e.previewForNode(selection?.focusNode ?? null))) {
       this.setActiveBlock(undefined);
       return;
     }
