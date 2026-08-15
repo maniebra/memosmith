@@ -30,18 +30,28 @@ export {
 } from "./markdownEmbeds";
 export {
   EMPTY_QUIZ,
+  EMPTY_QUIZ_ANSWER,
+  EMPTY_QUIZ_BLANK,
+  QUIZ_BLANK,
   QUIZ_LANGUAGE,
   isMultiQuiz,
   parseQuiz,
   parseQuizState,
+  quizFenceInfo,
+  quizExpectedFor,
   quizFenceLine,
-  quizPreview,
   quizScore,
+  quizVerdict,
+  withQuizResponse,
   type Quiz,
-  type QuizLabels,
+  type QuizKind,
   type QuizScore,
   type QuizState,
 } from "./markdownQuiz";
+export {
+  quizPreview,
+  type QuizLabels,
+} from "./markdownQuizRender";
 export {
   escapeHtml,
   insideFence,

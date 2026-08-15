@@ -2,7 +2,7 @@ import { kernelFor, KERNEL_LABELS } from "./runner";
 import type { CalloutDefinition } from "../storage/settings";
 import { calloutIconSvg } from "./calloutIcons";
 import { preferredTextDirection } from "./textDirection";
-import type { QuizLabels } from "./markdownQuiz";
+import type { QuizLabels } from "./markdownQuizRender";
 import {
   attribute,
   escapeHtml,

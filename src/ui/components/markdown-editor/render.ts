@@ -59,6 +59,8 @@ class EditorRender {
       quizzes: props.quizzes,
       quizLabels: {
         check: this.e.t("editor.quizCheck"),
+        reveal: this.e.t("editor.quizReveal"),
+        write: this.e.t("editor.quizWrite"),
         retry: this.e.t("editor.quizRetry"),
         score: ({ hits, correct, misses }: QuizScore) =>
           this.e.t(misses ? "editor.quizScoreWrong" : "editor.quizScore", {

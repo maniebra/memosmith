@@ -11,6 +11,8 @@ import {
   EMPTY_MERMAID,
   EMPTY_PLANTUML,
   EMPTY_QUIZ,
+  EMPTY_QUIZ_ANSWER,
+  EMPTY_QUIZ_BLANK,
   SLASH_COMMANDS,
 } from "../../../lib/utils/markdown";
 import { matchCommands } from "../../../lib/utils/slashMatching";
@@ -91,11 +93,35 @@ class EditorSlash {
       ...(props.mermaid
         ? [{ label: "Mermaid", hint: "diagram", prefix: EMPTY_MERMAID }]
         : []),
-      ...(props.quizzes
-        ? [{ label: this.e.t("editor.quiz"), hint: "quiz", prefix: EMPTY_QUIZ }]
-        : []),
+      ...(props.quizzes ? [this.quizCommand()] : []),
       ...this.databaseCommands(databases),
     ];
+  }
+
+  /** One entry with the three shapes a question can take under it. */
+  private quizCommand(): SlashCommand {
+    return {
+      label: this.e.t("editor.quiz"),
+      hint: "quiz",
+      prefix: "",
+      children: [
+        {
+          label: this.e.t("editor.quizChoice"),
+          hint: "quiz",
+          prefix: EMPTY_QUIZ,
+        },
+        {
+          label: this.e.t("editor.quizBlank"),
+          hint: "[____]",
+          prefix: EMPTY_QUIZ_BLANK,
+        },
+        {
+          label: this.e.t("editor.quizAnswer"),
+          hint: "quiz",
+          prefix: EMPTY_QUIZ_ANSWER,
+        },
+      ],
+    };
   }
 
   /** One entry, not one per view: the databases hang off it as submenus. */

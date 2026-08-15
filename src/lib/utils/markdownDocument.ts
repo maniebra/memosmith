@@ -47,7 +47,8 @@ import {
   type LiveDiagramEngine,
   type RenderDocumentOptions,
 } from "./markdownEmbeds";
-import { QUIZ_LANGUAGE, quizPreview } from "./markdownQuiz";
+import { QUIZ_LANGUAGE } from "./markdownQuiz";
+import { quizPreview } from "./markdownQuizRender";
 const EQUATION_BLOCK = /^\s*\$\$\s*(\S.*?)\s*\$\$\s*$/;
 const FENCE = /^\s*```(\w*)([^\n]*)/;
 const MAX_SUBBLOCK_DEPTH = 6;

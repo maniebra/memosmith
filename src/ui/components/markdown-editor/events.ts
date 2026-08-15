@@ -8,8 +8,14 @@ import {
 import { handleCompletionKeydown, handleSlashKeydown } from "./menuKeys";
 import { editSurface, type EditSurface } from "./surface";
 import { EMBED_SELECTOR } from "./embedLayout";
+import { handleCalloutPointer } from "./calloutPointer";
 import { handleEditorShortcut } from "./shortcuts";
-import { handleQuizPointer } from "./quiz";
+import {
+  handleQuizChange,
+  handleQuizFieldKeydown,
+  handleQuizPointer,
+  quizFieldOf,
+} from "./quiz";
 import { toggleTaskAt } from "./taskToggle";
 import type { Editor, EventApi } from "./types";
 
@@ -23,6 +29,7 @@ export function createEvents(e: Editor): EventApi {
     handleKeydown: service.handleKeydown.bind(service),
     handlePaste: service.handlePaste.bind(service),
     handlePointerDown: service.handlePointerDown.bind(service),
+    handleChange: service.handleChange.bind(service),
     insideDatabaseEmbed: service.insideDatabaseEmbed.bind(service),
   };
 }
@@ -49,10 +56,19 @@ class EditorEvents {
     this.handleInput();
   }
 
+  /** A quiz field is its own little editor: its typing never becomes note text. */
+  handleChange(event: Event) {
+    handleQuizChange(this.e, event);
+  }
+
   handleInput(event?: Event) {
     const e = this.e;
 
-    if (e.ui.composing || this.insideDatabaseEmbed(event)) {
+    if (
+      e.ui.composing ||
+      this.insideDatabaseEmbed(event) ||
+      quizFieldOf(event?.target as Node | null)
+    ) {
       return;
     }
 
@@ -219,6 +235,10 @@ class EditorEvents {
       return;
     }
 
+    if (handleQuizFieldKeydown(event)) {
+      return;
+    }
+
     const tableCell = e.tableCellForNode(event.target as Node | null);
 
     if (tableCell && e.handleTableKeydown(event, tableCell)) {
@@ -315,55 +335,13 @@ class EditorEvents {
     return false;
   }
 
-  /**
-   * The callout card is not editable itself, so a click on it moves the caret
-   * into the source line it was rendered from, which unfolds the callout.
-   */
-  private handleCalloutPointer(event: PointerEvent, handle: HTMLElement) {
-    const e = this.e;
-    const preview = handle.closest?.(
-      ".md-callout-preview",
-    ) as HTMLElement | null;
-
-    if (!e.props.editable || !preview) {
-      return false;
-    }
-
-    const sources = (
-      Array.from(e.element?.children ?? []) as HTMLElement[]
-    ).filter(
-      (block) =>
-        block.dataset.callout === preview.dataset.callout &&
-        !block.classList.contains("md-preview"),
-    );
-    const bodyLine = handle.closest(".md-callout-body-line");
-    // The heading is the first source line, each body line the one after it.
-    const index = bodyLine
-      ? Array.from(preview.querySelectorAll(".md-callout-body-line")).indexOf(
-          bodyLine,
-        ) + 1
-      : 0;
-    const target = sources[Math.min(index, sources.length - 1)];
-    const offset = target ? e.offsetForPosition(target, 0) : null;
-
-    if (!target || offset === null) {
-      return false;
-    }
-
-    event.preventDefault();
-    e.element?.focus({ preventScroll: true });
-    e.setActiveBlock(target);
-    e.setCaret(offset + e.sourceLength(target));
-    return true;
-  }
-
   handlePointerDown(event: PointerEvent) {
     const e = this.e;
     const handle = event.target as HTMLElement;
     if (
       event.button !== 0 ||
       this.handleWikilinkPointer(event, handle) ||
-      this.handleCalloutPointer(event, handle) ||
+      handleCalloutPointer(e, event, handle) ||
       handleQuizPointer(e, event, handle) ||
       toggleTaskAt(this.e, event, handle)
     ) {

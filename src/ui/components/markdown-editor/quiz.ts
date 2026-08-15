@@ -2,43 +2,51 @@ import {
   isMultiQuiz,
   parseQuiz,
   parseQuizState,
-  quizFenceLine,
+  quizFenceInfo,
+  withQuizResponse,
   type QuizState,
 } from "../../../lib/utils/markdown";
 import type { Editor } from "./types";
 
-/** The fenced source behind a card, minus its own fence lines. */
-function quizSource(e: Editor, preview: HTMLElement) {
-  return e
-    .codeSourceBlocks(preview)
-    .slice(1, -1)
-    .map((block) => e.sourceText(block))
-    .join("\n");
+const CONTROLS = ".md-quiz-option, .md-quiz-check, .md-quiz-reset";
+
+export function quizFieldOf(node: Node | null) {
+  const element = node instanceof HTMLElement ? node : node?.parentElement;
+
+  return (element?.closest?.(".md-quiz-field") ?? null) as HTMLElement | null;
 }
 
-/** Answers live on the opening fence, so the option lines are never rewritten. */
+function previewOf(handle: HTMLElement) {
+  return (handle.closest?.(".md-quiz-preview") ?? null) as HTMLElement | null;
+}
+
+/** Everything the fence carries: its info string and the body under it. */
+function quizBlock(e: Editor, preview: HTMLElement) {
+  const blocks = e.codeSourceBlocks(preview);
+  const info = blocks[0] ? e.sourceText(blocks[0]).replace(/^\s*```/, "") : "";
+
+  return {
+    open: blocks[0] as HTMLElement | undefined,
+    info,
+    source: blocks
+      .slice(1, -1)
+      .map((block) => e.sourceText(block))
+      .join("\n"),
+  };
+}
+
 function writeQuizState(e: Editor, preview: HTMLElement, state: QuizState) {
-  const open = e.codeSourceBlocks(preview)[0];
-  const start = open ? e.offsetForPosition(open, 0) : null;
+  const { source } = quizBlock(e, preview);
 
-  if (!open || start === null) {
-    return false;
-  }
-
-  e.value =
-    e.value.slice(0, start) +
-    quizFenceLine(state) +
-    e.value.slice(start + e.sourceLength(open));
-  // Read mode has no caret to restore.
-  e.render(null);
-  e.props.onInput();
+  e.replaceFencedSource(preview, quizFenceInfo(state), source);
   return true;
 }
 
 function pickOption(e: Editor, preview: HTMLElement, option: HTMLElement) {
   const index = Number(option.dataset.quizOption);
-  const state = parseQuizState(fenceInfo(e, preview));
-  const multi = isMultiQuiz(parseQuiz(quizSource(e, preview)));
+  const { info, source } = quizBlock(e, preview);
+  const state = parseQuizState(info);
+  const multi = isMultiQuiz(parseQuiz(source));
 
   if (state.checked) {
     return false;
@@ -55,42 +63,90 @@ function pickOption(e: Editor, preview: HTMLElement, option: HTMLElement) {
   });
 }
 
-function fenceInfo(e: Editor, preview: HTMLElement) {
-  const open = e.codeSourceBlocks(preview)[0];
+/** Clicking the card itself is a request to edit the block, not to answer it. */
+function editQuizSource(e: Editor, preview: HTMLElement) {
+  const { open } = quizBlock(e, preview);
+  const offset = open ? e.offsetForPosition(open, 0) : null;
 
-  return open ? e.sourceText(open) : "";
+  if (!e.props.editable || !open || offset === null) {
+    return false;
+  }
+
+  e.element?.focus({ preventScroll: true });
+  e.setActiveBlock(open);
+  e.setCaret(offset + e.sourceLength(open));
+  return true;
 }
 
 /**
- * Picking, checking and retrying a quiz, each one a rewrite of the opening
- * fence so the answer survives a reload.
+ * Picking, checking, retrying and opening a quiz, each one a rewrite of the
+ * block so the answer survives a reload.
  */
 export function handleQuizPointer(
   e: Editor,
   event: PointerEvent,
   handle: HTMLElement,
 ) {
-  const preview = handle.closest?.(".md-quiz-preview") as HTMLElement | null;
+  const preview = previewOf(handle);
 
   if (!preview) {
     return false;
   }
 
-  const option = handle.closest?.(".md-quiz-option") as HTMLElement | null;
-  const state = parseQuizState(fenceInfo(e, preview));
-  let handled = false;
-
-  if (handle.closest?.(".md-quiz-reset")) {
-    handled = writeQuizState(e, preview, { picked: [], checked: false });
-  } else if (handle.closest?.(".md-quiz-check")) {
-    handled = writeQuizState(e, preview, { ...state, checked: true });
-  } else if (option) {
-    handled = pickOption(e, preview, option);
+  // The reader is aiming at a text field: let the browser focus it.
+  if (quizFieldOf(handle)) {
+    return true;
   }
+
+  const option = handle.closest?.(".md-quiz-option") as HTMLElement | null;
+  const state = parseQuizState(quizBlock(e, preview).info);
+  const handled = handle.closest?.(".md-quiz-reset")
+    ? writeQuizState(e, preview, { picked: [], checked: false })
+    : handle.closest?.(".md-quiz-check")
+      ? writeQuizState(e, preview, { ...state, checked: true })
+      : option
+        ? pickOption(e, preview, option)
+        : !handle.closest?.(CONTROLS) && editQuizSource(e, preview);
 
   if (handled) {
     event.preventDefault();
   }
 
   return handled;
+}
+
+/** A written blank or answer lands in the block when the field is left. */
+export function handleQuizChange(e: Editor, event: Event) {
+  const field = quizFieldOf(event.target as Node | null);
+  const preview = field ? previewOf(field) : null;
+
+  if (!field || !preview) {
+    return false;
+  }
+
+  const { info, source } = quizBlock(e, preview);
+  const value = (field as HTMLInputElement | HTMLTextAreaElement).value;
+  const blank = field.dataset.quizBlank;
+
+  e.replaceFencedSource(
+    preview,
+    info,
+    withQuizResponse(source, value, blank === undefined ? undefined : +blank),
+  );
+  return true;
+}
+
+/** Typing in a quiz field never reaches the note; Enter just commits it. */
+export function handleQuizFieldKeydown(event: KeyboardEvent) {
+  const field = quizFieldOf(event.target as Node | null);
+
+  if (!field) {
+    return false;
+  }
+
+  if (event.key === "Enter" && !event.shiftKey) {
+    field.blur();
+  }
+
+  return true;
 }

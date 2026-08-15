@@ -225,6 +225,7 @@
       className,
     )}
     oninput={editor.handleInput}
+    onchange={editor.handleChange}
     onfocusout={editor.handleDatabaseBlur}
     onkeydown={editor.handleKeydown}
     oncontextmenu={editor.openContextMenu}

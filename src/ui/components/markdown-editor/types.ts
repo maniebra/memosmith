@@ -375,6 +375,7 @@ export type EventApi = {
   handleKeydown: (event: KeyboardEvent) => void;
   handlePaste: (event: ClipboardEvent) => void;
   handlePointerDown: (event: PointerEvent) => void;
+  handleChange: (event: Event) => void;
 };
 
 export type Editor = EditorHost &

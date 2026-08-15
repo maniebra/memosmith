@@ -1014,6 +1014,28 @@ textarea,
     @apply rounded-sm;
   }
 
+  /* The blank reads as part of the sentence, the written answer as a sheet. */
+  .md-quiz-field {
+    @apply rounded-md border border-stone-300 bg-transparent px-2 py-0.5 dark:border-stone-600;
+  }
+
+  .md-quiz-writing {
+    @apply mt-2 w-full resize-y px-3 py-2;
+  }
+
+  .md-quiz-field:focus {
+    @apply outline-none;
+    border-color: var(--ms-accent);
+  }
+
+  .md-quiz-preview[data-quiz-answered="correct"] .md-quiz-field {
+    @apply border-emerald-500/70 text-emerald-700 dark:text-emerald-400;
+  }
+
+  .md-quiz-preview[data-quiz-answered="wrong"] .md-quiz-field {
+    @apply border-rose-500/70 text-rose-600 dark:text-rose-400;
+  }
+
   .md-quiz-actions {
     @apply mt-2 flex items-center gap-3 text-[0.9em];
   }
