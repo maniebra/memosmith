@@ -3,7 +3,9 @@
     Database,
     FileDown,
     Link2,
+    Lock,
     Minus,
+    Pencil,
     PanelLeftClose,
     PanelLeftOpen,
     Settings,
@@ -31,10 +33,12 @@
   export let backlinksAvailable = false;
   export let backlinksOpen = true;
   export let backlinksCount = 0;
+  export let readOnly = false;
   export let windowControlsEnabled = true;
   export let onSelectBreadcrumb: (path: string) => void;
   export let onToggleSpacePane: () => void;
   export let onToggleBacklinks: () => void;
+  export let onToggleReadOnly: () => void;
   export let onToggleSettings: () => void;
   export let onToggleDatabases: () => void;
   export let onToggleGrammar: () => void;
@@ -139,6 +143,27 @@
         </span>
       </button>
     {/if}
+    <button
+      type="button"
+      class={cn(
+        "inline-flex size-8 items-center justify-center rounded-lg border border-transparent text-stone-500 transition-colors hover:bg-stone-500/10 hover:text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/40 dark:text-stone-400 dark:hover:text-stone-100",
+        readOnly && "bg-emerald-600/10 text-emerald-700 dark:text-emerald-300",
+      )}
+      aria-label={readOnly
+        ? $i18n.t("toolbar.enableEditing")
+        : $i18n.t("toolbar.readOnly")}
+      aria-pressed={readOnly}
+      title={readOnly
+        ? $i18n.t("toolbar.enableEditing")
+        : $i18n.t("toolbar.readOnly")}
+      onclick={onToggleReadOnly}
+    >
+      {#if readOnly}
+        <Lock class="size-4 shrink-0" strokeWidth={1.8} aria-hidden="true" />
+      {:else}
+        <Pencil class="size-4 shrink-0" strokeWidth={1.8} aria-hidden="true" />
+      {/if}
+    </button>
     {#if grammarEnabled}
       <Button
         label={$i18n.t("toolbar.grammar")}

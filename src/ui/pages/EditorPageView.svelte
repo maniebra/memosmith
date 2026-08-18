@@ -55,6 +55,9 @@
   export let onReorderTabs: (id: string, target: string) => void;
   export let explainGrammarIssue: (issue: any) => Promise<string>;
   export let actions: EditorPageActions;
+
+  /** Session-only: locks the open note against edits. */
+  let readOnly = false;
 </script>
 
 <svelte:window
@@ -78,6 +81,8 @@
     backlinksAvailable={Boolean(backlinks.length) && !activeDatabaseId}
     backlinksOpen={settings.backlinksPaneOpen}
     backlinksCount={backlinks.length}
+    {readOnly}
+    onToggleReadOnly={() => (readOnly = !readOnly)}
     windowControlsEnabled={settings.features.windowControls}
     onSelectBreadcrumb={(relativePath) =>
       actions.runWithStatus(() => actions.selectSpaceNote(relativePath))}
@@ -200,7 +205,7 @@
           runner={settings.runner}
           lsp={settings.features.lsp}
           lspSettings={settings.lsp}
-          editable={Boolean(path)}
+          editable={Boolean(path) && !readOnly}
           {noteTitle}
           pageMeta={activePageMeta}
           showPageTitle={settings.showPageTitle}
@@ -217,7 +222,7 @@
               actions.updateActiveCoverPosition(position),
             )}
           onPickCover={() => actions.runWithStatus(actions.pickActiveCover)}
-          onTitleChange={activeRelativePath
+          onTitleChange={activeRelativePath && !readOnly
             ? (name) =>
                 actions.runWithStatus(() =>
                   actions.renameSpaceEntry(activeRelativePath, name),

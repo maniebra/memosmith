@@ -161,6 +161,8 @@ export const en = {
     "Merged into the request body last, so it overrides the fields above. Use it for provider-specific options.",
   "settings.pageWidth": "Page width",
   "settings.textSize": "Text size",
+  "toolbar.readOnly": "Read only",
+  "toolbar.enableEditing": "Enable editing",
   "settings.pageTitle": "Page title",
   "settings.focusOnOpen": "Focus editor when opening a note",
   "settings.spellcheck": "Spellcheck",

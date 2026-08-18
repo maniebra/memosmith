@@ -163,6 +163,8 @@ export const fa: Record<I18nKey, string> = {
     "در پایان با بدنه درخواست ادغام می شود، پس فیلدهای بالا را بازنویسی می کند. برای گزینه های ویژه ارائه دهنده استفاده کنید.",
   "settings.pageWidth": "عرض صفحه",
   "settings.textSize": "اندازه متن",
+  "toolbar.readOnly": "فقط خواندنی",
+  "toolbar.enableEditing": "فعال کردن ویرایش",
   "settings.pageTitle": "عنوان صفحه",
   "settings.focusOnOpen": "فوکوس ویرایشگر هنگام باز کردن یادداشت",
   "settings.spellcheck": "غلط یابی",
