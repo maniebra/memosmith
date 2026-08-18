@@ -28,7 +28,7 @@ import { safeName } from "./editorPageUtils";
 
 type CoreActions = {
   flushNoteSave: () => Promise<void>;
-  focusEditor: () => void;
+  focusEditor: (force?: boolean) => void;
   setEditorText: (text: string, nextPath: string | null) => void;
 };
 
@@ -123,7 +123,7 @@ class SpaceActions {
     this.context.statusMessage = this.context.t("app.created", {
       name: displayNotePath(relativePath),
     });
-    this.core.focusEditor();
+    this.core.focusEditor(true);
   }
 
   async openWikilink(rawTarget: string) {
@@ -162,7 +162,7 @@ class SpaceActions {
     this.context.statusMessage = this.context.t("app.created", {
       name: displayNotePath(relativePath),
     });
-    this.core.focusEditor();
+    this.core.focusEditor(true);
   }
 }
 

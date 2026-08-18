@@ -102,6 +102,7 @@ export type AppSettings = {
   spellcheck: boolean;
   slashCommands: boolean;
   showPageTitle: boolean;
+  focusOnOpen: boolean;
   spacePaneWidth: number;
   settingsPaneWidth: number;
   backlinksPaneWidth: number;

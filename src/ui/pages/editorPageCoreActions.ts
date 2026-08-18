@@ -129,7 +129,11 @@ class CoreActions {
     this.context.statusMessage = this.context.t("app.selectOrCreateNote");
   }
 
-  focusEditor() {
+  /** `force` is for freshly created notes, which always want the caret. */
+  focusEditor(force = false) {
+    if (!force && !this.context.settings.focusOnOpen) {
+      return;
+    }
     this.context.editor?.focus();
   }
 

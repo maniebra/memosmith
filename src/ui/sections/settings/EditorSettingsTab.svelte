@@ -56,6 +56,11 @@
       onChange={(showPageTitle) => patch({ showPageTitle })}
     />
     <Switch
+      checked={settings.focusOnOpen}
+      label={$i18n.t("settings.focusOnOpen")}
+      onChange={(focusOnOpen) => patch({ focusOnOpen })}
+    />
+    <Switch
       checked={settings.spellcheck}
       label={$i18n.t("settings.spellcheck")}
       onChange={(spellcheck) => patch({ spellcheck })}

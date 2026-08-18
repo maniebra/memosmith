@@ -162,6 +162,7 @@ export const en = {
   "settings.pageWidth": "Page width",
   "settings.textSize": "Text size",
   "settings.pageTitle": "Page title",
+  "settings.focusOnOpen": "Focus editor when opening a note",
   "settings.spellcheck": "Spellcheck",
   "settings.slashCommands": "Slash commands",
   "settings.providerDefault": "Provider default",

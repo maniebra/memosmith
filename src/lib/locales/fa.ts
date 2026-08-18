@@ -164,6 +164,7 @@ export const fa: Record<I18nKey, string> = {
   "settings.pageWidth": "عرض صفحه",
   "settings.textSize": "اندازه متن",
   "settings.pageTitle": "عنوان صفحه",
+  "settings.focusOnOpen": "فوکوس ویرایشگر هنگام باز کردن یادداشت",
   "settings.spellcheck": "غلط یابی",
   "settings.slashCommands": "فرمان های اسلش",
   "settings.providerDefault": "پیش فرض ارائه دهنده",

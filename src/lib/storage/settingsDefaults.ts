@@ -150,6 +150,7 @@ export const defaultSettings: AppSettings = {
   spellcheck: true,
   slashCommands: true,
   showPageTitle: true,
+  focusOnOpen: true,
   spacePaneWidth: 240,
   settingsPaneWidth: 320,
   backlinksPaneWidth: 288,

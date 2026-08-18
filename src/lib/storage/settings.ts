@@ -311,6 +311,7 @@ function readEditorSettings(parsed: Partial<AppSettings>) {
       parsed.showPageTitle,
       defaultSettings.showPageTitle,
     ),
+    focusOnOpen: readBoolean(parsed.focusOnOpen, defaultSettings.focusOnOpen),
   };
 }
 export function loadSettings(): AppSettings {
