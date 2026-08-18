@@ -161,6 +161,7 @@
         <WelcomeDashboard
           root={spaceRoot}
           notes={spaceNotes}
+          meta={spaceMeta}
           onNewNote={() =>
             actions.runWithStatus(() =>
               actions.createSpaceNote("", $i18n.t("welcome.untitled")),

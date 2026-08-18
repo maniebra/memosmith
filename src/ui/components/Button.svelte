@@ -8,14 +8,20 @@
   export let size: "sm" | "md" | "lg" = "md";
   export let disabled = false;
   export let className = "";
+  /** Icon buttons hide their label by default; this puts the text back beside it. */
+  export let showLabel = false;
 
   $: classes = cn(
     "inline-flex items-center justify-center rounded-lg border font-medium transition-colors",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/40",
     "disabled:pointer-events-none disabled:opacity-50",
-    icon && size === "sm" && "size-8 p-0",
-    icon && size === "md" && "size-9 p-0",
-    icon && size === "lg" && "size-11 p-0",
+    icon && showLabel && "gap-2",
+    icon && !showLabel && size === "sm" && "size-8 p-0",
+    icon && !showLabel && size === "md" && "size-9 p-0",
+    icon && !showLabel && size === "lg" && "size-11 p-0",
+    icon && showLabel && size === "sm" && "h-8 px-2.5 text-[0.8125rem]",
+    icon && showLabel && size === "md" && "h-9 px-3 text-sm",
+    icon && showLabel && size === "lg" && "h-11 px-4 text-base",
     !icon && size === "sm" && "h-8 px-2.5 text-[0.8125rem]",
     !icon && size === "md" && "h-9 min-w-20 px-3 text-sm",
     !icon && size === "lg" && "h-11 min-w-20 px-4 text-base",
@@ -38,5 +44,5 @@
       aria-hidden="true"
     />
   {/if}
-  <span class={icon ? "sr-only" : ""}>{label}</span>
+  <span class={icon && !showLabel ? "sr-only" : ""}>{label}</span>
 </button>
