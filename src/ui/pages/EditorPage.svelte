@@ -4,6 +4,7 @@
   import { explainIssue } from "../../lib/tauri/llm";
   import type { DatabaseSummary } from "../../lib/tauri/databases";
   import { i18n, locale } from "../../lib/i18n";
+  import { shortcutKey } from "../../lib/utils/shortcutKey";
   import { loadSettings, saveSettings } from "../../lib/storage/settings";
   import { palette } from "../../lib/utils/optionColors";
   import { loadSpaceRoot } from "../../lib/storage/space";
@@ -287,6 +288,7 @@
 
   function handleShortcut(event: KeyboardEvent) {
     const isPrimaryShortcut = event.ctrlKey || event.metaKey;
+    const key = shortcutKey(event);
 
     if (event.defaultPrevented) {
       return;
@@ -305,7 +307,7 @@
       tabs.cycleTabs(event.shiftKey ? -1 : 1);
       return;
     }
-    if (event.key.toLowerCase() === "w" && activeTab) {
+    if (key === "w" && activeTab) {
       event.preventDefault();
       void tabs.closeTab(activeTab);
       return;
@@ -314,7 +316,7 @@
       event.preventDefault();
       settingsOpen = !settingsOpen;
     }
-    if (event.key.toLowerCase() === "b") {
+    if (key === "b") {
       event.preventDefault();
       actions.toggleSpacePane();
     }

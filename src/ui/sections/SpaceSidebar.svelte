@@ -8,6 +8,7 @@
   } from "@lucide/svelte";
   import { i18n } from "../../lib/i18n";
   import { basename } from "../../lib/utils/path";
+  import { shortcutKey } from "../../lib/utils/shortcutKey";
   import type { SpaceMeta } from "../../lib/utils/pageMeta";
   import { buildTree } from "../../lib/utils/tree";
   import type { TreeNode } from "../../lib/utils/tree";
@@ -158,13 +159,15 @@
       return;
     }
 
-    if (event.key.toLowerCase() === "r") {
+    const key = shortcutKey(event);
+
+    if (key === "r") {
       event.preventDefault();
       contextMenu = null;
       onRefresh();
     }
 
-    if (event.shiftKey && event.key.toLowerCase() === "n") {
+    if (event.shiftKey && key === "n") {
       event.preventDefault();
       contextMenu = null;
       startRootFolder();

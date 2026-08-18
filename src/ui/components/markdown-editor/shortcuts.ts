@@ -2,6 +2,7 @@ import {
   inlineMarkEdit,
   type InlineMarker,
 } from "../../../lib/utils/markdown";
+import { shortcutKey } from "../../../lib/utils/shortcutKey";
 import type { EditSurface } from "./surface";
 import type { Editor } from "./types";
 
@@ -154,7 +155,7 @@ export function handleEditorShortcut(
     return false;
   }
 
-  const key = event.key.toLowerCase();
+  const key = shortcutKey(event);
 
   if (key === "arrowleft" || key === "arrowright") {
     return handleRtlWordNavigation(event, e, surface);
