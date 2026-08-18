@@ -218,9 +218,8 @@
       "min-h-[60vh] w-full leading-[1.75] whitespace-pre-wrap caret-emerald-700",
       "md-editor-surface",
       "focus-visible:outline-none",
-      editable
-        ? "text-stone-900 dark:text-stone-100"
-        : "cursor-default text-stone-400 dark:text-stone-500",
+      "text-stone-900 dark:text-stone-100",
+      editable || "cursor-default",
       "dark:caret-emerald-400",
       className,
     )}
