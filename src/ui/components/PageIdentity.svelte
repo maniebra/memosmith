@@ -44,6 +44,15 @@
   $: pageChromeDirection =
     titleDirection === "rtl" || $i18n.dir === "rtl" ? "rtl" : "ltr";
   $: coverPosition = dragPosition ?? meta.coverPosition ?? 50;
+  // Svelte does not re-render children of a contenteditable node, so the title
+  // stays stale when the same element is reused for another note.
+  $: if (
+    titleElement &&
+    title !== titleElement.textContent &&
+    document.activeElement !== titleElement
+  ) {
+    titleElement.textContent = title;
+  }
   function closeMenus(event: MouseEvent) {
     if ((event.target as HTMLElement | null)?.closest("[data-menu]")) {
       return;
