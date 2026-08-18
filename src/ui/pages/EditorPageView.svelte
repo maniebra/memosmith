@@ -105,6 +105,7 @@
           notes={spaceNotes}
           meta={spaceMeta}
           activePath={activeRelativePath}
+          openPaths={openTabs}
           onChooseSpace={() => actions.runWithStatus(actions.chooseSpace)}
           onRefresh={() => actions.runWithStatus(actions.refreshSpace)}
           onSelect={(relativePath) =>

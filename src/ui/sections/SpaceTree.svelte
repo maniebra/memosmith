@@ -44,8 +44,34 @@
   ) => void;
   export let onCancelEdit: () => void;
   export let depth = 0;
+  /** Note paths with an open tab; their folders start expanded, others collapsed. */
+  export let openPaths: string[] = [];
 
   let collapsed: Record<string, boolean> = {};
+  let defaulted = new Set<string>();
+  let lastActivePath: string | null = null;
+
+  function holdsOpenNote(folder: string) {
+    return openPaths.some((path) => path.startsWith(`${folder}/`));
+  }
+
+  // Folders arrive as the space loads, so each one gets its default once.
+  $: for (const node of nodes) {
+    if (node.children && !defaulted.has(node.path)) {
+      defaulted.add(node.path);
+      collapsed = { ...collapsed, [node.path]: !holdsOpenNote(node.path) };
+    }
+  }
+
+  // Selecting a note reveals it, without fighting a manual collapse otherwise.
+  $: if (activePath !== lastActivePath) {
+    lastActivePath = activePath;
+    for (const node of nodes) {
+      if (node.children && activePath?.startsWith(`${node.path}/`)) {
+        collapsed = { ...collapsed, [node.path]: false };
+      }
+    }
+  }
   let dropHint: { path: string; where: "before" | "inside" | "after" } | null =
     null;
   let expandTimer: ReturnType<typeof setTimeout> | undefined;
@@ -330,6 +356,7 @@
           nodes={node.children}
           {meta}
           {activePath}
+          {openPaths}
           {onSelect}
           {renaming}
           {creating}

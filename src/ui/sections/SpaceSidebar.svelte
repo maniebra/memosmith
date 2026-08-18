@@ -23,6 +23,7 @@
   export let notes: string[];
   export let meta: SpaceMeta = {};
   export let activePath: string | null;
+  export let openPaths: string[] = [];
   export let onChooseSpace: () => void | Promise<void>;
   export let onRefresh: () => void | Promise<void>;
   export let onSelect: (relativePath: string) => void;
@@ -262,6 +263,7 @@
         nodes={displayTree}
         {meta}
         {activePath}
+        {openPaths}
         {onSelect}
         {renaming}
         {creating}
