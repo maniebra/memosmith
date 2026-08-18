@@ -176,7 +176,7 @@
   }}
 />
 
-{#if editable}
+{#if editable || title || meta.cover || meta.icon}
   <div class="mb-8">
     {#if meta.cover}
       <div
@@ -198,7 +198,7 @@
           onpointercancel={dragEnd}
         />
 
-        {#if repositioning}
+        {#if editable && repositioning}
           <div
             class="absolute inset-x-0 bottom-3 flex justify-center"
             data-menu
@@ -216,7 +216,7 @@
               />
             </div>
           </div>
-        {:else}
+        {:else if editable}
           <button
             type="button"
             class={cn(
@@ -250,7 +250,7 @@
     {/if}
 
     <div class="group/page relative">
-      {#if !meta.cover}
+      {#if editable && !meta.cover}
         <button
           type="button"
           class={cn(
@@ -270,7 +270,7 @@
         </button>
       {/if}
 
-      {#if coverMenuOpen && !meta.cover}
+      {#if editable && coverMenuOpen && !meta.cover}
         <PageCoverMenu
           direction={pageChromeDirection}
           onUpload={pickCover}
@@ -285,7 +285,20 @@
           pageChromeDirection === "rtl" ? "pl-24" : "pr-24",
         )}
       >
-        <button
+        {#if !editable}
+          {#if meta.icon}
+            <span
+              class="mt-1 flex size-11 shrink-0 items-center justify-center rounded-md text-3xl text-stone-500 dark:text-stone-400"
+            >
+              <PageIcon
+                icon={meta.icon}
+                fallback={FileText}
+                className="size-7"
+              />
+            </span>
+          {/if}
+        {:else}
+          <button
           type="button"
           class={cn(
             "mt-1 flex size-11 shrink-0 items-center justify-center rounded-md text-3xl transition-colors",
@@ -305,19 +318,21 @@
           }}
         >
           <PageIcon icon={meta.icon} fallback={FileText} className="size-7" />
-        </button>
+          </button>
+        {/if}
 
         <div class="min-w-0 flex-1">
           {#if showTitle}
             <h1
               bind:this={titleElement}
               dir={titleDirection}
-              contenteditable={Boolean(onTitleChange)}
+              contenteditable={editable && Boolean(onTitleChange)}
               spellcheck="false"
               aria-label={$i18n.t("page.renameTitle")}
               class={cn(
                 "min-w-0 rounded-md text-start text-[2.5rem] leading-tight font-bold tracking-normal break-words text-stone-900 focus-visible:outline-none dark:text-stone-100",
-                onTitleChange &&
+                editable &&
+                  onTitleChange &&
                   "focus:ring-2 focus:ring-emerald-600/25 focus:ring-offset-2 focus:ring-offset-transparent",
               )}
               onkeydown={titleKeydown}
@@ -329,7 +344,7 @@
         </div>
       </div>
 
-      {#if iconOpen}
+      {#if editable && iconOpen}
         <PageIconPicker current={meta.icon} onSelect={selectIcon} />
       {/if}
     </div>

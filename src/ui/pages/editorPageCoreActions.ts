@@ -132,6 +132,9 @@ class CoreActions {
   /** `force` is for freshly created notes, which always want the caret. */
   focusEditor(force = false) {
     if (!force && !this.context.settings.focusOnOpen) {
+      // The editor element is reused across notes, so it keeps the caret from
+      // the previous one unless it is sent away explicitly.
+      this.context.editor?.blur();
       return;
     }
     this.context.editor?.focus();
