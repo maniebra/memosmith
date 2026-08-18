@@ -3,6 +3,17 @@ import { faDatabase } from "./faDatabase";
 
 export const fa: Record<I18nKey, string> = {
   ...faDatabase,
+  "command.placeholder": "جستجوی یادداشت‌ها، > دستورها، # سرتیترها",
+  "command.heading": "سرتیتر",
+  "command.note": "یادداشت",
+  "command.database": "پایگاه داده",
+  "command.action": "دستور",
+  "command.openSettings": "باز کردن تنظیمات",
+  "command.toggleSidebar": "نمایش یا پنهان کردن نوار کناری",
+  "command.toggleReadOnly": "حالت فقط خواندنی",
+  "command.exportPdf": "خروجی PDF",
+  "command.chooseSpace": "انتخاب فضا",
+  "command.refreshSpace": "تازه‌سازی فضا",
   "app.chooseSpace": "برای شروع یک فضا انتخاب کنید",
   "app.noNoteSelected": "هیچ یادداشتی انتخاب نشده",
   "app.noSpace": "بدون فضا",

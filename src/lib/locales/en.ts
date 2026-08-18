@@ -2,6 +2,17 @@ import { enDatabase } from "./enDatabase";
 
 export const en = {
   ...enDatabase,
+  "command.placeholder": "Search notes, > commands, # headings",
+  "command.heading": "Heading",
+  "command.note": "Note",
+  "command.database": "Database",
+  "command.action": "Action",
+  "command.openSettings": "Open settings",
+  "command.toggleSidebar": "Toggle sidebar",
+  "command.toggleReadOnly": "Toggle read-only mode",
+  "command.exportPdf": "Export PDF",
+  "command.chooseSpace": "Choose space",
+  "command.refreshSpace": "Refresh space",
   "app.chooseSpace": "Choose a space to start",
   "app.noNoteSelected": "No note selected",
   "app.noSpace": "No space",

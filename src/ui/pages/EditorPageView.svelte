@@ -9,6 +9,7 @@
   import EditorToolbar from "../sections/EditorToolbar.svelte";
   import GrammarPolice from "../sections/GrammarPolice.svelte";
   import NoteEditorForm from "../forms/NoteEditorForm.svelte";
+  import CommandPalette from "../components/CommandPalette.svelte";
   import PdfExportModal from "../components/PdfExportModal.svelte";
   import SettingsPanel from "../sections/SettingsPanel.svelte";
   import SpaceSidebar from "../sections/SpaceSidebar.svelte";
@@ -58,6 +59,7 @@
 
   /** Session-only: locks the open note against edits. */
   let readOnly = false;
+
 </script>
 
 <svelte:window
@@ -375,6 +377,18 @@
   </div>
   <EditorStatusBar {statusMessage} {words} {characters} />
 </main>
+<CommandPalette
+  {actions}
+  {contents}
+  {databases}
+  {editor}
+  {path}
+  {settings}
+  {spaceNotes}
+  bind:settingsOpen
+  bind:pdfPreviewOpen
+  toggleReadOnly={() => (readOnly = !readOnly)}
+/>
 {#if pdfPreviewOpen}
   <PdfExportModal
     source={(editor?.closest(".ms-editor-frame") as HTMLElement | null) ??
