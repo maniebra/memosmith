@@ -13,6 +13,7 @@ import {
   dirNoteName,
   dirNotePath,
   displayNotePath,
+  entryPathFromNote,
 } from "../../lib/utils/path";
 import type { EditorPageContext } from "./editorPageContext";
 import {
@@ -53,9 +54,11 @@ class EntryActions {
   ) {}
 
   async renameSpaceEntry(relativePath: string, name: string) {
+    // A folder's <name>.dir.md is the folder: rename the folder instead.
+    const target = entryPathFromNote(relativePath);
     await this.applyMove(
-      relativePath,
-      renameTarget(this.context.spaceNotes, relativePath, name),
+      target,
+      renameTarget(this.context.spaceNotes, target, name),
     );
   }
 
@@ -166,7 +169,9 @@ class EntryActions {
     next: ReturnType<typeof renameTarget>,
   ) {
     const fromPath = this.spacePath(from);
-    if (this.context.path === fromPath) {
+    if (next.folder && this.context.path === this.spacePath(dirNotePath(from))) {
+      this.context.path = this.spacePath(dirNotePath(next.path));
+    } else if (this.context.path === fromPath) {
       this.context.path = this.spacePath(next.path);
     } else if (next.folder && this.context.path?.startsWith(`${fromPath}/`)) {
       this.context.path = this.context.path.replace(

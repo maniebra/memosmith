@@ -1,7 +1,12 @@
 const assert = (ok: unknown, msg: string) => {
   if (!ok) throw new Error(msg);
 };
-import { moveTarget, pathTaken } from "../../../src/ui/pages/editorPageUtils";
+import {
+  moveTarget,
+  pathTaken,
+  renamedNoteContents,
+} from "../../../src/ui/pages/editorPageUtils";
+import { entryPathFromNote } from "../../../src/lib/utils/path";
 import { buildTree, reorderedSiblings } from "../../../src/lib/utils/tree";
 
 assert(moveTarget("a.md", "notes") === "notes/a.md", "root file into folder");
@@ -47,6 +52,22 @@ const ordered = buildTree(["a.md", "b.md", "notes/x.md"], {
 assert(
   ordered.map((node) => node.path).join() === "b.md,a.md,notes",
   "manual order wins over folders-first name sorting",
+);
+
+assert(
+  entryPathFromNote("notes/deep/deep.dir.md") === "notes/deep",
+  "dir note renames its folder",
+);
+assert(
+  Object.keys(
+    renamedNoteContents(
+      { "deep/deep.dir.md": "x", "deep/a.md": "y" },
+      "deep",
+      "new",
+      true,
+    ),
+  ).join() === "new/new.dir.md,new/a.md",
+  "folder rename remaps the dir note name",
 );
 
 console.log("moveTarget ok");

@@ -172,7 +172,11 @@ export function renamedMeta(
     if (key === from) {
       next[to] = value;
     } else if (folder && key.startsWith(prefix)) {
-      next[`${to}/${key.slice(prefix.length)}`] = value;
+      next[
+        key === dirNotePath(from)
+          ? dirNotePath(to)
+          : `${to}/${key.slice(prefix.length)}`
+      ] = value;
     } else {
       next[key] = value;
     }
@@ -194,7 +198,11 @@ export function renamedNoteContents(
     if (key === from) {
       next[to] = value;
     } else if (folder && key.startsWith(prefix)) {
-      next[`${to}/${key.slice(prefix.length)}`] = value;
+      next[
+        key === dirNotePath(from)
+          ? dirNotePath(to)
+          : `${to}/${key.slice(prefix.length)}`
+      ] = value;
     } else {
       next[key] = value;
     }
