@@ -55,20 +55,10 @@ class EditorSlash {
 
   private featureCommands(): SlashCommand[] {
     const props = this.e.props;
-    const callout =
-      props.calloutDefinitions.find((definition) => definition.id)?.id ?? "note";
     const databases = props.databaseRoot ? props.databaseOptions : [];
 
     return [
-      ...(props.callouts
-        ? [
-            {
-              label: this.e.t("editor.callout"),
-              hint: callout,
-              prefix: `> [!${callout}] `,
-            },
-          ]
-        : []),
+      ...(props.callouts ? [this.calloutCommand()] : []),
       ...(props.drawings
         ? [
             {
@@ -96,6 +86,29 @@ class EditorSlash {
       ...(props.quizzes ? [this.quizCommand()] : []),
       ...this.databaseCommands(databases),
     ];
+  }
+
+  /** One entry, with every configured callout type hanging off it. */
+  private calloutCommand(): SlashCommand {
+    const definitions = this.e.props.calloutDefinitions.filter(
+      (definition) => definition.id,
+    );
+    const children = definitions.map((definition) => ({
+      label: definition.label || definition.id,
+      hint: definition.id,
+      prefix: `> [!${definition.id}] `,
+      icon: definition.icon,
+      color: definition.color,
+    }));
+
+    return {
+      label: this.e.t("editor.callout"),
+      hint: children[0]?.hint ?? "note",
+      icon: definitions[0]?.icon,
+      color: definitions[0]?.color,
+      prefix: children.length ? "" : "> [!note] ",
+      ...(children.length ? { children } : {}),
+    };
   }
 
   /** One entry with the three shapes a question can take under it. */

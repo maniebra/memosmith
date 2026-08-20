@@ -123,4 +123,53 @@ assert(
   "what is typed after drilling filters the submenu",
 );
 
+// Callouts collapse to one entry that drills into the configured types.
+const calloutEditor = (() => {
+  const ui = {
+    slashStart: 0,
+    slashQuery: "",
+    slashIndex: 0,
+    slashPath: [] as string[],
+    slashPathQuery: 0,
+  } as EditorUi;
+  const e = {
+    ui,
+    t: (key: string) => key,
+    props: {
+      slashCommands: true,
+      callouts: true,
+      drawings: false,
+      diagrams: false,
+      plantuml: false,
+      mermaid: false,
+      calloutDefinitions: [
+        { id: "note", label: "Note", color: "#000000", icon: "Info" },
+        { id: "warning", label: "Warning", color: "#000000", icon: "Star" },
+      ],
+      databaseRoot: "",
+      databaseOptions: [],
+    },
+  } as unknown as Editor;
+  return { ui, slash: createSlash(e) };
+})();
+
+const calloutEntry = calloutEditor
+  .slash.slashMatches()
+  .find((command) => command.label === "editor.callout");
+
+assert(calloutEntry !== undefined, "callouts stay one top-level entry");
+calloutEditor.slash.pickCommand(calloutEntry!);
+
+assert(
+  calloutEditor.ui.slashStart === 0,
+  "picking the callout group opens its submenu instead of inserting",
+);
+assert(
+  calloutEditor.slash
+    .slashMatches()
+    .map((command) => `${command.label}:${command.prefix}`)
+    .join() === "Note:> [!note] ,Warning:> [!warning] ",
+  "each configured callout is its own child that inserts that type",
+);
+
 console.log("slash menu ok");

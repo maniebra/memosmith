@@ -2,6 +2,7 @@
   import { scale } from "svelte/transition";
   import { cubicOut } from "svelte/easing";
   import { cn } from "../../../lib/utils/cn";
+  import { calloutIconSvg } from "../../../lib/utils/calloutIcons";
   import type { SlashCommand } from "./types";
 
   export let commands: SlashCommand[] = [];
@@ -42,7 +43,17 @@
         }}
         onmousemove={() => onHover(commandIndex)}
       >
-        <span>{command.label}</span>
+        <span class="flex min-w-0 items-center gap-2">
+          {#if command.icon}
+            <span
+              class="inline-flex h-4 w-4 shrink-0 [&>svg]:h-4 [&>svg]:w-4"
+              style={command.color ? `color: ${command.color};` : ""}
+            >
+              {@html calloutIconSvg(command.icon)}
+            </span>
+          {/if}
+          <span class="truncate">{command.label}</span>
+        </span>
         <span
           class="rounded border border-stone-200 px-1.5 py-px font-mono text-[0.7rem] text-stone-400 dark:border-stone-700 dark:text-stone-500"
           >{command.children?.length ? "›" : command.hint}</span

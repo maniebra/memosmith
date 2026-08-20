@@ -39,6 +39,9 @@ export type SlashCommand = {
   hint: string;
   prefix: string;
   /** Children open a submenu, not an insert. */ children?: SlashCommand[];
+  /** Callout entries carry their own icon and colour into the menu row. */
+  icon?: string;
+  color?: string;
 };
 
 export type BlockUnit = {
