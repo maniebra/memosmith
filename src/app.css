@@ -4,8 +4,8 @@
 
 :root {
   --ms-ui-font:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
   --ms-editor-font: var(--ms-ui-font);
   --ms-editor-line-height: 1.75;
   --ms-accent-rgb: 5 150 105;
@@ -61,6 +61,27 @@ textarea,
   border-left-width: 1px;
 }
 
+/* Vim mode: a block caret while normal or visual, the usual bar in insert. */
+[data-vim-mode="normal"],
+[data-vim-mode="visual"],
+[data-vim-mode="visual-line"] {
+  caret-shape: block;
+  caret-color: rgb(var(--ms-accent-rgb) / 0.85);
+}
+
+[data-vim-mode="visual"],
+[data-vim-mode="visual-line"] {
+  caret-color: transparent;
+}
+
+.md-vim-caret {
+  position: fixed;
+  z-index: 40;
+  pointer-events: none;
+  border-radius: 1px;
+  background: rgb(var(--ms-accent-rgb) / 0.35);
+}
+
 ::selection {
   background: rgb(var(--ms-accent-rgb) / 0.22);
 }
@@ -71,7 +92,6 @@ textarea,
 
 /* Svelte transitions compile to CSS animations, so this covers them too. */
 @media (prefers-reduced-motion: reduce) {
-
   *,
   ::before,
   ::after {
@@ -149,7 +169,7 @@ textarea,
     min-height: 1.75em;
   }
 
-  .md-block>br:only-child {
+  .md-block > br:only-child {
     display: block;
     height: 1.75em;
   }
@@ -316,7 +336,7 @@ textarea,
   }
 
   /* With the fences hidden the slab loses its cap, so the edge code lines take it over. */
-  .md-fence-open:not([data-active])+.md-codeblock {
+  .md-fence-open:not([data-active]) + .md-codeblock {
     @apply mt-6 rounded-t-md pt-8;
   }
 
@@ -332,7 +352,8 @@ textarea,
     @apply mb-0 rounded-b-none;
   }
 
-  .md-fence-open:not([data-active])+.md-codeblock[data-language]:not([data-language=""])::after {
+  .md-fence-open:not([data-active])
+    + .md-codeblock[data-language]:not([data-language=""])::after {
     content: attr(data-language);
     @apply pointer-events-none absolute top-2 right-3 rounded border border-stone-500/10 bg-stone-500/10 px-2 py-0.5 text-[0.65rem] leading-none font-medium text-stone-500 uppercase dark:border-stone-100/10 dark:bg-stone-100/8 dark:text-stone-400;
   }
@@ -564,7 +585,11 @@ textarea,
 
   .md-table-tools-shell::after {
     right: 0.375rem;
-    background: linear-gradient(270deg, var(--md-table-toolbar-bg), transparent);
+    background: linear-gradient(
+      270deg,
+      var(--md-table-toolbar-bg),
+      transparent
+    );
   }
 
   .md-table-tools-shell[data-scroll-left]::before,
@@ -889,8 +914,11 @@ textarea,
   /* Same collapse trick as drawings: never `display: none`, or the caret jumps. The code slab
      is dropped too, so a folded diagram leaves no empty strip behind. */
   .md-livediagram-line:not([data-active]),
-  .md-fence-open:not([data-active]) + .md-codeblock.md-livediagram-line:not([data-active]),
-  .md-codeblock.md-livediagram-line:not([data-active]):has(+ .md-fence-close:not([data-active])) {
+  .md-fence-open:not([data-active])
+    + .md-codeblock.md-livediagram-line:not([data-active]),
+  .md-codeblock.md-livediagram-line:not([data-active]):has(
+      + .md-fence-close:not([data-active])
+    ) {
     font-size: 0;
     line-height: 0;
     letter-spacing: 0;
@@ -899,7 +927,9 @@ textarea,
 
   /* No slab, no language badge either. */
   .md-fence-open:not([data-active])
-    + .md-codeblock.md-livediagram-line[data-language]:not([data-language=""])::after {
+    + .md-codeblock.md-livediagram-line[data-language]:not(
+      [data-language=""]
+    )::after {
     content: none;
   }
 
@@ -942,8 +972,11 @@ textarea,
 
   /* Quiz source folds away under its card, the same trick diagrams use. */
   .md-quiz-line:not([data-active]),
-  .md-fence-open:not([data-active]) + .md-codeblock.md-quiz-line:not([data-active]),
-  .md-codeblock.md-quiz-line:not([data-active]):has(+ .md-fence-close:not([data-active])) {
+  .md-fence-open:not([data-active])
+    + .md-codeblock.md-quiz-line:not([data-active]),
+  .md-codeblock.md-quiz-line:not([data-active]):has(
+      + .md-fence-close:not([data-active])
+    ) {
     font-size: 0;
     line-height: 0;
     letter-spacing: 0;
@@ -989,7 +1022,9 @@ textarea,
     @apply border-rose-500/70 bg-rose-500/10 text-rose-600 dark:text-rose-400;
   }
 
-  .md-quiz-preview[data-quiz-answered] .md-quiz-option[data-quiz-correct] .md-quiz-mark {
+  .md-quiz-preview[data-quiz-answered]
+    .md-quiz-option[data-quiz-correct]
+    .md-quiz-mark {
     @apply border-emerald-500 bg-emerald-500;
   }
 
@@ -1089,43 +1124,80 @@ textarea,
   .md-run-timeout {
     @apply border-l-amber-500/80 text-amber-700 dark:text-amber-300;
   }
-
 }
 
 @keyframes md-run-reveal {
-  from { opacity: 0; transform: translateY(-4px) scaleY(0.96); transform-origin: top; }
-  to { opacity: 1; transform: translateY(0) scaleY(1); }
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scaleY(0.96);
+    transform-origin: top;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
 }
 
 @keyframes md-run-sweep {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(100%); }
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
 }
 
 @keyframes md-run-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.45; transform: scale(0.82); }
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.82);
+  }
 }
 
 @keyframes md-run-blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.35; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
 }
 
 @keyframes md-run-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(-360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(-360deg);
+  }
 }
 
 @keyframes md-run-flash {
-  from { background-color: rgb(var(--ms-accent-soft-rgb) / 0.35); }
-  to { background-color: transparent; }
+  from {
+    background-color: rgb(var(--ms-accent-soft-rgb) / 0.35);
+  }
+  to {
+    background-color: transparent;
+  }
 }
 
 @keyframes md-run-shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-3px); }
-  75% { transform: translateX(3px); }
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-3px);
+  }
+  75% {
+    transform: translateX(3px);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

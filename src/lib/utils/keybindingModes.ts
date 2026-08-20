@@ -4,23 +4,10 @@ import type {
 } from "../storage/settingsTypes";
 
 /**
- * Vim-flavoured layout: `g`/`<space>` sequences for window-level commands.
- *
- * ponytail: remaps combinations only, there is no normal/insert mode, so
- * in-editor keys stay the default ones. Add a modal layer here if real vim
- * editing is wanted.
+ * Vim mode keeps the default app shortcuts: the vim keys themselves live in
+ * the engine (`utils/vim`), which owns every key while the editor has focus.
  */
-export const vimCombinations: Record<string, string> = {
-  "app.nextTab": "g t",
-  "app.previousTab": "g shift+t",
-  "app.closeTab": "space q",
-  "app.settingsChord": "space s",
-  "app.toggleSpacePane": "space e",
-  "app.databases": "space d",
-  "palette.toggleChord": "space p",
-  "sidebar.refresh": "space r",
-  "sidebar.newRootFolderChord": "space n",
-};
+export const vimCombinations: Record<string, string> = {};
 
 /** The name-to-combination overrides a mode applies over the default layout. */
 export function keybindingOverrides(

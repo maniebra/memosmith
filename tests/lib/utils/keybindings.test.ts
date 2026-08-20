@@ -110,9 +110,9 @@ assert(
   "default mode ignores custom combinations",
 );
 assert(
-  keybindingOverrides({ mode: "vim", combinations: {} })["app.nextTab"] ===
-    "g t",
-  "vim mode maps tab cycling to g t",
+  Object.keys(keybindingOverrides({ mode: "vim", combinations: {} })).length ===
+    0,
+  "vim mode keeps the default app shortcuts, the engine owns the vim keys",
 );
 assert(
   keybindingOverrides({ mode: "custom", combinations: { a: "b" } }).a === "b",

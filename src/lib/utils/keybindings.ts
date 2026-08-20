@@ -157,7 +157,18 @@ function combinationOf(binding: Keybinding<never>) {
   return overrides[binding.name] ?? binding.combination;
 }
 
+let vimNormal = false;
+
+/** Vim's normal mode makes bare letters commands rather than typing. */
+export function setVimNormal(next: boolean) {
+  vimNormal = next;
+}
+
 function isTyping(event: KeyboardEvent) {
+  if (vimNormal) {
+    return false;
+  }
+
   const plain = !event.ctrlKey && !event.metaKey && !event.altKey;
 
   if (!plain || event.key.length !== 1) {
@@ -191,8 +202,27 @@ export function registerKeybindings(bindings: Keybinding[]) {
   };
 }
 
-export function handleGlobalKeydown(event: KeyboardEvent) {
-  if (!event.defaultPrevented) {
-    runGlobalKeybindings(event, undefined);
+const seen = new WeakSet<KeyboardEvent>();
+
+/** Runs a registered binding by name, for commands that arrive another way. */
+export function runKeybinding(name: string) {
+  const binding = [...globalGroups].flat().find((entry) => entry.name === name);
+
+  if (!binding) {
+    return false;
   }
+
+  return binding.action(new KeyboardEvent("keydown"), undefined) !== false;
+}
+
+export function handleGlobalKeydown(event: KeyboardEvent) {
+  // Capture-phase callers get here first; the window handler must not rerun
+  // the same event and step through a half-typed sequence twice.
+  if (event.defaultPrevented || seen.has(event)) {
+    return false;
+  }
+
+  seen.add(event);
+
+  return runGlobalKeybindings(event, undefined);
 }

@@ -9,6 +9,7 @@ import { handleCompletionKeydown, handleSlashKeydown } from "./menuKeys";
 import { editSurface, type EditSurface } from "./surface";
 import { EMBED_SELECTOR } from "./embedLayout";
 import { handleCalloutPointer } from "./calloutPointer";
+import { handleVimKeydown } from "./vim";
 import { handleEditorShortcut } from "./shortcuts";
 import {
   handleQuizChange,
@@ -257,6 +258,7 @@ class EditorEvents {
     }
 
     if (
+      handleVimKeydown(event, e, surface) ||
       handleEditorShortcut(event, e, surface) ||
       handleCompletionKeydown(this.e, event)
     ) {

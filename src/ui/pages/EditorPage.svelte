@@ -9,6 +9,7 @@
     setKeybindingOverrides,
   } from "../../lib/utils/keybindings";
   import { keybindingOverrides } from "../../lib/utils/keybindingModes";
+  import { setVimEnabled } from "../../lib/utils/vimMode";
   import { createEditorPageKeybindings } from "./editorPageKeybindings";
   import { loadSettings, saveSettings } from "../../lib/storage/settings";
   import { palette } from "../../lib/utils/optionColors";
@@ -140,6 +141,7 @@
   );
   $: document.title = `${displayName} - ${appTitle}`;
   $: setKeybindingOverrides(keybindingOverrides(settings.keybindings));
+  $: setVimEnabled(settings.keybindings.mode === "vim");
   $: locale.set(settings.locale);
   $: document.documentElement.lang = settings.locale;
   $: document.documentElement.dir = $i18n.dir;

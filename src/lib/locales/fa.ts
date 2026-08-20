@@ -175,7 +175,7 @@ export const fa: Record<I18nKey, string> = {
   "settings.keybindings": "میان‌برهای صفحه‌کلید",
   "settings.keybindingsHelp": "برای هر کنش یک ترکیب، مثل `mod+b`. برای آکورد، مرحله‌ها را با فاصله جدا کنید: `mod+k mod+s`. خالی بگذارید تا پیش‌فرض بماند.",
   "options.keybindingsDefault": "پیش‌فرض",
-  "options.keybindingsVim": "ویم",
+  "options.keybindingsVim": "ویم (آزمایشی)",
   "options.keybindingsCustom": "سفارشی",
   "settings.pageWidth": "عرض صفحه",
   "settings.textSize": "اندازه متن",
