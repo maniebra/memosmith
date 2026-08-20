@@ -170,6 +170,11 @@ export const en = {
   "settings.extraBody": "Extra body (JSON)",
   "settings.extraBodyHelp":
     "Merged into the request body last, so it overrides the fields above. Use it for provider-specific options.",
+  "settings.keybindings": "Keyboard shortcuts",
+  "settings.keybindingsHelp": "One combination per action, e.g. `mod+b`. Separate steps with a space for a chord: `mod+k mod+s`. Leave empty to keep the default.",
+  "options.keybindingsDefault": "Default",
+  "options.keybindingsVim": "Vim",
+  "options.keybindingsCustom": "Custom",
   "settings.pageWidth": "Page width",
   "settings.textSize": "Text size",
   "toolbar.readOnly": "Read only",

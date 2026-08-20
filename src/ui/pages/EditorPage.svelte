@@ -4,7 +4,12 @@
   import { explainIssue } from "../../lib/tauri/llm";
   import type { DatabaseSummary } from "../../lib/tauri/databases";
   import { i18n, locale } from "../../lib/i18n";
-  import { shortcutKey } from "../../lib/utils/shortcutKey";
+  import {
+    registerKeybindings,
+    setKeybindingOverrides,
+  } from "../../lib/utils/keybindings";
+  import { keybindingOverrides } from "../../lib/utils/keybindingModes";
+  import { createEditorPageKeybindings } from "./editorPageKeybindings";
   import { loadSettings, saveSettings } from "../../lib/storage/settings";
   import { palette } from "../../lib/utils/optionColors";
   import { loadSpaceRoot } from "../../lib/storage/space";
@@ -134,6 +139,7 @@
     contents,
   );
   $: document.title = `${displayName} - ${appTitle}`;
+  $: setKeybindingOverrides(keybindingOverrides(settings.keybindings));
   $: locale.set(settings.locale);
   $: document.documentElement.lang = settings.locale;
   $: document.documentElement.dir = $i18n.dir;
@@ -255,7 +261,6 @@
     ...assets,
     ...grammar,
     ...wikilinks,
-    handleShortcut,
     runWithStatus,
     updateNote,
   };
@@ -286,41 +291,10 @@
     }
   }
 
-  function handleShortcut(event: KeyboardEvent) {
-    const isPrimaryShortcut = event.ctrlKey || event.metaKey;
-    const key = shortcutKey(event);
+  onMount(() =>
+    registerKeybindings(createEditorPageKeybindings(context, actions, tabs)),
+  );
 
-    if (event.defaultPrevented) {
-      return;
-    }
-
-    if (event.key === "Escape" && (settingsOpen || databasesOpen)) {
-      settingsOpen = false;
-      databasesOpen = false;
-      return;
-    }
-    if (!isPrimaryShortcut) {
-      return;
-    }
-    if (event.key === "Tab") {
-      event.preventDefault();
-      tabs.cycleTabs(event.shiftKey ? -1 : 1);
-      return;
-    }
-    if (key === "w" && activeTab) {
-      event.preventDefault();
-      void tabs.closeTab(activeTab);
-      return;
-    }
-    if (event.key === ",") {
-      event.preventDefault();
-      settingsOpen = !settingsOpen;
-    }
-    if (key === "b") {
-      event.preventDefault();
-      actions.toggleSpacePane();
-    }
-  }
 
   runWithStatus(async () => {
     await space.refreshSpace();

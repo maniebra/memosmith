@@ -77,7 +77,6 @@ export type EditorPageActions = {
   flushNoteSave: () => Promise<void>;
   generateFromPrompt: (prompt: string) => Promise<string>;
   handleResize: (event: PointerEvent) => void;
-  handleShortcut: (event: KeyboardEvent) => void;
   openWikilink: (target: string) => Promise<void>;
   pickActiveCover: () => Promise<void>;
   pickAssets: () => Promise<string>;

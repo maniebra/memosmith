@@ -64,7 +64,6 @@
 
 <svelte:window
   onbeforeunload={() => void actions.flushNoteSave()}
-  onkeydown={actions.handleShortcut}
   onpointermove={actions.handleResize}
   onpointerup={actions.stopResize}
 />

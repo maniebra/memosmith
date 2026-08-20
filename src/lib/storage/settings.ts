@@ -30,12 +30,16 @@ import type {
   LlmSettings,
   AppSettings,
   GrammarProfile,
+  KeybindingMode,
+  KeybindingSettings,
 } from "./settingsTypes";
 export type * from "./settingsTypes";
 const SETTINGS_KEY = "memosmith:settings";
 export * from "./settingsDefaults";
 import {
   defaultCalloutDefinitions,
+  defaultKeybindingSettings,
+  KEYBINDING_MODES,
   defaultFeatureSettings,
   defaultLlmSettings,
   defaultLspSettings,
@@ -314,6 +318,19 @@ function readEditorSettings(parsed: Partial<AppSettings>) {
     focusOnOpen: readBoolean(parsed.focusOnOpen, defaultSettings.focusOnOpen),
   };
 }
+function readKeybindings(value: unknown): KeybindingSettings {
+  const parsed = (value ?? {}) as Partial<KeybindingSettings>;
+  const mode = KEYBINDING_MODES.includes(parsed.mode as KeybindingMode)
+    ? (parsed.mode as KeybindingMode)
+    : defaultKeybindingSettings.mode;
+  const combinations: Record<string, string> = {};
+  for (const [name, combination] of Object.entries(parsed.combinations ?? {})) {
+    if (typeof combination === "string" && combination.trim()) {
+      combinations[name] = combination.trim().toLowerCase();
+    }
+  }
+  return { mode, combinations };
+}
 export function loadSettings(): AppSettings {
   const rawSettings = localStorage.getItem(SETTINGS_KEY);
   if (!rawSettings) {
@@ -328,6 +345,7 @@ export function loadSettings(): AppSettings {
         : defaultSettings.theme,
       appearance: readAppearance(parsed.appearance),
       features: readFeatures(parsed.features),
+      keybindings: readKeybindings(parsed.keybindings),
       callouts: readCallouts(parsed.callouts),
       databasePalette: readPalette(parsed.databasePalette),
       runner: readRunner(parsed.runner),

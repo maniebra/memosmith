@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import {
     FolderOpen,
     FolderPlus,
@@ -8,7 +9,10 @@
   } from "@lucide/svelte";
   import { i18n } from "../../lib/i18n";
   import { basename } from "../../lib/utils/path";
-  import { shortcutKey } from "../../lib/utils/shortcutKey";
+  import {
+    registerKeybindings,
+    type Keybinding,
+  } from "../../lib/utils/keybindings";
   import type { SpaceMeta } from "../../lib/utils/pageMeta";
   import { buildTree } from "../../lib/utils/tree";
   import type { TreeNode } from "../../lib/utils/tree";
@@ -152,30 +156,45 @@
     ];
   }
 
-  function handleShortcut(event: KeyboardEvent) {
-    const isPrimaryShortcut = event.ctrlKey || event.metaKey;
+  const sidebarKeybindings: Keybinding[] = [
+    {
+      combination: "mod+r",
+      type: "combinational",
+      name: "sidebar.refresh",
+      description: "Reload the space tree.",
+      action: (event) => {
+        event.preventDefault();
+        contextMenu = null;
+        onRefresh();
+      },
+    },
+    {
+      combination: "mod+shift+n",
+      type: "combinational",
+      name: "sidebar.newRootFolder",
+      description: "Create a folder at the root of the space.",
+      action: (event) => {
+        event.preventDefault();
+        contextMenu = null;
+        startRootFolder();
+      },
+    },
+    {
+      combination: "mod+k mod+n",
+      type: "sequential",
+      name: "sidebar.newRootFolderChord",
+      description: "Create a folder at the root of the space.",
+      action: (event) => {
+        event.preventDefault();
+        contextMenu = null;
+        startRootFolder();
+      },
+    },
+  ];
 
-    if (!root || !isPrimaryShortcut) {
-      return;
-    }
-
-    const key = shortcutKey(event);
-
-    if (key === "r") {
-      event.preventDefault();
-      contextMenu = null;
-      onRefresh();
-    }
-
-    if (event.shiftKey && key === "n") {
-      event.preventDefault();
-      contextMenu = null;
-      startRootFolder();
-    }
-  }
+  onMount(() => registerKeybindings(sidebarKeybindings));
 </script>
 
-<svelte:window onkeydown={handleShortcut} />
 
 <aside
   class="flex min-h-0 shrink-0 flex-col border-r border-stone-200/70 bg-stone-100/50 dark:border-stone-800 dark:bg-stone-900/40"

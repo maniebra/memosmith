@@ -24,6 +24,17 @@ export type FeatureSettings = {
   windowControls: boolean;
 };
 
+export type KeybindingMode = "default" | "vim" | "custom";
+
+/**
+ * Which shortcut layout is live. `custom` applies `combinations`, keyed by
+ * binding name, on top of the default layout.
+ */
+export type KeybindingSettings = {
+  mode: KeybindingMode;
+  combinations: Record<string, string>;
+};
+
 export type PlantumlFormat = "svg" | "png" | "txt";
 
 export type MermaidTheme = "default" | "dark" | "forest" | "neutral";
@@ -91,6 +102,7 @@ export type AppSettings = {
   theme: ThemePreference;
   appearance: AppearanceSettings;
   features: FeatureSettings;
+  keybindings: KeybindingSettings;
   callouts: CalloutDefinition[];
   databasePalette: PaletteColor[];
   runner: RunnerSettings;

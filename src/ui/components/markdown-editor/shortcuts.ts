@@ -1,8 +1,8 @@
+import { inlineMarkEdit, type InlineMarker } from "../../../lib/utils/markdown";
 import {
-  inlineMarkEdit,
-  type InlineMarker,
-} from "../../../lib/utils/markdown";
-import { shortcutKey } from "../../../lib/utils/shortcutKey";
+  createKeybindings,
+  type Keybinding,
+} from "../../../lib/utils/keybindings";
 import type { EditSurface } from "./surface";
 import type { Editor } from "./types";
 
@@ -144,64 +144,128 @@ function toggleInlineMark(
   return true;
 }
 
+type ShortcutContext = { e: Editor; surface: EditSurface };
+
+function undoRedo(event: KeyboardEvent, { e }: ShortcutContext, redo: boolean) {
+  if (!e.props.editable) {
+    return false;
+  }
+
+  prepareShortcut(event, e);
+
+  if (redo || event.shiftKey) {
+    e.redo();
+  } else {
+    e.undo();
+  }
+
+  return true;
+}
+
+export const editorKeybindings: Keybinding<ShortcutContext>[] = [
+  {
+    combination: "mod+arrowleft",
+    type: "combinational",
+    name: "editor.rtlWordLeft",
+    description: "Move or extend the caret by word in right-to-left text.",
+    action: (event, { e, surface }) =>
+      handleRtlWordNavigation(event, e, surface),
+  },
+  {
+    combination: "mod+arrowright",
+    type: "combinational",
+    name: "editor.rtlWordRight",
+    description: "Move or extend the caret by word in right-to-left text.",
+    action: (event, { e, surface }) =>
+      handleRtlWordNavigation(event, e, surface),
+  },
+  {
+    combination: "mod+a",
+    type: "combinational",
+    name: "editor.selectAll",
+    description: "Select the whole block.",
+    action: (event, { e, surface }) => selectAll(event, e, surface),
+  },
+  {
+    combination: "mod+f",
+    type: "combinational",
+    name: "editor.find",
+    description: "Open the find bar.",
+    action: (event, { e }) => {
+      prepareShortcut(event, e);
+      e.openFind(false);
+    },
+  },
+  {
+    combination: "mod+h",
+    type: "combinational",
+    name: "editor.replace",
+    description: "Open the find bar in replace mode.",
+    action: (event, { e }) => {
+      prepareShortcut(event, e);
+      e.openFind(true);
+    },
+  },
+  {
+    combination: "mod+z",
+    type: "combinational",
+    name: "editor.undo",
+    description: "Undo the last edit (Shift redoes).",
+    action: (event, context) => undoRedo(event, context, false),
+  },
+  {
+    combination: "mod+shift+z",
+    type: "combinational",
+    name: "editor.redoAlternate",
+    description: "Redo the last undone edit.",
+    action: (event, context) => undoRedo(event, context, true),
+  },
+  {
+    combination: "mod+y",
+    type: "combinational",
+    name: "editor.redo",
+    description: "Redo the last undone edit.",
+    action: (event, context) => undoRedo(event, context, true),
+  },
+  {
+    combination: "mod+b",
+    type: "combinational",
+    name: "editor.bold",
+    description: "Toggle bold around the selection.",
+    action: (event, { e, surface }) =>
+      toggleInlineMark(event, e, surface, "**"),
+  },
+  {
+    combination: "mod+i",
+    type: "combinational",
+    name: "editor.italic",
+    description: "Toggle italic around the selection.",
+    action: (event, { e, surface }) => toggleInlineMark(event, e, surface, "*"),
+  },
+  {
+    combination: "mod+u",
+    type: "combinational",
+    name: "editor.underline",
+    description: "Toggle underline around the selection.",
+    action: (event, { e, surface }) =>
+      toggleInlineMark(event, e, surface, "__"),
+  },
+  {
+    combination: "mod+shift+x",
+    type: "combinational",
+    name: "editor.strikethrough",
+    description: "Toggle strikethrough around the selection.",
+    action: (event, { e, surface }) =>
+      toggleInlineMark(event, e, surface, "~~"),
+  },
+];
+
+const runEditorKeybindings = createKeybindings(editorKeybindings);
+
 export function handleEditorShortcut(
   event: KeyboardEvent,
   e: Editor,
   surface: EditSurface,
 ) {
-  const shortcut = event.ctrlKey || event.metaKey;
-
-  if (!shortcut || event.altKey) {
-    return false;
-  }
-
-  const key = shortcutKey(event);
-
-  if (key === "arrowleft" || key === "arrowright") {
-    return handleRtlWordNavigation(event, e, surface);
-  }
-
-  if (key === "a") {
-    return selectAll(event, e, surface);
-  }
-
-  if (key === "f" || key === "h") {
-    prepareShortcut(event, e);
-    e.openFind(key === "h");
-    return true;
-  }
-
-  if (key === "z" || key === "y") {
-    if (!e.props.editable) {
-      return false;
-    }
-
-    prepareShortcut(event, e);
-
-    if (key === "y" || event.shiftKey) {
-      e.redo();
-    } else {
-      e.undo();
-    }
-
-    return true;
-  }
-
-  if (key === "b") {
-    return toggleInlineMark(event, e, surface, "**");
-  }
-
-  if (key === "i") {
-    return toggleInlineMark(event, e, surface, "*");
-  }
-
-  if (key === "u") {
-    return toggleInlineMark(event, e, surface, "__");
-  }
-
-  if (key === "x" && event.shiftKey) {
-    return toggleInlineMark(event, e, surface, "~~");
-  }
-
-  return false;
+  return runEditorKeybindings(event, { e, surface });
 }

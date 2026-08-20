@@ -5,6 +5,8 @@ import type {
   CalloutDefinition,
   FeatureSettings,
   GrammarProfile,
+  KeybindingMode,
+  KeybindingSettings,
   LlmSettings,
   LspSettings,
   MermaidSettings,
@@ -130,11 +132,17 @@ export const defaultCalloutDefinitions: CalloutDefinition[] = [
     icon: "CircleQuestionMark",
   },
 ];
+export const KEYBINDING_MODES: KeybindingMode[] = ["default", "vim", "custom"];
+export const defaultKeybindingSettings: KeybindingSettings = {
+  mode: "default",
+  combinations: {},
+};
 export const defaultSettings: AppSettings = {
   locale: "en",
   theme: "system",
   appearance: { ...defaultAppearanceSettings },
   features: { ...defaultFeatureSettings },
+  keybindings: { ...defaultKeybindingSettings, combinations: {} },
   callouts: defaultCalloutDefinitions.map((callout) => ({ ...callout })),
   databasePalette: defaultDatabasePalette.map((color) => ({ ...color })),
   runner: {

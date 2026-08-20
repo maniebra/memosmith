@@ -7,6 +7,7 @@
   import AiSettingsTab from "./settings/AiSettingsTab.svelte";
   import EditorSettingsTab from "./settings/EditorSettingsTab.svelte";
   import FeatureSettingsTab from "./settings/FeatureSettingsTab.svelte";
+  import KeybindingSettings from "./settings/KeybindingSettings.svelte";
   import { cn } from "../../lib/utils/cn";
 
   export let settings: AppSettings;
@@ -14,7 +15,12 @@
   export let onReset: () => void;
   export let onChange: (settings: AppSettings) => void;
 
-  type SettingsTab = "appearance" | "features" | "editor" | "ai";
+  type SettingsTab =
+    | "appearance"
+    | "features"
+    | "editor"
+    | "keybindings"
+    | "ai";
 
   let activeTab: SettingsTab = "appearance";
 
@@ -22,6 +28,7 @@
     { label: $i18n.t("settings.appearance"), value: "appearance" },
     { label: $i18n.t("settings.features"), value: "features" },
     { label: $i18n.t("settings.editor"), value: "editor" },
+    { label: $i18n.t("settings.keybindings"), value: "keybindings" },
     { label: $i18n.t("settings.ai"), value: "ai" },
   ] satisfies { label: string; value: SettingsTab }[];
 </script>
@@ -86,6 +93,10 @@
         <AppearanceSettingsTab {settings} {onChange} />
       {:else if activeTab === "features"}
         <FeatureSettingsTab {settings} {onChange} />
+      {:else if activeTab === "keybindings"}
+        <div class="grid max-w-xl gap-6">
+          <KeybindingSettings {settings} {onChange} />
+        </div>
       {:else if activeTab === "ai"}
         <AiSettingsTab {settings} {onChange} />
       {:else}

@@ -172,6 +172,11 @@ export const fa: Record<I18nKey, string> = {
   "settings.extraBody": "بدنه اضافی (JSON)",
   "settings.extraBodyHelp":
     "در پایان با بدنه درخواست ادغام می شود، پس فیلدهای بالا را بازنویسی می کند. برای گزینه های ویژه ارائه دهنده استفاده کنید.",
+  "settings.keybindings": "میان‌برهای صفحه‌کلید",
+  "settings.keybindingsHelp": "برای هر کنش یک ترکیب، مثل `mod+b`. برای آکورد، مرحله‌ها را با فاصله جدا کنید: `mod+k mod+s`. خالی بگذارید تا پیش‌فرض بماند.",
+  "options.keybindingsDefault": "پیش‌فرض",
+  "options.keybindingsVim": "ویم",
+  "options.keybindingsCustom": "سفارشی",
   "settings.pageWidth": "عرض صفحه",
   "settings.textSize": "اندازه متن",
   "toolbar.readOnly": "فقط خواندنی",

@@ -1,9 +1,13 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import { scale } from "svelte/transition";
   import { cubicOut } from "svelte/easing";
   import { cn } from "../../lib/utils/cn";
   import { i18n } from "../../lib/i18n";
-  import { shortcutKey } from "../../lib/utils/shortcutKey";
+  import {
+    registerKeybindings,
+    type Keybinding,
+  } from "../../lib/utils/keybindings";
   import {
     commandPaletteItems,
     palettePrefix,
@@ -70,17 +74,30 @@
     index = 0;
   }
 
-  /** Ctrl+P opens the palette from anywhere in the app. */
-  function handleWindowKey(event: KeyboardEvent) {
-    if (
-      !event.defaultPrevented &&
-      (event.ctrlKey || event.metaKey) &&
-      shortcutKey(event) === "p"
-    ) {
-      event.preventDefault();
-      open = !open;
-    }
-  }
+  const paletteKeybindings: Keybinding[] = [
+    {
+      combination: "mod+p",
+      type: "combinational",
+      name: "palette.toggle",
+      description: "Open or close the command palette from anywhere.",
+      action: (event) => {
+        event.preventDefault();
+        open = !open;
+      },
+    },
+    {
+      combination: "mod+k mod+p",
+      type: "sequential",
+      name: "palette.toggleChord",
+      description: "Open or close the command palette from anywhere.",
+      action: (event) => {
+        event.preventDefault();
+        open = !open;
+      },
+    },
+  ];
+
+  onMount(() => registerKeybindings(paletteKeybindings));
 
   function pick(item: PaletteItem | undefined) {
     if (!item) {
@@ -111,7 +128,6 @@
   }
 </script>
 
-<svelte:window onkeydown={handleWindowKey} />
 {#if open}
   <div
     class="fixed inset-0 z-50 flex justify-center bg-stone-900/30 pt-[12vh] backdrop-blur-sm"
