@@ -13,6 +13,7 @@
   import { createEditorPageKeybindings } from "./editorPageKeybindings";
   import { loadSettings, saveSettings } from "../../lib/storage/settings";
   import { palette } from "../../lib/utils/optionColors";
+  import { journal, setJournalDir, traced } from "../../lib/utils/journal";
   import { loadSpaceRoot } from "../../lib/storage/space";
   import { loadTabs, saveTabs } from "../../lib/storage/tabs";
   import type { GrammarIssue, GrammarReport } from "../../lib/utils/grammar";
@@ -152,6 +153,14 @@
   // Database chips read the palette from a store, not from drilled props.
   $: palette.set(settings.databasePalette);
   $: saveSettings(settings);
+  $: setJournalDir(settings.logDir);
+  $: journal("state", {
+    activeTab,
+    path,
+    contents: contents.length,
+    openTabs,
+    isDirty,
+  });
   $: if (!settings.features.grammarPolice && grammarOpen) {
     grammarOpen = false;
   }
@@ -231,21 +240,25 @@
     set words(value) { words = value; },
   };
 
-  const core = createCoreActions(context);
-  const pane = createPaneActions(context);
-  const meta = createMetaActions(context);
-  const assets = createAssetActions(context, meta);
-  const grammar = createGrammarActions(context, { updateNote });
-  const space = createSpaceActions(context, core);
-  const databasesApi = createDatabaseActions(context, core, space.refreshSpace);
-  const entries = createEntryActions(
-    context,
-    core,
-    space.refreshSpace,
-    space.spacePath,
+  const core = traced("core", createCoreActions(context));
+  const pane = traced("pane", createPaneActions(context));
+  const meta = traced("meta", createMetaActions(context));
+  const assets = traced("assets", createAssetActions(context, meta));
+  const grammar = traced("grammar", createGrammarActions(context, { updateNote }));
+  const space = traced("space", createSpaceActions(context, core));
+  const databasesApi = traced(
+    "databases",
+    createDatabaseActions(context, core, space.refreshSpace),
   );
-  const wikilinks = createWikilinkActions(context, assets, space.spacePath);
-  const tabs = createTabActions(context, {
+  const entries = traced(
+    "entries",
+    createEntryActions(context, core, space.refreshSpace, space.spacePath),
+  );
+  const wikilinks = traced(
+    "wikilinks",
+    createWikilinkActions(context, assets, space.spacePath),
+  );
+  const tabs = traced("tabs", createTabActions(context, {
     clearActive: core.clearActiveNote,
     flushNoteSave: core.flushNoteSave,
     runWithStatus,
@@ -253,7 +266,7 @@
       id.startsWith("db:")
         ? databasesApi.selectDatabase(id.slice(3))
         : space.selectSpaceNote(id),
-  });
+  }));
 
   const actions: EditorPageActions = {
     ...core,

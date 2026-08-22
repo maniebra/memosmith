@@ -115,6 +115,8 @@ export type AppSettings = {
   slashCommands: boolean;
   showPageTitle: boolean;
   focusOnOpen: boolean;
+  /** Folder the debug journal writes into; empty means the app log folder. */
+  logDir: string;
   spacePaneWidth: number;
   settingsPaneWidth: number;
   backlinksPaneWidth: number;

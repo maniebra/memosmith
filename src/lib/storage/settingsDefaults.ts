@@ -159,6 +159,7 @@ export const defaultSettings: AppSettings = {
   slashCommands: true,
   showPageTitle: true,
   focusOnOpen: true,
+  logDir: "",
   spacePaneWidth: 240,
   settingsPaneWidth: 320,
   backlinksPaneWidth: 288,

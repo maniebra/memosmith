@@ -12,7 +12,6 @@ import {
   listDatabases,
 } from "../../lib/tauri/databases";
 import { saveSpaceRoot } from "../../lib/storage/space";
-import { journal } from "../../lib/utils/journal";
 import { defaultTable, slugify } from "../../lib/utils/database";
 import {
   basename,
@@ -105,11 +104,6 @@ class SpaceActions {
       [relativePath]: text,
     };
     this.core.setEditorText(text, notePath);
-    journal("selectSpaceNote:done", {
-      relativePath,
-      notePath,
-      length: text.length,
-    });
     this.context.statusMessage = this.context.t("app.selected", {
       name: displayNotePath(relativePath),
     });
@@ -225,7 +219,6 @@ class DatabaseActions {
   }
 
   async selectDatabase(id: string) {
-    journal("selectDatabase", { id, activeTab: this.context.activeTab });
     this.context.activeTab = `db:${id}`;
     this.context.activeDatabaseId = id;
     await this.core.flushNoteSave();

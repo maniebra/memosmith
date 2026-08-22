@@ -183,6 +183,8 @@ export const fa: Record<I18nKey, string> = {
   "toolbar.enableEditing": "فعال کردن ویرایش",
   "settings.pageTitle": "عنوان صفحه",
   "settings.focusOnOpen": "فوکوس ویرایشگر هنگام باز کردن یادداشت",
+  "settings.logDir": "پوشه گزارش",
+  "settings.logDirHint": "خالی یعنی پوشه گزارش برنامه.",
   "settings.spellcheck": "غلط یابی",
   "settings.slashCommands": "فرمان های اسلش",
   "settings.providerDefault": "پیش فرض ارائه دهنده",

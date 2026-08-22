@@ -1,6 +1,7 @@
 <script lang="ts">
   import { i18n } from "../../../lib/i18n";
   import type { AppSettings, EditorWidth } from "../../../lib/storage/settings";
+  import Input from "../../components/Input.svelte";
   import Select, { type SelectOption } from "../../components/Select.svelte";
   import Slider from "../../components/Slider.svelte";
   import Switch from "../../components/Switch.svelte";
@@ -70,5 +71,19 @@
       label={$i18n.t("settings.slashCommands")}
       onChange={(slashCommands) => patch({ slashCommands })}
     />
+  </section>
+  <section
+    class="grid gap-2 border-t border-stone-200/50 pt-4 dark:border-stone-800/80"
+  >
+    <span class="text-sm font-medium text-stone-800 dark:text-stone-200">
+      {$i18n.t("settings.logDir")}
+    </span>
+    <Input
+      value={settings.logDir}
+      placeholder="/var/log/memosmith"
+      oninput={(event) =>
+        patch({ logDir: (event.target as HTMLInputElement).value })}
+    />
+    <span class="text-xs text-stone-500">{$i18n.t("settings.logDirHint")}</span>
   </section>
 </div>

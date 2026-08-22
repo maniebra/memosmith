@@ -1,4 +1,3 @@
-import { journal } from "../../lib/utils/journal";
 import { cycleTab, moveTab, syncTabs } from "./editorPageUtils";
 
 /** A tab id is a note's relative path, or `db:<id>` for a database. */
@@ -32,11 +31,6 @@ async function closeTab(
   closingTabs: Set<string>,
   id: string,
 ) {
-  journal("closeTab:enter", {
-    id,
-    activeTab: state.activeTab,
-    openTabs: [...state.openTabs],
-  });
   await deps.flushNoteSave();
   const index = state.openTabs.indexOf(id);
   const remaining = state.openTabs.filter((tab) => tab !== id);
@@ -57,20 +51,12 @@ async function closeTab(
       if (state.activeTab !== id) {
         closingTabs.delete(id);
       }
-      journal("closeTab:after-select", {
-        next,
-        activeTab: state.activeTab,
-        openTabs: [...state.openTabs],
-        closing: [...closingTabs],
-      });
     }
     return;
   }
   state.openTabs = remaining;
   deps.clearActive();
 }
-
-journal("tabActions:loaded");
 
 export function createTabActions(state: TabsState, deps: TabsDeps) {
   const closingTabs = new Set<string>();

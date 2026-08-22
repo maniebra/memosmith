@@ -181,6 +181,8 @@ export const en = {
   "toolbar.enableEditing": "Enable editing",
   "settings.pageTitle": "Page title",
   "settings.focusOnOpen": "Focus editor when opening a note",
+  "settings.logDir": "Log folder",
+  "settings.logDirHint": "Empty uses the app log folder.",
   "settings.spellcheck": "Spellcheck",
   "settings.slashCommands": "Slash commands",
   "settings.providerDefault": "Provider default",

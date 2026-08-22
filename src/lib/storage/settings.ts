@@ -316,6 +316,8 @@ function readEditorSettings(parsed: Partial<AppSettings>) {
       defaultSettings.showPageTitle,
     ),
     focusOnOpen: readBoolean(parsed.focusOnOpen, defaultSettings.focusOnOpen),
+    logDir:
+      typeof parsed.logDir === "string" ? parsed.logDir : defaultSettings.logDir,
   };
 }
 function readKeybindings(value: unknown): KeybindingSettings {

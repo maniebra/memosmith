@@ -321,7 +321,7 @@
     }
     onStatus($i18n.t("database.imported", { count: result.rows.length }));
   }
-  onDestroy(persistence.destroy);
+  onDestroy(() => persistence.destroy());
   function renameDatabase(name: string) {
     updateDatabase({ name });
     onRenamed(name);
