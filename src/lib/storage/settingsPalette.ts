@@ -1,14 +1,17 @@
 import { defaultDatabasePalette } from "./settingsDefaults";
 import type { PaletteColor } from "./settingsTypes";
 
-function defaults() {
-  return defaultDatabasePalette.map((color) => ({ ...color }));
+function defaults(source: PaletteColor[]) {
+  return source.map((color) => ({ ...color }));
 }
 
 /** Palette entries are user-typed, so ids and hexes are checked before use. */
-export function readPalette(value: unknown): PaletteColor[] {
+export function readPalette(
+  value: unknown,
+  fallback: PaletteColor[] = defaultDatabasePalette,
+): PaletteColor[] {
   if (!Array.isArray(value)) {
-    return defaults();
+    return defaults(fallback);
   }
   const seen = new Set<string>();
   const palette: PaletteColor[] = [];
@@ -29,5 +32,5 @@ export function readPalette(value: unknown): PaletteColor[] {
     });
   }
   // An empty palette would leave every chip colourless, so the defaults stand in.
-  return palette.length ? palette : defaults();
+  return palette.length ? palette : defaults(fallback);
 }

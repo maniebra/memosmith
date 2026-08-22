@@ -1,18 +1,23 @@
 <script lang="ts">
   import { Plus, RotateCcw, X } from "@lucide/svelte";
   import { i18n } from "../../../lib/i18n";
-  import { defaultDatabasePalette } from "../../../lib/storage/settings";
+  import type { I18nKey } from "../../../lib/i18n";
   import type { AppSettings, PaletteColor } from "../../../lib/storage/settings";
   import { chipStyle } from "../../../lib/utils/optionColors";
   import { updateSettings } from "./settingsHelpers";
 
   export let settings: AppSettings;
   export let onChange: (settings: AppSettings) => void;
+  /** Which palette this section edits, and the swatches its reset restores. */
+  export let field: "databasePalette" | "highlightPalette";
+  export let defaults: PaletteColor[];
+  export let label: I18nKey;
+  export let help: I18nKey;
 
-  $: colors = settings.databasePalette;
+  $: colors = settings[field];
 
-  function apply(databasePalette: PaletteColor[]) {
-    updateSettings(settings, onChange, { databasePalette });
+  function apply(next: PaletteColor[]) {
+    updateSettings(settings, onChange, { [field]: next });
   }
 
   function patch(id: string, next: Partial<PaletteColor>) {
@@ -43,11 +48,11 @@
   class="grid gap-3 border-t border-stone-200/50 pt-5 sm:grid-cols-[8rem_minmax(0,1fr)] dark:border-stone-800/80"
 >
   <span class="text-sm font-medium text-stone-800 sm:pt-1 dark:text-stone-200">
-    {$i18n.t("settings.palette")}
+    {$i18n.t(label)}
   </span>
   <div class="grid gap-2">
     <span class="text-xs leading-relaxed text-stone-500">
-      {$i18n.t("settings.paletteHelp")}
+      {$i18n.t(help)}
     </span>
 
     <div class="grid gap-1.5">
@@ -102,8 +107,7 @@
       <button
         type="button"
         class="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-stone-500 hover:bg-stone-500/10 hover:text-stone-800 dark:hover:text-stone-200"
-        onclick={() =>
-          apply(defaultDatabasePalette.map((color) => ({ ...color })))}
+        onclick={() => apply(defaults.map((color) => ({ ...color })))}
       >
         <RotateCcw class="size-3.5" strokeWidth={1.8} aria-hidden="true" />
         {$i18n.t("common.reset")}

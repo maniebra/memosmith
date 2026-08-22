@@ -105,6 +105,8 @@ export type AppSettings = {
   keybindings: KeybindingSettings;
   callouts: CalloutDefinition[];
   databasePalette: PaletteColor[];
+  /** Swatches the `==text==` highlight offers; `id` is what a note stores. */
+  highlightPalette: PaletteColor[];
   runner: RunnerSettings;
   lsp: LspSettings;
   plantuml: PlantumlSettings;

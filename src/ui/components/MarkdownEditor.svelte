@@ -3,6 +3,7 @@
   import { onDestroy, onMount } from "svelte";
   import { i18n } from "../../lib/i18n";
   import {
+    defaultHighlightPalette,
     defaultLspSettings,
     defaultMermaidSettings,
     defaultPlantumlSettings,
@@ -10,6 +11,7 @@
     type CalloutDefinition,
     type LspSettings,
     type MermaidSettings,
+    type PaletteColor,
     type PlantumlSettings,
     type RunnerSettings,
   } from "../../lib/storage/settings";
@@ -40,6 +42,7 @@
   export let fancyTableEditor = true;
   export let callouts = true;
   export let calloutDefinitions: CalloutDefinition[] = [];
+  export let highlightColors: PaletteColor[] = defaultHighlightPalette;
   export let drawings = false;
   export let diagrams = false;
   export let quizzes = true;
@@ -89,7 +92,8 @@
 
   $: props = {
     placeholder, textSize, spellcheck, slashCommands, fancyTableEditor,
-    callouts, calloutDefinitions, drawings, diagrams, quizzes, codeExecution,
+    callouts, calloutDefinitions, highlightColors, drawings, diagrams,
+    quizzes, codeExecution,
     plantuml,
     plantumlSettings, mermaid, mermaidSettings, runSession, runner, lsp,
     lspSettings, editable, onInput, onAssets, onPickAssets, onGenerate,
@@ -305,6 +309,7 @@
   <SlashMenu
     commands={slashMatches}
     index={ui.slashIndex}
+    depth={ui.slashPath.length}
     top={ui.menuPosition.top}
     left={ui.menuPosition.left}
     label={$i18n.t("editor.commands")}

@@ -5,9 +5,11 @@
     EditorWidth,
     LspSettings,
     MermaidSettings,
+    PaletteColor,
     PlantumlSettings,
     RunnerSettings,
   } from "../../lib/storage/settings";
+  import { defaultHighlightPalette } from "../../lib/storage/settings";
   import { i18n } from "../../lib/i18n";
   import { cn } from "../../lib/utils/cn";
   import type { PageIcon, PageMeta } from "../../lib/utils/pageMeta";
@@ -26,6 +28,7 @@
   export let fancyTableEditor: boolean;
   export let callouts: boolean;
   export let calloutDefinitions: CalloutDefinition[] = [];
+  export let highlightColors: PaletteColor[] = defaultHighlightPalette;
   export let drawings: boolean;
   export let diagrams: boolean;
   export let quizzes: boolean;
@@ -121,6 +124,7 @@
       {fancyTableEditor}
       {callouts}
       {calloutDefinitions}
+      {highlightColors}
       {drawings}
       {diagrams}
       {quizzes}

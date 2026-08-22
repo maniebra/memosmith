@@ -11,6 +11,12 @@ export {
   type InlineMarker,
   type TextEdit,
 } from "./markdownCommands";
+export {
+  highlightEdit,
+  highlightedAt,
+  parseHighlightSpec,
+  type HighlightColor,
+} from "./markdownHighlight";
 export { renderDocument } from "./markdownDocument";
 export {
   DATABASE_LANGUAGE,

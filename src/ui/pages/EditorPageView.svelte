@@ -197,6 +197,7 @@
           fancyTableEditor={settings.features.fancyTableEditor}
           callouts={settings.features.callouts}
           calloutDefinitions={settings.callouts}
+          highlightColors={settings.highlightPalette}
           drawings={settings.features.drawings}
           diagrams={settings.features.diagrams}
           quizzes={settings.features.quizzes}

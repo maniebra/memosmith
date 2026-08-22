@@ -26,6 +26,7 @@ type ScrollSnapshot = { node: HTMLElement; top: number; left: number }[];
 /** Rendering the note, moving the caret with it, and keeping the view still. */
 class EditorRender {
   private renderedCalloutDefinitions = "";
+  private renderedHighlightColors = "";
   private renderedWikilinkKey = "";
   /** Filled on the first sync: props are not assigned yet at build time. */
   private rendered: Record<string, boolean> | null = null;
@@ -54,6 +55,7 @@ class EditorRender {
       fancyTableEditor: props.fancyTableEditor,
       callouts: props.callouts,
       calloutDefinitions: props.calloutDefinitions,
+      highlightColors: props.highlightColors,
       drawings: props.drawings,
       diagrams: props.diagrams,
       quizzes: props.quizzes,
@@ -290,6 +292,7 @@ class EditorRender {
 
     const flags = this.featureFlags();
     const calloutDefinitions = JSON.stringify(e.props.calloutDefinitions);
+    const highlightColors = JSON.stringify(e.props.highlightColors);
     const wikilinkKey =
       e.props.resolveWikilink && e.props.wikilinkKey ? e.props.wikilinkKey : "";
     const rendered = this.rendered;
@@ -297,10 +300,12 @@ class EditorRender {
       (rendered !== null &&
         Object.entries(flags).some(([key, on]) => rendered[key] !== on)) ||
       this.renderedCalloutDefinitions !== calloutDefinitions ||
+      this.renderedHighlightColors !== highlightColors ||
       (Boolean(wikilinkKey) && this.renderedWikilinkKey !== wikilinkKey);
 
     this.rendered = flags;
     this.renderedCalloutDefinitions = calloutDefinitions;
+    this.renderedHighlightColors = highlightColors;
     this.renderedWikilinkKey = wikilinkKey;
 
     if (changed) {

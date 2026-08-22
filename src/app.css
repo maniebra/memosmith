@@ -110,6 +110,37 @@ textarea,
     color: var(--chip-fg);
   }
 
+  /** A menu that scrolls keeps a thin, quiet scrollbar. */
+  .menu-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(168 162 158 / 0.5) transparent;
+  }
+
+  .menu-scroll::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .menu-scroll::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    background: rgb(168 162 158 / 0.5);
+  }
+
+  .menu-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .md-highlight {
+    background: var(--chip-bg);
+    color: var(--chip-fg);
+    border-radius: 0.25rem;
+    padding: 0.05em 0.15em;
+  }
+
+  .dark .md-highlight {
+    background: var(--chip-bg-dark);
+    color: var(--chip-fg-dark);
+  }
+
   .dark .db-chip {
     background: var(--chip-bg-dark);
     color: var(--chip-fg-dark);

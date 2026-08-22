@@ -41,6 +41,7 @@ import {
   defaultKeybindingSettings,
   KEYBINDING_MODES,
   defaultFeatureSettings,
+  defaultHighlightPalette,
   defaultLlmSettings,
   defaultLspSettings,
   defaultMermaidSettings,
@@ -350,6 +351,10 @@ export function loadSettings(): AppSettings {
       keybindings: readKeybindings(parsed.keybindings),
       callouts: readCallouts(parsed.callouts),
       databasePalette: readPalette(parsed.databasePalette),
+      highlightPalette: readPalette(
+        parsed.highlightPalette,
+        defaultHighlightPalette,
+      ),
       runner: readRunner(parsed.runner),
       lsp: readLsp(parsed.lsp),
       plantuml: readPlantuml(parsed.plantuml),

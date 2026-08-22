@@ -99,6 +99,7 @@ class DocumentRenderer {
     this.quizzes = options.quizzes ?? false;
     this.inlineOptions = {
       resolveWikilink: options.resolveWikilink,
+      highlightColors: options.highlightColors,
     };
   }
   private renderNestedMarkdown(source: string) {

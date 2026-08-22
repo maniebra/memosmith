@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { scale } from "svelte/transition";
+  import { fly, scale } from "svelte/transition";
   import { cubicOut } from "svelte/easing";
   import { cn } from "../../../lib/utils/cn";
   import { calloutIconSvg } from "../../../lib/utils/calloutIcons";
@@ -10,20 +10,57 @@
   export let left = 0;
   export let top = 0;
   export let label = "";
+  /** Submenu depth, so drilling in and out slides the pane. */
+  export let depth = 0;
   export let onHover: (index: number) => void = () => {};
   export let onPick: (command: SlashCommand) => void = () => {};
 
   let items: HTMLElement[] = [];
   $: items[index]?.scrollIntoView({ block: "nearest" });
+
+  /** Which way the next pane slides in: 1 deeper, -1 back out. */
+  let direction = 1;
+  let lastDepth = depth;
+  $: {
+    direction = depth >= lastDepth ? 1 : -1;
+    lastDepth = depth;
+  }
+
+  /** Pane heights by depth, so an outgoing pane cannot clobber the incoming one. */
+  let heights: Record<number, number> = {};
+  // Hold the last measured height until the incoming pane reports its own,
+  // otherwise the container collapses for a frame between panes.
+  let listHeight = 0;
+  $: if (heights[depth]) {
+    listHeight = heights[depth];
+  }
 </script>
 
-<ul
-  class="fixed z-50 max-h-72 w-64 overflow-y-auto rounded-xl border border-stone-200 bg-white/95 p-1 shadow-xl shadow-stone-900/10 backdrop-blur dark:border-stone-700 dark:bg-stone-900/95 dark:shadow-black/40"
+<div
+  class="fixed z-50 w-64 rounded-xl border border-stone-200 bg-white/95 p-1 shadow-xl shadow-stone-900/10 backdrop-blur dark:border-stone-700 dark:bg-stone-900/95 dark:shadow-black/40"
   style="top: {top}px; left: {left}px; transform-origin: top left;"
   in:scale={{ start: 0.96, duration: 110, easing: cubicOut }}
-  role="listbox"
-  aria-label={label}
 >
+  <div
+    class="relative overflow-hidden"
+    style="height: {listHeight
+      ? `${listHeight}px`
+      : 'auto'}; transition: height 240ms cubic-bezier(0.215, 0.61, 0.355, 1)"
+  >
+    {#key depth}
+      <ul
+        class="absolute inset-x-0 top-0 max-h-72 overflow-y-auto"
+        bind:clientHeight={heights[depth]}
+        in:fly={{ x: direction * 20, duration: 240, opacity: 0, easing: cubicOut }}
+        out:fly={{
+          x: direction * -20,
+          duration: 240,
+          opacity: 0,
+          easing: cubicOut,
+        }}
+        role="listbox"
+        aria-label={label}
+      >
   {#each commands as command, commandIndex}
     <li>
       <button
@@ -61,4 +98,7 @@
       </button>
     </li>
   {/each}
-</ul>
+      </ul>
+    {/key}
+  </div>
+</div>

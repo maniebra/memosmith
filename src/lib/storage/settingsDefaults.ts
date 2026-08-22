@@ -119,6 +119,14 @@ export const defaultDatabasePalette: PaletteColor[] = [
   { id: "pink", label: "Pink", hex: "#ec4899" },
   { id: "red", label: "Red", hex: "#f43f5e" },
 ];
+/** Ids live inside notes as `==id|text==`, so renaming one drops its colour. */
+export const defaultHighlightPalette: PaletteColor[] = [
+  { id: "yellow", label: "Yellow", hex: "#eab308" },
+  { id: "green", label: "Green", hex: "#10b981" },
+  { id: "blue", label: "Blue", hex: "#0ea5e9" },
+  { id: "pink", label: "Pink", hex: "#ec4899" },
+  { id: "orange", label: "Orange", hex: "#f97316" },
+];
 export const defaultCalloutDefinitions: CalloutDefinition[] = [
   { id: "note", label: "Note", color: "#2563eb", icon: "Info" },
   { id: "tip", label: "Tip", color: "#059669", icon: "Lightbulb" },
@@ -145,6 +153,7 @@ export const defaultSettings: AppSettings = {
   keybindings: { ...defaultKeybindingSettings, combinations: {} },
   callouts: defaultCalloutDefinitions.map((callout) => ({ ...callout })),
   databasePalette: defaultDatabasePalette.map((color) => ({ ...color })),
+  highlightPalette: defaultHighlightPalette.map((color) => ({ ...color })),
   runner: {
     commands: { ...defaultRunnerSettings.commands },
     timeoutMs: defaultRunnerSettings.timeoutMs,

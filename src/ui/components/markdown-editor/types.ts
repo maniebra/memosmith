@@ -4,6 +4,7 @@ import type {
   CalloutDefinition,
   LspSettings,
   MermaidSettings,
+  PaletteColor,
   PlantumlSettings,
   RunnerSettings,
 } from "../../../lib/storage/settings";
@@ -80,6 +81,7 @@ export type EditorProps = {
   fancyTableEditor: boolean;
   callouts: boolean;
   calloutDefinitions: CalloutDefinition[];
+  highlightColors: PaletteColor[];
   drawings: boolean;
   diagrams: boolean;
   quizzes: boolean;

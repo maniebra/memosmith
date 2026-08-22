@@ -1,4 +1,9 @@
-import { inlineMarkEdit, type InlineMarker } from "../../../lib/utils/markdown";
+import {
+  highlightEdit,
+  highlightedAt,
+  inlineMarkEdit,
+  type InlineMarker,
+} from "../../../lib/utils/markdown";
 import {
   createKeybindings,
   type Keybinding,
@@ -144,6 +149,37 @@ function toggleInlineMark(
   return true;
 }
 
+/** Toggles the first configured swatch, so the shortcut needs no colour picker. */
+function toggleHighlight(
+  event: KeyboardEvent,
+  e: Editor,
+  surface: EditSurface,
+) {
+  const { start, end } = surface.selection;
+
+  if (!e.props.editable || start === end) {
+    return false;
+  }
+
+  prepareShortcut(event, e);
+
+  const bg = e.props.highlightColors[0]?.id;
+  const { edit, select } = highlightEdit(
+    surface.text,
+    start,
+    end,
+    highlightedAt(surface.text, start, end) ? null : { bg },
+  );
+
+  surface.apply(edit);
+
+  if (select) {
+    surface.select(select.start, select.end);
+  }
+
+  return true;
+}
+
 type ShortcutContext = { e: Editor; surface: EditSurface };
 
 function undoRedo(event: KeyboardEvent, { e }: ShortcutContext, redo: boolean) {
@@ -249,6 +285,13 @@ export const editorKeybindings: Keybinding<ShortcutContext>[] = [
     description: "Toggle underline around the selection.",
     action: (event, { e, surface }) =>
       toggleInlineMark(event, e, surface, "__"),
+  },
+  {
+    combination: "mod+shift+h",
+    type: "combinational",
+    name: "editor.highlight",
+    description: "Toggle a highlight around the selection.",
+    action: (event, { e, surface }) => toggleHighlight(event, e, surface),
   },
   {
     combination: "mod+shift+x",

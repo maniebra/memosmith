@@ -1,5 +1,9 @@
 <script lang="ts">
   import { i18n, localeOptions, type Locale } from "../../../lib/i18n";
+  import {
+    defaultDatabasePalette,
+    defaultHighlightPalette,
+  } from "../../../lib/storage/settings";
   import type {
     AppSettings,
     ThemePreference,
@@ -24,7 +28,7 @@
     updateFeatures,
     updateSettings,
   } from "./settingsHelpers";
-  import DatabasePaletteSettings from "./DatabasePaletteSettings.svelte";
+  import PaletteSettings from "./PaletteSettings.svelte";
 
   export let settings: AppSettings;
   export let onChange: (settings: AppSettings) => void;
@@ -268,5 +272,20 @@
       </label>
     </div>
   </section>
-  <DatabasePaletteSettings {settings} {onChange} />
+  <PaletteSettings
+    {settings}
+    {onChange}
+    field="databasePalette"
+    defaults={defaultDatabasePalette}
+    label="settings.palette"
+    help="settings.paletteHelp"
+  />
+  <PaletteSettings
+    {settings}
+    {onChange}
+    field="highlightPalette"
+    defaults={defaultHighlightPalette}
+    label="settings.highlightPalette"
+    help="settings.highlightPaletteHelp"
+  />
 </div>

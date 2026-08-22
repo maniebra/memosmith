@@ -1,7 +1,12 @@
 import hljs from "highlight.js/lib/common";
 import katex from "katex";
-import { defaultDatabasePalette } from "../storage/settingsDefaults";
+import {
+  defaultDatabasePalette,
+  defaultHighlightPalette,
+} from "../storage/settingsDefaults";
 import { chipStyle } from "./optionColors";
+import type { PaletteColor } from "../storage/settingsTypes";
+import { parseHighlightSpec } from "./markdownHighlight";
 import { parseWikilink, type WikilinkResolution } from "./wikilinks";
 
 type BlockRule = {
@@ -30,7 +35,7 @@ const BLOCK_RULES: BlockRule[] = [
 
 /** One pass so replacements are never rescanned as markdown. */
 const INLINE =
-  /`([^`\n]+)`|\$([^$\n]+)\$|\[\[([^\]\n]+)\]\]|\*\*([^*\n]+)\*\*|~~([^~\n]+)~~|__([^_\n]+)__|(?<![*\w])\*(\S|\S[^*\n]*\S)\*(?!\*)|\[([^\]\n]*)\]\(([^)\n]*)\)|(?<![\w#])#(\p{L}[\p{L}\p{N}_-]*)/gu;
+  /`([^`\n]+)`|\$([^$\n]+)\$|\[\[([^\]\n]+)\]\]|\*\*([^*\n]+)\*\*|~~([^~\n]+)~~|__([^_\n]+)__|(?<![*\w])\*(\S|\S[^*\n]*\S)\*(?!\*)|\[([^\]\n]*)\]\(([^)\n]*)\)|(?<![\w#])#(\p{L}[\p{L}\p{N}_-]*)|==(?:((?:[a-z][\w-]*)?(?::[a-z][\w-]*)?)\|)?(\S|\S[^\n]*?\S)==/gu;
 
 /** Stable per-name colour, so a tag keeps the same pill everywhere. */
 function badgeStyle(name: string) {
@@ -99,7 +104,63 @@ export type WikilinkEmbed = {
 
 export type RenderInlineOptions = {
   resolveWikilink?: WikilinkResolver;
+  /** Swatches `==bg:fg|text==` draws from; settings own them. */
+  highlightColors?: PaletteColor[];
 };
+
+/** An unknown or missing id falls back to the first swatch, never to no colour. */
+function swatch(id: string | undefined, colors: PaletteColor[]) {
+  return (
+    (id ? colors.find((color) => color.id === id) : undefined) ??
+    colors[0] ??
+    defaultHighlightPalette[0]!
+  );
+}
+
+/** The fill comes from the chip pipeline; a picked text colour overrides its pair. */
+function highlightStyle(spec: string | undefined, colors: PaletteColor[]) {
+  const { bg, fg } = parseHighlightSpec(spec);
+  const fill = chipStyle(swatch(bg, colors).hex);
+
+  if (!fg) {
+    return fill;
+  }
+
+  const text = swatch(fg, colors).hex;
+  return `${fill}; --chip-fg: ${text}; --chip-fg-dark: ${text}`;
+}
+
+/** Bold, strikethrough, underline and italic: same span, different marker. */
+const SYMMETRIC: [string, string][] = [
+  ["md-bold", "**"],
+  ["md-strike", "~~"],
+  ["md-underline", "__"],
+  ["md-italic", "*"],
+];
+
+function renderSymmetric(bodies: (string | undefined)[]) {
+  const index = bodies.findIndex((body) => body);
+
+  if (index === -1) {
+    return "";
+  }
+
+  const [className, marker] = SYMMETRIC[index]!;
+  return `<span class="${className}">${mark(marker)}${bodies[index]}${mark(marker)}</span>`;
+}
+
+function renderHighlight(
+  spec: string | undefined,
+  body: string,
+  options: RenderInlineOptions,
+) {
+  const style = highlightStyle(
+    spec,
+    options.highlightColors ?? defaultHighlightPalette,
+  );
+
+  return `<span class="md-highlight" style="${style}">${mark(spec ? `==${spec}|` : "==")}${body}${mark("==")}</span>`;
+}
 
 function renderWikilink(raw: string, options: RenderInlineOptions) {
   const rawText = unescapeHtml(raw);
@@ -135,6 +196,8 @@ export function renderInline(
       linkText,
       href,
       badge,
+      highlightColor,
+      highlighted,
     ) => {
       if (code) {
         return `<span class="md-code">${mark("`")}${code}${mark("`")}</span>`;
@@ -148,24 +211,18 @@ export function renderInline(
         return renderWikilink(wiki, options);
       }
 
-      if (bold) {
-        return `<span class="md-bold">${mark("**")}${bold}${mark("**")}</span>`;
-      }
+      const symmetric = renderSymmetric([bold, strike, underline, italic]);
 
-      if (strike) {
-        return `<span class="md-strike">${mark("~~")}${strike}${mark("~~")}</span>`;
-      }
-
-      if (underline) {
-        return `<span class="md-underline">${mark("__")}${underline}${mark("__")}</span>`;
-      }
-
-      if (italic) {
-        return `<span class="md-italic">${mark("*")}${italic}${mark("*")}</span>`;
+      if (symmetric) {
+        return symmetric;
       }
 
       if (linkText !== undefined) {
         return `<span class="md-link">${mark("[")}${linkText}${mark(`](${href})`)}</span>`;
+      }
+
+      if (highlighted) {
+        return renderHighlight(highlightColor, highlighted, options);
       }
 
       if (badge) {
