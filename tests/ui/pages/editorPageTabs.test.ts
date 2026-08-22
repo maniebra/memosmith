@@ -1,6 +1,7 @@
 const assert = (ok: unknown, msg: string) => {
   if (!ok) throw new Error(msg);
 };
+import { createTabActions } from "../../../src/ui/pages/editorPageTabActions";
 import { cycleTab, moveTab, orderTabs, syncTabs } from "../../../src/ui/pages/editorPageUtils";
 
 const notes = ["a.md", "b.md"];
@@ -46,6 +47,11 @@ assert(
     "b.md,a.md",
   "a newly opened pinned tab lands in the pinned block",
 );
+assert(
+  syncTabs(["a.md"], "db:tasks", notes, databases, [], ["db:tasks"]).join() ===
+    "a.md",
+  "a closing active database is not re-added by tab sync",
+);
 
 assert(
   moveTab(["a.md", "b.md", "c.md"], "c.md", "a.md", []).join() ===
@@ -77,5 +83,53 @@ assert(
   "Ctrl+Shift+Tab wraps backwards",
 );
 assert(cycleTab([], null, 1) === null, "cycling with no tabs stays empty");
+
+let active: string | null = "db:tasks";
+let releaseSelection = () => {};
+let selectionStarted = false;
+const tabState = {
+  openTabs: ["a.md", "db:tasks"],
+  pinnedTabs: [],
+  get activeTab() {
+    return active;
+  },
+  spaceNotes: ["a.md"],
+  databases,
+};
+const tabActions = createTabActions(tabState, {
+  clearActive: () => {
+    active = null;
+  },
+  flushNoteSave: async () => {},
+  runWithStatus: async (action) => {
+    await action();
+  },
+  select: async (id) => {
+    selectionStarted = true;
+    await new Promise<void>((resolve) => {
+      releaseSelection = resolve;
+    });
+    active = id;
+  },
+});
+const closingDatabase = tabActions.closeTab("db:tasks");
+await Promise.resolve();
+assert(selectionStarted, "closing the active tab starts selecting its fallback");
+assert(
+  tabState.openTabs.join() === "a.md",
+  "the active tab is removed while its fallback is selected",
+);
+tabState.openTabs = tabActions.sync(active, tabState.spaceNotes, databases, []);
+assert(
+  tabState.openTabs.join() === "a.md",
+  "sync does not resurrect the closing database tab",
+);
+releaseSelection();
+await closingDatabase;
+assert(active === "a.md", "closing an active database falls back to the note");
+assert(
+  tabState.openTabs.join() === "a.md",
+  "the closed database stays closed after fallback selection",
+);
 
 console.log("tabs ok");

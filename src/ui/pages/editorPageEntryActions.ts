@@ -141,11 +141,19 @@ class EntryActions {
     if (!(await confirmDelete(relativePath))) {
       return;
     }
+    const isFolder = !this.context.spaceNotes.includes(relativePath);
     await deletePath(this.spacePath(relativePath));
-    if (this.context.path === this.spacePath(relativePath)) {
+    if (this.activeTabDeleted(relativePath, isFolder)) {
+      this.context.activeTab = null;
+      this.context.activeDatabaseId = null;
+    }
+    if (
+      this.context.path === this.spacePath(relativePath) ||
+      (isFolder &&
+        this.context.path?.startsWith(`${this.spacePath(relativePath)}/`))
+    ) {
       this.core.setEditorText("", null);
     }
-    const isFolder = !this.context.spaceNotes.includes(relativePath);
     await deletePageMeta(this.context.spaceRoot!, relativePath, isFolder);
     this.context.spaceMeta = deletedMeta(
       this.context.spaceMeta,
@@ -169,6 +177,7 @@ class EntryActions {
     next: ReturnType<typeof renameTarget>,
   ) {
     const fromPath = this.spacePath(from);
+    this.updateActiveTabPath(from, next);
     if (next.folder && this.context.path === this.spacePath(dirNotePath(from))) {
       this.context.path = this.spacePath(dirNotePath(next.path));
     } else if (this.context.path === fromPath) {
@@ -179,6 +188,36 @@ class EntryActions {
         this.spacePath(next.path),
       );
     }
+  }
+
+  private updateActiveTabPath(
+    from: string,
+    next: ReturnType<typeof renameTarget>,
+  ) {
+    const active = this.context.activeTab;
+
+    if (!active || active.startsWith("db:")) {
+      return;
+    }
+
+    if (next.folder && active === dirNotePath(from)) {
+      this.context.activeTab = dirNotePath(next.path);
+    } else if (active === from) {
+      this.context.activeTab = next.path;
+    } else if (next.folder && active.startsWith(`${from}/`)) {
+      this.context.activeTab = `${next.path}/${active.slice(from.length + 1)}`;
+    }
+  }
+
+  private activeTabDeleted(relativePath: string, folder: boolean) {
+    const active = this.context.activeTab;
+
+    return Boolean(
+      active &&
+        !active.startsWith("db:") &&
+        (active === relativePath ||
+          (folder && active.startsWith(`${relativePath}/`))),
+    );
   }
 
   private pruneRoot(relativePath: string) {

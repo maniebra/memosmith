@@ -92,6 +92,7 @@
   const storedTabs = loadTabs();
   let openTabs = storedTabs.open;
   let pinnedTabs = storedTabs.pinned;
+  let activeTab: string | null = null;
 
   $: noteDir = path ? path.slice(0, path.lastIndexOf("/")) : null;
   $: spacePrefix = spaceRoot ? `${spaceRoot}/` : null;
@@ -117,9 +118,6 @@
     ...noteContents,
     ...(activeRelativePath ? { [activeRelativePath]: contents } : {}),
   });
-  $: activeTab = activeDatabaseId
-    ? `db:${activeDatabaseId}`
-    : activeRelativePath;
   $: openTabs = tabs.sync(activeTab, spaceNotes, databases, pinnedTabs);
   $: saveTabs({
     open: openTabs,
@@ -160,6 +158,9 @@
   $: if (!settings.features.databases && (databasesOpen || activeDatabaseId)) {
     databasesOpen = false;
     activeDatabaseId = null;
+    if (activeTab?.startsWith("db:")) {
+      activeTab = activeRelativePath;
+    }
   }
 
   const context: EditorPageContext = {
@@ -204,6 +205,7 @@
     get pinnedTabs() { return pinnedTabs; },
     set pinnedTabs(value) { pinnedTabs = value; },
     get activeTab() { return activeTab; },
+    set activeTab(value) { activeTab = value; },
     get noteSaveTimer() { return noteSaveTimer; },
     set noteSaveTimer(value) { noteSaveTimer = value; },
     get path() { return path; },
@@ -329,7 +331,6 @@
 </script>
 
 <EditorPageView
-  {activeDatabaseId}
   {activePageMeta}
   {activeRelativePath}
   {actions}

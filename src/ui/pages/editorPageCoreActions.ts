@@ -124,6 +124,7 @@ class CoreActions {
 
   /** Drops back to the empty editor, e.g. once the last tab is closed. */
   clearActiveNote() {
+    this.context.activeTab = null;
     this.context.activeDatabaseId = null;
     this.setEditorText("", null);
     this.context.statusMessage = this.context.t("app.selectOrCreateNote");

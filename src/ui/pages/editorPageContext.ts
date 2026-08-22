@@ -37,7 +37,7 @@ export type EditorPageContext = {
   openTabs: string[];
   path: string | null;
   pinnedTabs: string[];
-  readonly activeTab: string | null;
+  activeTab: string | null;
   resizing: { pane: PaneName; startX: number; startWidth: number } | null;
   settings: AppSettings;
   settingsOpen: boolean;

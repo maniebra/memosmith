@@ -25,7 +25,7 @@
 </script>
 
 <svelte:window
-  on:keydown={onKeydown}
+  on:keydown|capture={onKeydown}
   on:contextmenu={(e) => e.preventDefault()}
 />
 

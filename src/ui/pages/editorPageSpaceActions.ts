@@ -12,6 +12,7 @@ import {
   listDatabases,
 } from "../../lib/tauri/databases";
 import { saveSpaceRoot } from "../../lib/storage/space";
+import { journal } from "../../lib/utils/journal";
 import { defaultTable, slugify } from "../../lib/utils/database";
 import {
   basename,
@@ -84,6 +85,8 @@ class SpaceActions {
     }
     this.context.spaceRoot = selectedRoot;
     saveSpaceRoot(this.context.spaceRoot);
+    this.context.activeTab = null;
+    this.context.activeDatabaseId = null;
     this.core.setEditorText("", null);
     await this.refreshSpace();
     this.context.statusMessage = this.context.t("app.space", {
@@ -92,8 +95,9 @@ class SpaceActions {
   }
 
   async selectSpaceNote(relativePath: string) {
-    await this.core.flushNoteSave();
+    this.context.activeTab = relativePath;
     this.context.activeDatabaseId = null;
+    await this.core.flushNoteSave();
     const notePath = this.spacePath(relativePath);
     const text = await readNote(notePath);
     this.context.noteContents = {
@@ -101,6 +105,11 @@ class SpaceActions {
       [relativePath]: text,
     };
     this.core.setEditorText(text, notePath);
+    journal("selectSpaceNote:done", {
+      relativePath,
+      notePath,
+      length: text.length,
+    });
     this.context.statusMessage = this.context.t("app.selected", {
       name: displayNotePath(relativePath),
     });
@@ -115,6 +124,8 @@ class SpaceActions {
       : `${parent}${withNoteExtension(safeName(name))}`;
     await createNote(this.spacePath(relativePath));
     await this.refreshSpace();
+    this.context.activeTab = relativePath;
+    this.context.activeDatabaseId = null;
     this.core.setEditorText("", this.spacePath(relativePath));
     this.context.noteContents = {
       ...this.context.noteContents,
@@ -154,6 +165,8 @@ class SpaceActions {
     }
     await createNote(this.spacePath(relativePath));
     await this.refreshSpace();
+    this.context.activeTab = relativePath;
+    this.context.activeDatabaseId = null;
     this.core.setEditorText("", this.spacePath(relativePath));
     this.context.noteContents = {
       ...this.context.noteContents,
@@ -203,6 +216,7 @@ class DatabaseActions {
     const id = slugify(name);
     await createDatabase(this.context.spaceRoot, id, name, [defaultTable()]);
     await this.refreshSpace();
+    this.context.activeTab = `db:${id}`;
     this.context.activeDatabaseId = id;
     this.context.databasesOpen = false;
     this.context.statusMessage = this.context.t("app.createdDatabase", {
@@ -211,8 +225,10 @@ class DatabaseActions {
   }
 
   async selectDatabase(id: string) {
-    await this.core.flushNoteSave();
+    journal("selectDatabase", { id, activeTab: this.context.activeTab });
+    this.context.activeTab = `db:${id}`;
     this.context.activeDatabaseId = id;
+    await this.core.flushNoteSave();
     this.context.databasesOpen = false;
     this.context.statusMessage = this.context.t("app.opened", {
       name: this.context.databases.find((entry) => entry.id === id)?.name ?? id,
@@ -228,6 +244,9 @@ class DatabaseActions {
     await deleteDatabase(this.context.spaceRoot, id);
     if (this.context.activeDatabaseId === id) {
       this.context.activeDatabaseId = null;
+    }
+    if (this.context.activeTab === `db:${id}`) {
+      this.context.activeTab = this.context.activeRelativePath;
     }
     await this.refreshSpace();
     this.context.statusMessage = this.context.t("app.deletedDatabase", {

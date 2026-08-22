@@ -25,14 +25,17 @@ export function syncTabs(
   notes: string[],
   databases: { id: string }[],
   pinned: string[] = [],
+  closing: string[] = [],
 ): string[] {
+  const closingTabs = new Set(closing);
   const exists = (tab: string) =>
-    tab === activeTab ||
-    (tab.startsWith("db:")
-      ? databases.some((entry) => `db:${entry.id}` === tab)
-      : notes.includes(tab));
+    !closingTabs.has(tab) &&
+    (tab === activeTab ||
+      (tab.startsWith("db:")
+        ? databases.some((entry) => `db:${entry.id}` === tab)
+        : notes.includes(tab)));
   const kept = tabs.filter(exists);
-  if (activeTab && !kept.includes(activeTab)) {
+  if (activeTab && !closingTabs.has(activeTab) && !kept.includes(activeTab)) {
     return orderTabs([...kept, activeTab], pinned);
   }
   return orderTabs(kept.length === tabs.length ? tabs : kept, pinned);

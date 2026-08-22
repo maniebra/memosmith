@@ -38,6 +38,26 @@ pub fn write_note(path: String, contents: String) -> Result<(), String> {
     std::fs::write(path, contents).map_err(|error| error.to_string())
 }
 
+/// Debug journal sink: appends one line, rotating to `<path>.1` past `max_bytes`.
+#[tauri::command]
+pub fn append_log(path: String, line: String, max_bytes: u64) -> Result<(), String> {
+    use std::io::Write;
+
+    let target = std::path::PathBuf::from(&path);
+
+    if std::fs::metadata(&target).map(|meta| meta.len()).unwrap_or(0) >= max_bytes {
+        std::fs::rename(&target, target.with_extension("1")).map_err(|e| e.to_string())?;
+    }
+
+    let mut file = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&target)
+        .map_err(|error| error.to_string())?;
+
+    writeln!(file, "{line}").map_err(|error| error.to_string())
+}
+
 #[tauri::command]
 pub fn create_note(path: String) -> Result<(), String> {
     let path = std::path::PathBuf::from(path);

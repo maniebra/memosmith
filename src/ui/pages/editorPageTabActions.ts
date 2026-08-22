@@ -1,3 +1,4 @@
+import { journal } from "../../lib/utils/journal";
 import { cycleTab, moveTab, syncTabs } from "./editorPageUtils";
 
 /** A tab id is a note's relative path, or `db:<id>` for a database. */
@@ -15,7 +16,7 @@ export type TabsDeps = {
   /** Leaves the editor with no note open, after the last tab closes. */
   clearActive: () => void;
   flushNoteSave: () => Promise<void>;
-  runWithStatus: (action: () => Promise<void>) => void;
+  runWithStatus: (action: () => Promise<void>) => Promise<void>;
 };
 
 function tabExists(state: TabsState, id: string) {
@@ -28,25 +29,55 @@ function tabExists(state: TabsState, id: string) {
 async function closeTab(
   state: TabsState,
   deps: TabsDeps,
-  openTab: (id: string) => void,
+  closingTabs: Set<string>,
   id: string,
 ) {
+  journal("closeTab:enter", {
+    id,
+    activeTab: state.activeTab,
+    openTabs: [...state.openTabs],
+  });
   await deps.flushNoteSave();
   const index = state.openTabs.indexOf(id);
-  state.openTabs = state.openTabs.filter((tab) => tab !== id);
+  const remaining = state.openTabs.filter((tab) => tab !== id);
   if (id !== state.activeTab) {
+    state.openTabs = remaining;
     return;
   }
-  const next = state.openTabs[index] ?? state.openTabs[index - 1];
+  const next = remaining[index] ?? remaining[index - 1];
   if (next) {
-    openTab(next);
+    closingTabs.add(id);
+    state.openTabs = remaining;
+    try {
+      await deps.runWithStatus(async () => {
+        await deps.select(next);
+        state.openTabs = remaining;
+      });
+    } finally {
+      if (state.activeTab !== id) {
+        closingTabs.delete(id);
+      }
+      journal("closeTab:after-select", {
+        next,
+        activeTab: state.activeTab,
+        openTabs: [...state.openTabs],
+        closing: [...closingTabs],
+      });
+    }
     return;
   }
+  state.openTabs = remaining;
   deps.clearActive();
 }
 
+journal("tabActions:loaded");
+
 export function createTabActions(state: TabsState, deps: TabsDeps) {
-  const openTab = (id: string) => deps.runWithStatus(() => deps.select(id));
+  const closingTabs = new Set<string>();
+  const openTab = (id: string) => {
+    closingTabs.delete(id);
+    return deps.runWithStatus(() => deps.select(id));
+  };
 
   function togglePinTab(id: string) {
     state.pinnedTabs = state.pinnedTabs.includes(id)
@@ -66,11 +97,19 @@ export function createTabActions(state: TabsState, deps: TabsDeps) {
     notes: string[],
     databases: { id: string }[],
     pinned: string[],
-  ) => syncTabs(state.openTabs, activeTab, notes, databases, pinned);
+  ) =>
+    syncTabs(
+      state.openTabs,
+      activeTab,
+      notes,
+      databases,
+      pinned,
+      [...closingTabs],
+    );
 
   return {
     openTab,
-    closeTab: (id: string) => closeTab(state, deps, openTab, id),
+    closeTab: (id: string) => closeTab(state, deps, closingTabs, id),
     sync,
     togglePinTab,
     reorderTabs: (id: string, target: string) =>

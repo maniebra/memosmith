@@ -16,7 +16,6 @@
   import WelcomeDashboard from "../sections/WelcomeDashboard.svelte";
   import type { EditorPageActions } from "./editorPageContext";
 
-  export let activeDatabaseId: string | null;
   export let activePageMeta: any;
   export let activeRelativePath: string | null;
   export let appTitle: string;
@@ -60,6 +59,9 @@
   /** Session-only: locks the open note against edits. */
   let readOnly = false;
 
+  $: activeDatabaseTabId =
+    activeTab?.startsWith("db:") ? activeTab.slice(3) : null;
+
 </script>
 
 <svelte:window
@@ -79,7 +81,7 @@
     spacePaneOpen={settings.spacePaneOpen}
     grammarEnabled={settings.features.grammarPolice}
     databasesEnabled={settings.features.databases}
-    backlinksAvailable={Boolean(backlinks.length) && !activeDatabaseId}
+    backlinksAvailable={Boolean(backlinks.length) && !activeDatabaseTabId}
     backlinksOpen={settings.backlinksPaneOpen}
     backlinksCount={backlinks.length}
     {readOnly}
@@ -158,7 +160,7 @@
         onReorder={onReorderTabs}
       />
       <div class="min-h-0 flex-1">
-      {#if !activeTab && !activeDatabaseId}
+      {#if !activeTab}
         <WelcomeDashboard
           root={spaceRoot}
           notes={spaceNotes}
@@ -173,15 +175,15 @@
               actions.selectSpaceNote(relativePath),
             )}
         />
-      {:else if settings.features.databases && activeDatabaseId && spaceRoot}
+      {:else if settings.features.databases && activeDatabaseTabId && spaceRoot}
         <DatabaseView
           root={spaceRoot}
-          databaseId={activeDatabaseId}
+          databaseId={activeDatabaseTabId}
           databaseOptions={databases}
           onStatus={(message) => (statusMessage = message)}
           onRenamed={(name) =>
             (databases = databases.map((entry) =>
-              entry.id === activeDatabaseId ? { ...entry, name } : entry,
+              entry.id === activeDatabaseTabId ? { ...entry, name } : entry,
             ))}
         />
       {:else}
@@ -261,7 +263,7 @@
       {/if}
       </div>
     </div>
-    {#if backlinks.length && !activeDatabaseId}
+    {#if backlinks.length && !activeDatabaseTabId}
       {#if settings.backlinksPaneOpen}
         <div class="flex min-h-0 shrink-0" transition:slide={paneSlide}>
           <button
@@ -306,7 +308,7 @@
         </button>
       {/if}
     {/if}
-    {#if settings.features.grammarPolice && grammarOpen && !activeDatabaseId}
+    {#if settings.features.grammarPolice && grammarOpen && !activeDatabaseTabId}
       <div class="flex min-h-0" transition:slide={paneSlide}>
         <GrammarPolice
           report={grammarReport}
@@ -340,7 +342,7 @@
         >
           <DatabaseManager
             {databases}
-            {activeDatabaseId}
+            activeDatabaseId={activeDatabaseTabId}
             onSelect={(id) =>
               actions.runWithStatus(() => actions.selectDatabase(id))}
             onCreate={(name) =>
