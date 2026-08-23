@@ -114,6 +114,36 @@ function actionItems(source: CommandSource): PaletteItem[] {
           },
         ]
       : []),
+    ...(source.hasNote
+      ? [
+          {
+            id: "action:save",
+            label: t("command.saveNote"),
+            run: () => void actions.runWithStatus(actions.flushNoteSave),
+          },
+          {
+            id: "action:grammarCheck",
+            label: t("command.runGrammarCheck"),
+            run: () => void actions.runWithStatus(actions.runGrammarCheck),
+          },
+          {
+            id: "action:cover",
+            label: t("command.pickCover"),
+            run: () => void actions.runWithStatus(actions.pickActiveCover),
+          },
+          {
+            id: "action:removeCover",
+            label: t("command.removeCover"),
+            run: () =>
+              void actions.runWithStatus(() => actions.updateActiveCover(null)),
+          },
+        ]
+      : []),
+    {
+      id: "action:grammar",
+      label: t("command.toggleGrammar"),
+      run: actions.toggleGrammar,
+    },
     {
       id: "action:chooseSpace",
       label: t("command.chooseSpace"),

@@ -81,7 +81,15 @@ export function enterEdit(
   const start = lineStartAt(value, offset);
 
   if (inCodeBlock && insideFence(value.slice(0, start))) {
-    return { start: offset, end: offset, text: "\n", caret: offset + 1 };
+    // Code has no list markers to continue, so carry the line's own indent.
+    const indent = /^[ \t]*/.exec(value.slice(start, offset))![0];
+
+    return {
+      start: offset,
+      end: offset,
+      text: `\n${indent}`,
+      caret: offset + 1 + indent.length,
+    };
   }
 
   const line = value.slice(start, offset);
