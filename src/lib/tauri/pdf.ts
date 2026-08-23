@@ -15,6 +15,11 @@ export async function exportPdf(suggestedName: string): Promise<string | null> {
     return null;
   }
 
+  // The webview prints itself, so a focused editor would bake its caret and focus ring
+  // into the file.
+  (document.activeElement as HTMLElement | null)?.blur();
+  window.getSelection()?.removeAllRanges();
+
   await invoke<string>("export_pdf", {
     path: path.toLowerCase().endsWith(".pdf") ? path : `${path}.pdf`,
   });

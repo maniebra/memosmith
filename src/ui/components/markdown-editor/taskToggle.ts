@@ -2,33 +2,8 @@ import type { Editor } from "./types";
 
 const MARKER = /^\s*[-*+] \[( |x|X)\] /;
 
-/**
- * The checkbox is a `::before` glyph, so a click on it lands on the block
- * itself, outside where the line text starts. That click toggles the source
- * marker instead of moving the caret, in read mode too.
- */
-export function toggleTaskAt(
-  e: Editor,
-  event: PointerEvent,
-  handle: HTMLElement,
-) {
-  const block = handle.closest?.(".md-task") as HTMLElement | null;
-
-  if (!block || handle !== block) {
-    return false;
-  }
-
-  const range = document.createRange();
-  range.selectNodeContents(block);
-  const text = range.getBoundingClientRect();
-  // In an RTL line the glyph sits to the right of the text instead.
-  const rtl = getComputedStyle(block).direction === "rtl";
-  const onBox = rtl ? event.clientX > text.right : event.clientX < text.left;
-
-  if (!onBox) {
-    return false;
-  }
-
+/** Flip the source marker for the task line the checkbox belongs to. */
+function toggleBlock(e: Editor, block: HTMLElement, refocus: boolean) {
   const start = e.offsetForPosition(block, 0);
   const marker = MARKER.exec(e.sourceText(block));
 
@@ -37,7 +12,7 @@ export function toggleTaskAt(
   }
 
   const at = start + marker[0].indexOf("[") + 1;
-  event.preventDefault();
+
   e.replace(
     at,
     at + 1,
@@ -45,5 +20,54 @@ export function toggleTaskAt(
     // Read mode has no caret to restore.
     e.props.editable ? at + 1 : null,
   );
+
+  if (refocus) {
+    // The line is re-rendered, so the focused node is a fresh one.
+    requestAnimationFrame(() => {
+      const box = e.blockAtOffset(at)?.querySelector(".md-check");
+
+      (box as HTMLElement | null)?.focus();
+    });
+  }
+
   return true;
+}
+
+/** The checkbox is its own node, so a click on it is the whole hit test. */
+export function toggleTaskAt(
+  e: Editor,
+  event: PointerEvent,
+  handle: HTMLElement,
+) {
+  const box = handle.closest?.(".md-check") as HTMLElement | null;
+  const block = box?.closest(".md-task") as HTMLElement | null;
+
+  if (!box || !block) {
+    return false;
+  }
+
+  event.preventDefault();
+  box.focus();
+
+  return toggleBlock(e, block, true);
+}
+
+/** Space or Enter on a focused checkbox toggles it, like a native one. */
+export function toggleTaskKey(e: Editor, event: KeyboardEvent) {
+  if (event.key !== " " && event.key !== "Enter") {
+    return false;
+  }
+
+  const box = (event.target as HTMLElement | null)?.closest?.(
+    ".md-check",
+  ) as HTMLElement | null;
+  const block = box?.closest(".md-task") as HTMLElement | null;
+
+  if (!box || !block) {
+    return false;
+  }
+
+  event.preventDefault();
+
+  return toggleBlock(e, block, true);
 }

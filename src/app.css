@@ -330,18 +330,30 @@ textarea,
     @apply text-stone-400 dark:text-stone-500;
   }
 
-  .md-task::before {
-    content: "☐  ";
-    @apply cursor-pointer text-stone-400 dark:text-stone-500;
+  .md-check {
+    /* Sized in em so the box tracks the line's font size. */
+    @apply mr-2 inline-block h-[0.95em] w-[0.95em] shrink-0 translate-y-[0.12em]
+      cursor-pointer rounded-[0.25em] border-[0.12em] border-stone-400
+      bg-transparent bg-center bg-no-repeat align-baseline no-underline
+      transition-colors dark:border-stone-500;
+    background-size: 80% 80%;
+  }
+
+  .md-check:hover {
+    @apply border-emerald-500;
+  }
+
+  .md-check:focus-visible {
+    @apply outline-2 outline-offset-2 outline-emerald-500;
   }
 
   .md-task-done {
     @apply text-stone-400 line-through dark:text-stone-500;
   }
 
-  .md-task-done::before {
-    content: "☑  ";
-    @apply cursor-pointer text-emerald-600 no-underline dark:text-emerald-400;
+  .md-task-done .md-check {
+    @apply border-emerald-600 bg-emerald-600 dark:border-emerald-500 dark:bg-emerald-500;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 8.5 6.5 12 13 4.5'/%3E%3C/svg%3E");
   }
 
   .md-rule {

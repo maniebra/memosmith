@@ -259,6 +259,15 @@ export function lineClass(line: string) {
   return blockRule(line)?.className ?? "";
 }
 
+/**
+ * A real focusable node instead of a `::before` glyph, so the checkbox can hold
+ * focus and answer the keyboard. It carries no source text, so caret offsets
+ * are unchanged.
+ */
+function taskCheckbox(done: boolean) {
+  return `<span class="md-check" contenteditable="false" role="checkbox" tabindex="0" aria-checked="${done}"></span>`;
+}
+
 export function renderLine(line: string, options: RenderInlineOptions = {}) {
   if (!line) {
     return emptyAnchor();
@@ -267,8 +276,11 @@ export function renderLine(line: string, options: RenderInlineOptions = {}) {
   const rule = blockRule(line);
   const prefix = rule?.hideMark ? rule.match.exec(line)![0] : "";
   const body = renderInline(escapeHtml(line.slice(prefix.length)), options);
+  const checkbox = rule?.className.startsWith("md-task")
+    ? taskCheckbox(rule.className.includes("md-task-done"))
+    : "";
 
-  return `${prefix ? mark(escapeHtml(prefix)) : ""}${body || emptyAnchor()}`;
+  return `${checkbox}${prefix ? mark(escapeHtml(prefix)) : ""}${body || emptyAnchor()}`;
 }
 
 /** Highlighting is per line so each line stays one block the caret can map onto. */

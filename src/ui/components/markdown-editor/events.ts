@@ -17,7 +17,7 @@ import {
   handleQuizPointer,
   quizFieldOf,
 } from "./quiz";
-import { toggleTaskAt } from "./taskToggle";
+import { toggleTaskAt, toggleTaskKey } from "./taskToggle";
 import type { Editor, EventApi } from "./types";
 
 export function createEvents(e: Editor): EventApi {
@@ -233,6 +233,10 @@ class EditorEvents {
     const e = this.e;
 
     if (this.insideDatabaseEmbed(event)) {
+      return;
+    }
+
+    if (toggleTaskKey(e, event)) {
       return;
     }
 
