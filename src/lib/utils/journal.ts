@@ -34,11 +34,15 @@ function describe(value: unknown): string {
 }
 
 export function journal(event: string, data: Record<string, unknown> = {}) {
-  const stamp = new Date().toISOString().slice(11, 23);
+  const stamp = new Date().toISOString().replace("T", " ").slice(0, 23);
   const detail = Object.entries(data)
     .map(([key, value]) => `${key}=${describe(value)}`)
     .join(" ");
-  const line = `${stamp} ${event}${detail ? ` ${detail}` : ""}`;
+  const dot = event.indexOf(".");
+  const section = dot === -1 ? event : event.slice(0, dot);
+  const rest = dot === -1 ? "" : event.slice(dot + 1);
+  const body = [rest, detail].filter(Boolean).join(" ");
+  const line = `[${stamp}] {${section}} ${body}`;
 
   void directory
     .then((dir) =>

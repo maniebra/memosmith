@@ -337,12 +337,12 @@ class EditorSlash {
       return;
     }
 
-    // A code block needs its closing fence, with the caret on the line between.
+    // A code block needs its closing fence, with the caret on the language slot.
     surface.apply({
       start,
       end: lineEnd,
       text: `${opening}\n${tail}\n\`\`\``,
-      caret: start + opening.length + 1,
+      caret: start + opening.length,
     });
   }
 }
