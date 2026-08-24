@@ -147,7 +147,21 @@ textarea,
   }
 
   .md-block {
-    @apply relative;
+    @apply relative transition-colors duration-150;
+  }
+
+  /* Notion-like slabs: only plain text blocks get the inset padding — code,
+     tables and callouts draw their own continuous surface. */
+  .md-block:not(
+      .md-codeblock,
+      .md-fence,
+      .md-table-line,
+      .md-callout-line,
+      .md-run-store,
+      .md-run-preview,
+      .md-math-line
+    ) {
+    @apply -mx-3 rounded-lg px-3 py-1;
   }
 
   .md-block:hover,
