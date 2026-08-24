@@ -4,11 +4,13 @@
     ChevronRight,
     FileText,
     Folder,
+    FolderOpen,
     FolderPlus,
     Pencil,
     Plus,
     Trash2,
   } from "@lucide/svelte";
+  import { i18n } from "../../lib/i18n";
   import { cn } from "../../lib/utils/cn";
   import { displayNoteName } from "../../lib/utils/path";
   import type { SpaceMeta } from "../../lib/utils/pageMeta";
@@ -34,6 +36,7 @@
   export let creating: string | null;
   export let onStartRename: (relativePath: string) => void;
   export let onStartCreate: (parentPath: string, folder?: boolean) => void;
+  export let onScopeDirectory: (relativePath: string) => void;
   export let onRename: (relativePath: string, name: string) => void;
   export let onCreate: (parentPath: string, name: string) => void;
   export let onDelete: (relativePath: string) => void;
@@ -185,6 +188,11 @@
         label: collapsed[node.path] ? "Expand" : "Collapse",
         icon: collapsed[node.path] ? ChevronRight : ChevronDown,
         onSelect: () => toggle(node),
+      });
+      items.push({
+        label: $i18n.t("sidebar.scopeDirectory"),
+        icon: FolderOpen,
+        onSelect: () => onScopeDirectory(node.path),
       });
       items.push({ separator: true });
       items.push({
@@ -362,6 +370,7 @@
           {creating}
           {onStartRename}
           {onStartCreate}
+          {onScopeDirectory}
           {onRename}
           {onCreate}
           {onDelete}

@@ -98,6 +98,9 @@ export const fa: Record<I18nKey, string> = {
   "sidebar.addFolder": "افزودن پوشه",
   "sidebar.toggleSearch": "نمایش یا پنهان کردن جستجو",
   "sidebar.searchPlaceholder": "جستجوی یادداشت ها...",
+  "sidebar.scopeDirectory": "محدود کردن به پوشه",
+  "sidebar.scopeLabel": "محدوده: {path}",
+  "sidebar.resetScope": "بازنشانی محدوده",
   "sidebar.chooseFolder":
     "یک پوشه انتخاب کنید تا به عنوان فضای شما استفاده شود.",
   "sidebar.noNotes": "هنوز یادداشتی نیست.",

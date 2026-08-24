@@ -8,7 +8,7 @@
     Search,
   } from "@lucide/svelte";
   import { i18n } from "../../lib/i18n";
-  import { basename } from "../../lib/utils/path";
+  import { basename, displayNotePath } from "../../lib/utils/path";
   import {
     registerKeybindings,
     type Keybinding,
@@ -50,16 +50,33 @@
   let creating: string | null = null;
   let creatingFolder = false;
   let isSearching = false;
+  let scopePath: string | null = null;
+  let lastRoot: string | null = root;
   let contextMenu: {
     x: number;
     y: number;
   } | null = null;
 
   let searchQuery = "";
-  let searchResults: TreeNode[] | null = null;
+  let searchResults: string[] | null = null;
 
   $: tree = buildTree(notes, meta);
-  $: displayTree = searchQuery ? (searchResults ?? []) : tree;
+  $: sourceTree = buildTree(searchQuery ? (searchResults ?? []) : notes, meta);
+  $: scopeNode = scopePath ? findNode(tree, scopePath) : null;
+  $: scopeRoot = scopePath && scopeNode ? scopePath : "";
+  $: displayTree = scopeRoot
+    ? (findNode(sourceTree, scopeRoot)?.children ?? [])
+    : sourceTree;
+  $: scopeLabel = scopePath ? displayNotePath(scopePath) : "";
+  $: currentParent = scopeRoot;
+  $: if (root !== lastRoot) {
+    lastRoot = root;
+    resetScope();
+    searchResults = null;
+  }
+  $: if (scopePath && !scopeNode) {
+    resetScope();
+  }
 
   let searchTimeout: ReturnType<typeof setTimeout>;
 
@@ -71,8 +88,7 @@
         return;
       }
       try {
-        const paths = await searchNotes(root, searchQuery);
-        searchResults = buildTree(paths);
+        searchResults = await searchNotes(root, searchQuery);
       } catch (e) {
         console.error("Search failed:", e);
         searchResults = null;
@@ -98,7 +114,7 @@
   }
 
   function startRootFolder() {
-    startCreate("", true);
+    startCreate(currentParent, true);
   }
 
   function commitRename(relativePath: string, name: string) {
@@ -118,6 +134,31 @@
     contextMenu = { x: event.clientX, y: event.clientY };
   }
 
+  function scopeDirectory(relativePath: string) {
+    scopePath = relativePath;
+  }
+
+  function resetScope() {
+    scopePath = null;
+  }
+
+  function findNode(nodes: TreeNode[], path: string): TreeNode | null {
+    for (const node of nodes) {
+      if (node.path === path) {
+        return node;
+      }
+
+      if (node.children) {
+        const child = findNode(node.children, path);
+        if (child) {
+          return child;
+        }
+      }
+    }
+
+    return null;
+  }
+
   function contextItems(): ContextMenuItem[] {
     if (!root) {
       return [
@@ -133,7 +174,7 @@
       {
         label: $i18n.t("sidebar.addNote"),
         icon: Plus,
-        onSelect: () => startCreate(""),
+        onSelect: () => startCreate(currentParent),
       },
       {
         label: $i18n.t("sidebar.addFolder"),
@@ -141,6 +182,16 @@
         icon: FolderPlus,
         onSelect: startRootFolder,
       },
+      ...(scopePath
+        ? [
+            { separator: true } as ContextMenuItem,
+            {
+              label: $i18n.t("sidebar.resetScope"),
+              icon: RotateCcw,
+              onSelect: resetScope,
+            } as ContextMenuItem,
+          ]
+        : []),
       { separator: true },
       {
         label: $i18n.t("common.refresh"),
@@ -220,7 +271,7 @@
         class="flex size-8 items-center justify-center rounded-md border border-transparent text-stone-500 transition-colors hover:bg-stone-500/10 hover:text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 dark:text-stone-400 dark:hover:text-stone-100"
         aria-label={$i18n.t("sidebar.addNote")}
         title={$i18n.t("sidebar.addNote")}
-        onclick={() => startCreate("")}
+        onclick={() => startCreate(currentParent)}
       >
         <Plus class="size-4" strokeWidth={1.8} aria-hidden="true" />
       </button>
@@ -247,6 +298,24 @@
       />
     </div>
   {/if}
+  {#if root && scopePath}
+    <div
+      class="flex items-center gap-1 border-b border-stone-200/70 px-2 py-1.5 text-xs text-stone-500 dark:border-stone-800 dark:text-stone-400"
+    >
+      <span class="min-w-0 flex-1 truncate" title={scopeLabel}>
+        {$i18n.t("sidebar.scopeLabel", { path: scopeLabel })}
+      </span>
+      <button
+        type="button"
+        class="flex size-6 shrink-0 items-center justify-center rounded-md text-stone-500 hover:bg-stone-500/10 hover:text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 dark:hover:text-stone-100"
+        aria-label={$i18n.t("sidebar.resetScope")}
+        title={$i18n.t("sidebar.resetScope")}
+        onclick={resetScope}
+      >
+        <RotateCcw class="size-3.5" strokeWidth={1.8} aria-hidden="true" />
+      </button>
+    </div>
+  {/if}
 
   <div
     class="min-h-0 flex-1 overflow-y-auto p-1.5"
@@ -257,7 +326,7 @@
       const source = event.dataTransfer?.getData("text/memosmith-path");
       if (source) {
         event.preventDefault();
-        onMove(source, "");
+        onMove(source, currentParent);
       }
     }}
   >
@@ -266,16 +335,16 @@
         {$i18n.t("sidebar.chooseFolder")}
       </p>
     {:else}
-      {#if creating === ""}
+      {#if creating === currentParent}
         <TreeNameInput
           value=""
           depth={0}
-          onCommit={(name) => commitCreate("", name)}
+          onCommit={(name) => commitCreate(currentParent, name)}
           onCancel={cancelEdit}
         />
       {/if}
 
-      {#if !notes.length && creating !== ""}
+      {#if !displayTree.length && creating !== currentParent}
         <p class="px-2 py-6 text-center text-xs text-stone-400">
           {$i18n.t("sidebar.noNotes")}
         </p>
@@ -291,6 +360,7 @@
         {creating}
         onStartRename={startRename}
         onStartCreate={startCreate}
+        onScopeDirectory={scopeDirectory}
         onRename={commitRename}
         onCreate={commitCreate}
         {onDelete}

@@ -1,20 +1,27 @@
-import { describe, expect, it } from "vitest";
-
 import { enterEdit } from "../../../src/lib/utils/markdownCommands";
 
-describe("enterEdit inside a code fence", () => {
-  it("carries the current line's indentation to the new line", () => {
-    const value = "```go\npackage routes {\n    [User Route]";
-    const edit = enterEdit(value, value.length, true);
+const assert = (ok: unknown, msg: string) => {
+  if (!ok) throw new Error(msg);
+};
 
-    expect(edit.text).toBe("\n    ");
-    expect(edit.caret).toBe(value.length + 5);
-  });
+const indented = "```go\npackage routes {\n    [User Route]";
+const indentedEdit = enterEdit(indented, indented.length, true);
 
-  it("stays at column zero for an unindented line", () => {
-    const value = "```go\npackage routes {";
-    const edit = enterEdit(value, value.length, true);
+assert(
+  indentedEdit.text === "\n    ",
+  "enter carries the current line's indentation inside a code fence",
+);
+assert(
+  indentedEdit.caret === indented.length + 5,
+  "enter places the caret after the inserted indentation",
+);
 
-    expect(edit.text).toBe("\n");
-  });
-});
+const unindented = "```go\npackage routes {";
+const unindentedEdit = enterEdit(unindented, unindented.length, true);
+
+assert(
+  unindentedEdit.text === "\n",
+  "enter stays at column zero for an unindented line",
+);
+
+console.log("markdown enter indent ok");
