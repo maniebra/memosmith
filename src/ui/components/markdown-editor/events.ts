@@ -155,7 +155,7 @@ class EditorEvents {
         start: caret,
         end: caret,
         text: "`\n\n```",
-        caret: caret + 2,
+        caret: caret + 1,
       });
       return true;
     }

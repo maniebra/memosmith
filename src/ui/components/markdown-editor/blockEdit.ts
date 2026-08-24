@@ -169,7 +169,7 @@ class EditorBlockEdit {
       chunks[context.index] = fenced
         ? lines.slice(1, -1).join("\n")
         : `\`\`\`\n${text}\n\`\`\``;
-      e.commitChunks(chunks, context.index, fenced ? 0 : 4);
+      e.commitChunks(chunks, context.index, fenced ? 0 : 3);
       return;
     }
 
