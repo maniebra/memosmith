@@ -164,6 +164,19 @@ textarea,
     @apply -mx-3 rounded-lg px-3 py-1;
   }
 
+  /* A run of list lines is one unit, so it reads as one slab. */
+  .md-block[data-list] {
+    @apply rounded-none py-0.5;
+  }
+
+  .md-block[data-list]:not([data-list] + *) {
+    @apply rounded-t-lg pt-1;
+  }
+
+  .md-block[data-list]:not(:has(+ [data-list])) {
+    @apply rounded-b-lg pb-1;
+  }
+
   .md-block:hover,
   .md-block[data-active] {
     @apply bg-stone-900/[0.025] dark:bg-white/[0.035];

@@ -18,6 +18,7 @@ import {
   quizFieldOf,
 } from "./quiz";
 import { toggleTaskAt, toggleTaskKey } from "./taskToggle";
+import { journal } from "../../../lib/utils/journal";
 import type { Editor, EventApi } from "./types";
 
 export function createEvents(e: Editor): EventApi {
@@ -256,6 +257,14 @@ class EditorEvents {
     }
 
     const surface = editSurface(e, event.target as Node | null);
+
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "a") {
+      journal("events.selectAllKey", {
+        surface: Boolean(surface),
+        target: event.target as Node | null,
+        caret: e.caretOffset(),
+      });
+    }
 
     if (!surface) {
       return;

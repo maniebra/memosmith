@@ -51,6 +51,12 @@ import { QUIZ_LANGUAGE } from "./markdownQuiz";
 import { quizPreview } from "./markdownQuizRender";
 const EQUATION_BLOCK = /^\s*\$\$\s*(\S.*?)\s*\$\$\s*$/;
 const FENCE = /^\s*```(\w*)([^\n]*)/;
+const LIST_CLASSES = new Set([
+  "md-bullet",
+  "md-ordered",
+  "md-task",
+  "md-task md-task-done",
+]);
 const MAX_SUBBLOCK_DEPTH = 6;
 /** Embeds whose card is their only face: the raw source never unfolds under the caret. */
 const NON_EDITABLE_EMBEDS = new Set<string | null>([
@@ -82,6 +88,8 @@ class DocumentRenderer {
   private quizInfo = "";
   private quizLines: string[] | null = null;
   private tableGroup = 0;
+  private listGroup = 0;
+  private inList = false;
   private runLanguage: string | null = null;
   private subblockGroup = 0;
   constructor(
@@ -434,8 +442,18 @@ class DocumentRenderer {
   private renderPlainLine(line: string, index: number) {
     const indent = / */.exec(line)![0].length;
     const style = indent ? ` style="padding-left:${indent * 0.75}rem"` : "";
+    const className = lineClass(line);
+    // A run of bullets, tasks or numbers is one block: one handle, one drag.
+    const listed = LIST_CLASSES.has(className);
+
+    if (listed && !this.inList) {
+      this.listGroup++;
+    }
+    this.inList = listed;
+    const list = listed ? ` data-list="${this.listGroup}"` : "";
+
     this.output.push(
-      `<div dir="auto" class="md-block ${lineClass(line)}"${style}>${renderLine(line, this.inlineOptions)}</div>`,
+      `<div dir="auto" class="md-block ${className}"${style}${list}>${renderLine(line, this.inlineOptions)}</div>`,
     );
     return index + 1;
   }

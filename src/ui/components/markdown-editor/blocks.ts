@@ -37,6 +37,7 @@ class EditorBlocks {
       "table",
       "callout",
       "subblocks",
+      "list",
     ] as const) {
       if (block.dataset[name] !== undefined) {
         return `${name}:${block.dataset[name]}`;
@@ -135,7 +136,8 @@ class EditorBlocks {
       kind === "math" ||
       kind === "table" ||
       kind === "callout" ||
-      kind === "subblocks";
+      kind === "subblocks" ||
+      kind === "list";
 
     if (this.e.element && group !== undefined && grouped) {
       return Array.from(

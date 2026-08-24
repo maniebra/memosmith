@@ -8,6 +8,7 @@ import {
   createKeybindings,
   type Keybinding,
 } from "../../../lib/utils/keybindings";
+import { journal } from "../../../lib/utils/journal";
 import type { EditSurface } from "./surface";
 import type { Editor } from "./types";
 
@@ -22,9 +23,16 @@ function prepareShortcut(event: KeyboardEvent, e: Editor) {
 
 function selectAll(event: KeyboardEvent, e: Editor, surface: EditSurface) {
   prepareShortcut(event, e);
+  journal("shortcuts.selectAll", {
+    length: surface.text.length,
+    subblock: surface.subblock,
+  });
 
   if (surface.text) {
     surface.select(0, surface.text.length);
+    journal("shortcuts.selectAll:applied", {
+      selected: getSelection()?.toString().length ?? -1,
+    });
   }
 
   e.markActiveBlock();
