@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { open } from "@tauri-apps/plugin-dialog";
+import { open, save } from "@tauri-apps/plugin-dialog";
 import { translate } from "../i18n";
 import { confirm } from "../utils/confirm";
 import type { PageMeta, SpaceMeta } from "../utils/pageMeta";
@@ -16,6 +16,15 @@ export async function chooseSpaceRoot() {
   const selectedPath = await open({ directory: true, multiple: false });
 
   return typeof selectedPath === "string" ? selectedPath : null;
+}
+
+export async function chooseSavePath(defaultPath: string) {
+  const selected = await save({
+    defaultPath,
+    filters: [{ name: "Markdown", extensions: ["md"] }],
+  });
+
+  return typeof selected === "string" ? selected : null;
 }
 
 export function listSpace(root: string) {

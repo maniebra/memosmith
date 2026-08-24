@@ -1,5 +1,5 @@
 import { defaultSettings, saveSettings } from "../../lib/storage/settings";
-import { writeNote } from "../../lib/tauri/files";
+import { chooseSavePath, writeNote } from "../../lib/tauri/files";
 import { applyAppearanceTheme } from "../../lib/utils/theme";
 import { displayNoteName, displayNotePath } from "../../lib/utils/path";
 import { countWords } from "./editorPageUtils";
@@ -40,6 +40,7 @@ export function createCoreActions(context: EditorPageContext) {
     focusEditor: service.focusEditor.bind(service),
     resetSettings: service.resetSettings.bind(service),
     saveActiveNote: service.saveActiveNote.bind(service),
+    saveNoteAs: service.saveNoteAs.bind(service),
     scheduleNoteSave: service.scheduleNoteSave.bind(service),
     scheduleStats: service.scheduleStats.bind(service),
     clearActiveNote: service.clearActiveNote.bind(service),
@@ -85,6 +86,22 @@ class CoreActions {
           : displayNoteName(notePath),
       });
     }
+  }
+
+  /** Writes a copy to a chosen path; the open note stays the edited one. */
+  async saveNoteAs() {
+    if (!this.context.path) {
+      return;
+    }
+    const target = await chooseSavePath(this.context.path);
+
+    if (!target) {
+      return;
+    }
+    await writeNote(target, this.context.contents);
+    this.context.statusMessage = this.context.t("app.synced", {
+      name: displayNoteName(target),
+    });
   }
 
   scheduleNoteSave(runWithStatus: (action: () => Promise<void>) => void) {

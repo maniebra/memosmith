@@ -81,6 +81,7 @@ export type EditorPageActions = {
   pickActiveCover: () => Promise<void>;
   pickAssets: () => Promise<string>;
   refreshSpace: () => Promise<void>;
+  saveNoteAs: () => Promise<void>;
   renameSpaceEntry: (relativePath: string, name: string) => Promise<void>;
   renderActiveWikilinkEmbed: (target: string, depth: number) => any;
   resetSettings: () => void;

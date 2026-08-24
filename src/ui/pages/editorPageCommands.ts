@@ -122,6 +122,11 @@ function actionItems(source: CommandSource): PaletteItem[] {
             run: () => void actions.runWithStatus(actions.flushNoteSave),
           },
           {
+            id: "action:saveAs",
+            label: t("command.saveNoteAs"),
+            run: () => void actions.runWithStatus(actions.saveNoteAs),
+          },
+          {
             id: "action:grammarCheck",
             label: t("command.runGrammarCheck"),
             run: () => void actions.runWithStatus(actions.runGrammarCheck),

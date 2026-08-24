@@ -14,6 +14,7 @@ export const en = {
   "command.chooseSpace": "Choose space",
   "command.refreshSpace": "Refresh space",
   "command.saveNote": "Save note",
+  "command.saveNoteAs": "Save note as…",
   "command.runGrammarCheck": "Run grammar check",
   "command.toggleGrammar": "Toggle grammar panel",
   "command.pickCover": "Set cover image",

@@ -15,6 +15,7 @@ export const fa: Record<I18nKey, string> = {
   "command.chooseSpace": "انتخاب فضا",
   "command.refreshSpace": "تازه‌سازی فضا",
   "command.saveNote": "ذخیره یادداشت",
+  "command.saveNoteAs": "ذخیره یادداشت با نام…",
   "command.runGrammarCheck": "بررسی دستور زبان",
   "command.toggleGrammar": "نمایش یا پنهان کردن پنل دستور زبان",
   "command.pickCover": "انتخاب تصویر جلد",
