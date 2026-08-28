@@ -351,6 +351,7 @@ export type SlashApi = {
   slashMatches: () => SlashCommand[];
   closeMenu: () => void;
   syncMenu: (surface: EditSurface) => void;
+  trackMenu: () => void;
   runCommand: (prefix: string) => void;
   pickCommand: (command: SlashCommand) => void;
 };

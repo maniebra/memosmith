@@ -42,6 +42,7 @@ export function createSlash(e: Editor): SlashApi {
     pickCommand: service.pickCommand.bind(service),
     slashMatches: service.slashMatches.bind(service),
     syncMenu: service.syncMenu.bind(service),
+    trackMenu: service.trackMenu.bind(service),
   };
 }
 
@@ -260,10 +261,23 @@ class EditorSlash {
       e.ui.slashPathQuery = 0;
     }
 
-    const rect = getSelection()?.getRangeAt(0).getBoundingClientRect();
+    this.trackMenu();
+  }
+
+  /** The menu is fixed, so it has to follow the caret when the page scrolls. */
+  trackMenu() {
+    if (this.e.ui.slashStart === null) {
+      return;
+    }
+
+    const selection = getSelection();
+    const rect =
+      selection?.rangeCount
+        ? selection.getRangeAt(0).getBoundingClientRect()
+        : null;
 
     if (rect) {
-      e.ui.menuPosition = { top: rect.bottom + 4, left: rect.left };
+      this.e.ui.menuPosition = { top: rect.bottom + 4, left: rect.left };
     }
   }
 

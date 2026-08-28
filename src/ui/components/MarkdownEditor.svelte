@@ -168,6 +168,8 @@
 <svelte:window
   onpointermove={editor.handleBlockDragMove}
   onpointerup={editor.handleBlockDragEnd}
+  onscrollcapture={editor.trackMenu}
+  onresize={editor.trackMenu}
 />
 
 <div

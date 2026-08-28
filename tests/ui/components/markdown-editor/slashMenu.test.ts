@@ -173,3 +173,30 @@ assert(
 );
 
 console.log("slash menu ok");
+
+// Scrolling repositions the open menu, and does nothing when it is closed.
+const tracked = editor();
+const rect = { bottom: 100, left: 20 } as DOMRect;
+
+(globalThis as { getSelection?: unknown }).getSelection = () => ({
+  rangeCount: 1,
+  getRangeAt: () => ({ getBoundingClientRect: () => rect }),
+});
+
+tracked.slash.trackMenu();
+
+assert(
+  tracked.ui.menuPosition.top === 104 && tracked.ui.menuPosition.left === 20,
+  "tracking moves the menu to the caret's current rect",
+);
+
+tracked.ui.slashStart = null;
+rect.bottom = 500;
+tracked.slash.trackMenu();
+
+assert(
+  tracked.ui.menuPosition.top === 104,
+  "a closed menu is not repositioned",
+);
+
+console.log("slash menu tracking ok");
