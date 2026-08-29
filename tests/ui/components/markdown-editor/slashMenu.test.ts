@@ -176,11 +176,11 @@ console.log("slash menu ok");
 
 // Scrolling repositions the open menu, and does nothing when it is closed.
 const tracked = editor();
-const rect = { bottom: 100, left: 20 } as DOMRect;
+const rect = { bottom: 100, left: 20 };
 
 (globalThis as { getSelection?: unknown }).getSelection = () => ({
   rangeCount: 1,
-  getRangeAt: () => ({ getBoundingClientRect: () => rect }),
+  getRangeAt: () => ({ getBoundingClientRect: () => rect as DOMRect }),
 });
 
 tracked.slash.trackMenu();
