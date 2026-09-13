@@ -60,6 +60,10 @@
 
     if (message.event === "autosave" || message.event === "save") {
       xml = message.xml ?? xml;
+      // draw.io's own "Save & Exit" button sends save with exit set; finish like our Save does.
+      if (message.event === "save" && message.exit) {
+        save();
+      }
       return;
     }
 
