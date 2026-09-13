@@ -84,4 +84,5 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         with:
           releaseId: ${{ github.event.release.id }}
+          assetNamePattern: memosmith-[version]-[platform]-[arch][ext]
           args: --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
