@@ -13,7 +13,11 @@
   let error = "";
 
   const dark = document.documentElement.classList.contains("dark");
-  const source = `https://embed.diagrams.net/?embed=1&proto=json&spin=1&libraries=1&noSaveBtn=1&noExitBtn=1&dark=${dark ? 1 : 0}`;
+  // Release builds bundle draw.io into public/drawio (see the release workflow); dev uses the hosted copy.
+  const editor = import.meta.env.DEV
+    ? "https://embed.diagrams.net/"
+    : "/drawio/index.html";
+  const source = `${editor}?embed=1&proto=json&spin=1&libraries=1&noSaveBtn=1&noExitBtn=1&stealth=1&dark=${dark ? 1 : 0}`;
 
   try {
     xml = (JSON.parse(diagram || "{}") as { xml?: string }).xml ?? "";

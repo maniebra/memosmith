@@ -1,4 +1,3 @@
-import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { createBlockEdit } from "./blockEdit";
 import { createBlocks } from "./blocks";
 import { createCompletions } from "./completions";
@@ -116,36 +115,11 @@ export function createEditor(host: EditorHost, notify: () => void) {
   return editor;
 }
 
-/** Tauri swallows HTML5 file drops, so paths arrive on a webview event. */
-function listenForDroppedFiles(e: Editor) {
-  return getCurrentWebview().onDragDropEvent(async (event) => {
-    if (event.payload.type !== "drop" || !e.props.editable) {
-      return;
-    }
-
-    const rect = e.element?.getBoundingClientRect();
-    const { x, y } = event.payload.position.toLogical(window.devicePixelRatio);
-
-    if (
-      !rect ||
-      x < rect.left ||
-      x > rect.right ||
-      y < rect.top ||
-      y > rect.bottom
-    ) {
-      return;
-    }
-
-    e.insertAssets(await e.props.onAssets({ paths: event.payload.paths }));
-  });
-}
-
 /** Listeners the editor keeps for as long as the component is on screen. */
 export function mountEditor(e: Editor) {
   // Without a first render the editor has no blocks, so typing has nowhere to go.
   e.render(null);
 
-  const dragDrop = listenForDroppedFiles(e);
   const observer = new ResizeObserver(() => {
     e.scheduleMeasure();
     e.syncTailAdd();
@@ -166,7 +140,6 @@ export function mountEditor(e: Editor) {
   window.addEventListener("scroll", reposition, true);
 
   return () => {
-    void dragDrop.then((unlisten) => unlisten());
     observer.disconnect();
     themeObserver.disconnect();
     window.removeEventListener("resize", reposition);

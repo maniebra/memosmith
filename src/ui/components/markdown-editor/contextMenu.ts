@@ -37,49 +37,50 @@ export function createContextMenu(e: Editor): ContextMenuApi {
   };
 }
 
+/** Puts a collapsed caret under the pointer, unless a real selection exists. */
+export function placeCaretAtPoint(e: Editor, event: MouseEvent) {
+  const selection = e.selectionOffsets();
+
+  if (selection && selection.start !== selection.end) {
+    return;
+  }
+
+  const caretDocument = document as Document & {
+    caretRangeFromPoint?: (x: number, y: number) => Range | null;
+    caretPositionFromPoint?: (
+      x: number,
+      y: number,
+    ) => { offsetNode: Node; offset: number } | null;
+  };
+  const { clientX, clientY } = event;
+  let range = caretDocument.caretRangeFromPoint?.(clientX, clientY) ?? null;
+
+  if (!range) {
+    const position = caretDocument.caretPositionFromPoint?.(clientX, clientY);
+
+    if (position) {
+      range = document.createRange();
+      range.setStart(position.offsetNode, position.offset);
+    }
+  }
+
+  if (!range || !e.element?.contains(range.startContainer)) {
+    return;
+  }
+
+  range.collapse(true);
+  const nextSelection = getSelection();
+  nextSelection?.removeAllRanges();
+  nextSelection?.addRange(range);
+  e.markActiveBlock();
+}
+
 /** The right-click menu, and the clipboard commands it offers. */
 class EditorContextMenu {
   constructor(private e: Editor) {}
 
   closeContextMenu() {
     this.e.ui.contextMenu = null;
-  }
-
-  private placeCaretAtPoint(event: MouseEvent) {
-    const selection = this.e.selectionOffsets();
-
-    if (selection && selection.start !== selection.end) {
-      return;
-    }
-
-    const caretDocument = document as Document & {
-      caretRangeFromPoint?: (x: number, y: number) => Range | null;
-      caretPositionFromPoint?: (
-        x: number,
-        y: number,
-      ) => { offsetNode: Node; offset: number } | null;
-    };
-    const { clientX, clientY } = event;
-    let range = caretDocument.caretRangeFromPoint?.(clientX, clientY) ?? null;
-
-    if (!range) {
-      const position = caretDocument.caretPositionFromPoint?.(clientX, clientY);
-
-      if (position) {
-        range = document.createRange();
-        range.setStart(position.offsetNode, position.offset);
-      }
-    }
-
-    if (!range || !this.e.element?.contains(range.startContainer)) {
-      return;
-    }
-
-    range.collapse(true);
-    const nextSelection = getSelection();
-    nextSelection?.removeAllRanges();
-    nextSelection?.addRange(range);
-    this.e.markActiveBlock();
   }
 
   async copySelection() {
@@ -229,7 +230,7 @@ class EditorContextMenu {
     e.element?.focus();
 
     if (!this.selectMenuTableCell(target)) {
-      this.placeCaretAtPoint(event);
+      placeCaretAtPoint(this.e, event);
     }
 
     const textSelection = e.selectionOffsets();

@@ -380,6 +380,8 @@ export type EventApi = {
   handleInput: (event?: Event) => void;
   handleKeydown: (event: KeyboardEvent) => void;
   handlePaste: (event: ClipboardEvent) => void;
+  handleDragOver: (event: DragEvent) => void;
+  handleDrop: (event: DragEvent) => Promise<void>;
   handlePointerDown: (event: PointerEvent) => void;
   handleChange: (event: Event) => void;
 };

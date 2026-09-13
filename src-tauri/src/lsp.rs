@@ -4,7 +4,8 @@ use serde_json::{json, Value};
 use std::collections::{HashMap, HashSet};
 use std::io::{BufRead, BufReader, Read, Write};
 use std::path::PathBuf;
-use std::process::{Child, ChildStdin, Command, Stdio};
+use crate::utils::background_command;
+use std::process::{Child, ChildStdin, Stdio};
 use std::sync::mpsc::{channel, Receiver, RecvTimeoutError, Sender};
 use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
@@ -173,7 +174,7 @@ fn extension(kernel: &str, language: &str) -> &'static str {
 
 /// A language server is only ever asked for; whether it answers is the spawn's problem.
 fn installed(program: &str) -> bool {
-    Command::new(program)
+    background_command(program)
         .arg("--version")
         .stdin(Stdio::null())
         .stdout(Stdio::null())
@@ -257,7 +258,7 @@ fn start(kernel: &str, command: Option<&str>) -> Result<Server, String> {
 
     std::fs::create_dir_all(&root).map_err(|error| error.to_string())?;
 
-    let mut child = Command::new(&program)
+    let mut child = background_command(&program)
         .args(arguments(&program))
         .current_dir(&root)
         .stdin(Stdio::piped())

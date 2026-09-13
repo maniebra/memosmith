@@ -1,5 +1,6 @@
 use std::io::Write;
-use std::process::{Command, Stdio};
+use crate::utils::background_command;
+use std::process::Stdio;
 
 const BASE64: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
@@ -35,7 +36,7 @@ pub fn render_plantuml(source: String, command: String, format: String) -> Resul
     let trimmed = command.trim();
     let mut parts = if trimmed.is_empty() { "plantuml" } else { trimmed }.split_whitespace();
     let program = parts.next().unwrap_or("plantuml");
-    let mut process = Command::new(program)
+    let mut process = background_command(program)
         .args(parts)
         .args([&format!("-t{format}"), "-pipe", "-charset", "UTF-8"])
         .stdin(Stdio::piped())

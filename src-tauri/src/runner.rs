@@ -1,7 +1,8 @@
 use serde::Serialize;
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Write};
-use std::process::{Child, ChildStdin, Command, Stdio};
+use crate::utils::background_command;
+use std::process::{Child, ChildStdin, Stdio};
 use std::sync::mpsc::{channel, Receiver, RecvTimeoutError, Sender};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
@@ -199,7 +200,7 @@ fn candidates(kernel: &str) -> &'static [&'static str] {
 fn works(program: &str) -> bool {
     // kotlinc and a few others only answer to the single-dash spelling.
     ["--version", "-version"].iter().any(|flag| {
-        Command::new(program)
+        background_command(program)
             .arg(flag)
             .stdin(Stdio::null())
             .stdout(Stdio::null())
@@ -247,7 +248,7 @@ fn pump(reader: impl std::io::Read + Send + 'static, sender: Sender<String>) {
 
 fn spawn(kernel: &str, command: Option<&str>) -> Result<Session, String> {
     let program = resolve(kernel, command)?;
-    let mut process = Command::new(&program);
+    let mut process = background_command(&program);
 
     match kernel {
         "python" => {
@@ -472,7 +473,7 @@ fn run_compiled(
 
     if !csharp {
         // ponytail: the compile itself is not on the clock, only the program it produces.
-        let build = Command::new(&compiler)
+        let build = background_command(&compiler)
             .args(if rust {
                 ["--edition", "2021"]
             } else {
@@ -497,7 +498,7 @@ fn run_compiled(
     // ponytail: `dotnet run cell.cs` compiles and runs in one step, so a C# cell's build
     // time is on the clock. Publish it up front if the first-run wait ever matters.
     let mut launch = if csharp {
-        let mut command = Command::new(&compiler);
+        let mut command = background_command(&compiler);
 
         // Without these the first `dotnet` of a machine's life greets the cell with its banner.
         command
@@ -508,7 +509,7 @@ fn run_compiled(
             .env("DOTNET_SKIP_WORKLOAD_INTEGRITY_CHECK", "1");
         command
     } else {
-        Command::new(&binary)
+        background_command(&binary)
     };
 
     let mut child = launch

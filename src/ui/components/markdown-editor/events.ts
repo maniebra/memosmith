@@ -19,6 +19,7 @@ import {
 } from "./quiz";
 import { toggleTaskAt, toggleTaskKey } from "./taskToggle";
 import { journal } from "../../../lib/utils/journal";
+import { handleDragOver, handleDrop } from "./drop";
 import type { Editor, EventApi } from "./types";
 
 export function createEvents(e: Editor): EventApi {
@@ -30,6 +31,9 @@ export function createEvents(e: Editor): EventApi {
     handleCompositionStart: service.handleCompositionStart.bind(service),
     handleKeydown: service.handleKeydown.bind(service),
     handlePaste: service.handlePaste.bind(service),
+    handleDragOver: (event) => handleDragOver(e, event),
+    handleDrop: (event) =>
+      handleDrop(e, event, service.insideDatabaseEmbed(event)),
     handlePointerDown: service.handlePointerDown.bind(service),
     handleChange: service.handleChange.bind(service),
     insideDatabaseEmbed: service.insideDatabaseEmbed.bind(service),

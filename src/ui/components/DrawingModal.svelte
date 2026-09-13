@@ -33,7 +33,6 @@
       import("react"),
       import("react-dom/client"),
       import("@excalidraw/excalidraw"),
-      // @ts-expect-error stylesheet import, no types
       import("@excalidraw/excalidraw/index.css"),
     ]);
 

@@ -250,6 +250,8 @@
       }
     }}
     onpaste={editor.handlePaste}
+    ondragover={editor.handleDragOver}
+    ondrop={editor.handleDrop}
     onblur={() => {
       editor.closeMenu();
       editor.closeCompletions();
