@@ -18,6 +18,7 @@
     type Density,
     type EditorLineHeight,
     type FontChoice,
+    type WindowButtons,
   } from "../../../lib/utils/theme";
   import { cn } from "../../../lib/utils/cn";
   import Input from "../../components/Input.svelte";
@@ -40,6 +41,11 @@
     { label: $i18n.t("options.system"), value: "system" },
     { label: $i18n.t("options.light"), value: "light" },
     { label: $i18n.t("options.dark"), value: "dark" },
+  ] satisfies SelectOption[];
+  $: windowButtonOptions = [
+    { label: $i18n.t("options.windows"), value: "windows" },
+    { label: $i18n.t("options.macos"), value: "macos" },
+    { label: $i18n.t("options.native"), value: "native" },
   ] satisfies SelectOption[];
   $: translatedAccentOptions = accentOptions.map((accent) => ({
     ...accent,
@@ -125,6 +131,19 @@
       onChange={(windowControls) =>
         updateFeatures(settings, onChange, { windowControls })}
     />
+    {#if settings.features.windowControls}
+      <span class="hidden sm:block"></span>
+      <Select
+        value={settings.appearance.windowButtons}
+        options={windowButtonOptions}
+        className="h-9"
+        rootClassName={compactSelectRoot}
+        onChange={(windowButtons) =>
+          updateAppearance(settings, onChange, {
+            windowButtons: windowButtons as WindowButtons,
+          })}
+      />
+    {/if}
   </section>
   <section
     class="grid gap-3 border-t border-stone-200/50 pt-5 sm:grid-cols-[8rem_minmax(0,1fr)] dark:border-stone-800/80"

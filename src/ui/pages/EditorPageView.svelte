@@ -86,7 +86,9 @@
     backlinksCount={backlinks.length}
     {readOnly}
     onToggleReadOnly={() => (readOnly = !readOnly)}
-    windowControlsEnabled={settings.features.windowControls}
+    windowButtons={settings.features.windowControls
+      ? settings.appearance.windowButtons
+      : "native"}
     onSelectBreadcrumb={(relativePath) =>
       actions.runWithStatus(() => actions.selectSpaceNote(relativePath))}
     onToggleSpacePane={actions.toggleSpacePane}

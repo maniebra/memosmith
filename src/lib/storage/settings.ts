@@ -15,6 +15,7 @@ import {
   type CornerStyle,
   type Density,
   type EditorLineHeight,
+  type WindowButtons,
   type FontChoice,
 } from "../utils/theme";
 import type {
@@ -103,6 +104,9 @@ function isDensity(value: unknown): value is Density {
 }
 function isEditorLineHeight(value: unknown): value is EditorLineHeight {
   return value === "compact" || value === "comfortable" || value === "loose";
+}
+function isWindowButtons(value: unknown): value is WindowButtons {
+  return value === "windows" || value === "macos" || value === "native";
 }
 function isEditorWidth(value: unknown): value is EditorWidth {
   return (
@@ -193,6 +197,9 @@ function readAppearance(value: unknown): AppearanceSettings {
     editorLineHeight: isEditorLineHeight(parsed.editorLineHeight)
       ? parsed.editorLineHeight
       : defaultAppearanceSettings.editorLineHeight,
+    windowButtons: isWindowButtons(parsed.windowButtons)
+      ? parsed.windowButtons
+      : defaultAppearanceSettings.windowButtons,
   };
 }
 /** Every feature flag but the one that is not a boolean. */

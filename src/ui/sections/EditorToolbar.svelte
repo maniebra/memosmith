@@ -17,6 +17,7 @@
   import { i18n } from "../../lib/i18n";
   import { cn } from "../../lib/utils/cn";
   import Button from "../components/Button.svelte";
+  import type { WindowButtons } from "../../lib/utils/theme";
 
   type ToolbarBreadcrumb = {
     label: string;
@@ -34,7 +35,8 @@
   export let backlinksOpen = true;
   export let backlinksCount = 0;
   export let readOnly = false;
-  export let windowControlsEnabled = true;
+  // "native" leaves the buttons to the OS frame, so the toolbar draws none.
+  export let windowButtons: WindowButtons = "windows";
   export let onSelectBreadcrumb: (path: string) => void;
   export let onToggleSpacePane: () => void;
   export let onToggleBacklinks: () => void;
@@ -44,11 +46,18 @@
   export let onToggleGrammar: () => void;
   export let onExportPdf: (() => void) | null = null;
 
-  // The window draws its own frame, so the toolbar carries the window controls.
+  // Without the OS frame, the toolbar carries the window controls.
   const windowControls = [
     { key: "toolbar.minimize", icon: Minus, run: () => getCurrentWindow().minimize() },
     { key: "toolbar.maximize", icon: Square, run: () => getCurrentWindow().toggleMaximize() },
     { key: "toolbar.close", icon: X, run: () => getCurrentWindow().close() },
+  ] as const;
+
+  // macOS order and colors: close, minimize, maximize.
+  const trafficLights = [
+    { key: "toolbar.close", color: "bg-[#ff5f57]", run: () => getCurrentWindow().close() },
+    { key: "toolbar.minimize", color: "bg-[#febc2e]", run: () => getCurrentWindow().minimize() },
+    { key: "toolbar.maximize", color: "bg-[#28c840]", run: () => getCurrentWindow().toggleMaximize() },
   ] as const;
 
   $: visibleBreadcrumbs = breadcrumbs.length
@@ -61,6 +70,22 @@
   aria-label={$i18n.t("toolbar.aria")}
   data-tauri-drag-region
 >
+  {#if windowButtons === "macos"}
+    <div class="group/lights mr-2 flex shrink-0 items-center gap-2">
+      {#each trafficLights as light}
+        <button
+          type="button"
+          class={cn(
+            "size-3 rounded-full ring-1 ring-black/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/40",
+            light.color,
+          )}
+          aria-label={$i18n.t(light.key)}
+          title={$i18n.t(light.key)}
+          onclick={light.run}
+        ></button>
+      {/each}
+    </div>
+  {/if}
   <button
     type="button"
     class="group flex size-7 shrink-0 items-center justify-center rounded-md text-stone-400 transition-colors hover:bg-stone-500/10 hover:text-stone-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 dark:hover:text-stone-200"
@@ -198,13 +223,13 @@
       variant="ghost"
       size="sm"
     />
-    {#if windowControlsEnabled}
+    {#if windowButtons === "windows"}
       <span
         class="mx-1 h-5 w-px bg-stone-300/70 dark:bg-stone-700"
         aria-hidden="true"
       ></span>
     {/if}
-    {#each windowControlsEnabled ? windowControls : [] as control}
+    {#each windowButtons === "windows" ? windowControls : [] as control}
       <button
         type="button"
         class="inline-flex size-8 items-center justify-center rounded-lg text-stone-500 transition-colors hover:bg-stone-500/10 hover:text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/40 dark:text-stone-400 dark:hover:text-stone-100"

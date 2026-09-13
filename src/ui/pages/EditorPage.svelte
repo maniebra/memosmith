@@ -25,6 +25,7 @@
   } from "../../lib/utils/path";
   import { backlinksForNote } from "../../lib/utils/wikilinks";
   import { applyAppearanceTheme } from "../../lib/utils/theme";
+  import { getCurrentWindow } from "@tauri-apps/api/window";
   import EditorPageView from "./EditorPageView.svelte";
   import { countWords, noteBreadcrumbs } from "./editorPageUtils";
   import { createTabActions } from "./editorPageTabActions";
@@ -144,6 +145,18 @@
   $: locale.set(settings.locale);
   $: document.documentElement.lang = settings.locale;
   $: document.documentElement.dir = $i18n.dir;
+  // Native buttons need the OS frame; every other choice draws its own.
+  $: setDecorations(
+    settings.features.windowControls &&
+      settings.appearance.windowButtons === "native",
+  );
+  function setDecorations(on: boolean) {
+    try {
+      getCurrentWindow().setDecorations(on).catch(() => {});
+    } catch {
+      // Throws synchronously outside Tauri (plain browser dev).
+    }
+  }
   $: applyAppearanceTheme(
     pdfPreviewOpen ? "light" : settings.theme,
     settings.appearance,

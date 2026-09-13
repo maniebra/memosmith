@@ -4,6 +4,7 @@ export type FontChoice = "system" | "inter" | "serif" | "mono";
 export type CornerStyle = "soft" | "rounded" | "square";
 export type Density = "comfortable" | "compact";
 export type EditorLineHeight = "compact" | "comfortable" | "loose";
+export type WindowButtons = "windows" | "macos" | "native";
 
 export type AppearanceSettings = {
   accentColor: AccentColor;
@@ -14,6 +15,7 @@ export type AppearanceSettings = {
   cornerStyle: CornerStyle;
   density: Density;
   editorLineHeight: EditorLineHeight;
+  windowButtons: WindowButtons;
 };
 
 export const defaultAppearanceSettings: AppearanceSettings = {
@@ -25,6 +27,7 @@ export const defaultAppearanceSettings: AppearanceSettings = {
   cornerStyle: "soft",
   density: "comfortable",
   editorLineHeight: "comfortable",
+  windowButtons: "windows",
 };
 
 export const accentOptions: {
