@@ -125,7 +125,7 @@ export type EditorUi = {
   /** Submenus drilled into; query length when the last opened. */
   slashPath: string[];
   slashPathQuery: number;
-  menuPosition: { top: number; left: number };
+  menuPosition: { top: number; left: number; caretTop: number };
   completions: Completion[];
   completionIndex: number;
   completionStart: number | null;

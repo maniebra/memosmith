@@ -2,6 +2,7 @@
   import { fly, scale } from "svelte/transition";
   import { cubicOut } from "svelte/easing";
   import { cn } from "../../../lib/utils/cn";
+  import { portal } from "../../../lib/utils/portal";
   import { calloutIconSvg } from "../../../lib/utils/calloutIcons";
   import type { SlashCommand } from "./types";
 
@@ -9,11 +10,27 @@
   export let index = 0;
   export let left = 0;
   export let top = 0;
+  /** Top of the caret line, the anchor when the menu opens upward. */
+  export let caretTop = top;
   export let label = "";
   /** Submenu depth, so drilling in and out slides the pane. */
   export let depth = 0;
   export let onHover: (index: number) => void = () => {};
   export let onPick: (command: SlashCommand) => void = () => {};
+
+  // Room the menu can take: max-h-72 list plus padding and border.
+  const menuHeight = 300;
+  const menuWidth = 256;
+  let innerWidth = 0;
+  let innerHeight = 0;
+  // Open upward when the caret sits too close to the bottom and above has more room.
+  $: above = top + menuHeight > innerHeight && caretTop > innerHeight - top;
+  $: x = Math.max(8, Math.min(left, innerWidth - menuWidth - 8));
+  // Anchor on the real height, so the menu sits right above the caret line.
+  let height = 0;
+  $: position = above
+    ? `top: ${caretTop - 4 - height}px; left: ${x}px; transform-origin: bottom left;`
+    : `top: ${top}px; left: ${x}px; transform-origin: top left;`;
 
   let items: HTMLElement[] = [];
   $: items[index]?.scrollIntoView({ block: "nearest" });
@@ -36,9 +53,13 @@
   }
 </script>
 
+<svelte:window bind:innerWidth bind:innerHeight />
+
 <div
   class="fixed z-50 w-64 rounded-xl border border-stone-200 bg-white/95 p-1 shadow-xl shadow-stone-900/10 backdrop-blur dark:border-stone-700 dark:bg-stone-900/95 dark:shadow-black/40"
-  style="top: {top}px; left: {left}px; transform-origin: top left;"
+  use:portal
+  style={position}
+  bind:offsetHeight={height}
   in:scale={{ start: 0.96, duration: 110, easing: cubicOut }}
 >
   <div

@@ -316,6 +316,7 @@
     depth={ui.slashPath.length}
     top={ui.menuPosition.top}
     left={ui.menuPosition.left}
+    caretTop={ui.menuPosition.caretTop}
     label={$i18n.t("editor.commands")}
     onHover={editor.highlightSlash}
     onPick={editor.pickCommand}

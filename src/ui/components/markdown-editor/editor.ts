@@ -38,7 +38,7 @@ function emptyUi(): EditorUi {
     find: null,
     generating: false,
     hoveredBlock: undefined,
-    menuPosition: { top: 0, left: 0 },
+    menuPosition: { top: 0, left: 0, caretTop: 0 },
     selectedTableCell: null,
     slashIndex: 0,
     slashPath: [],

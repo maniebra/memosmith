@@ -277,7 +277,11 @@ class EditorSlash {
         : null;
 
     if (rect) {
-      this.e.ui.menuPosition = { top: rect.bottom + 4, left: rect.left };
+      this.e.ui.menuPosition = {
+        top: rect.bottom + 4,
+        left: rect.left,
+        caretTop: rect.top,
+      };
     }
   }
 
