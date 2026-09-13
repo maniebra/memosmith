@@ -1,0 +1,75 @@
+name: release
+
+# Publishing a release builds the bundles and attaches them to it.
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-22.04
+            bundles: deb,rpm,appimage
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-22.04-arm
+            bundles: deb,rpm,appimage
+          - target: x86_64-apple-darwin
+            os: macos-14
+            bundles: app,dmg
+          - target: aarch64-apple-darwin
+            os: macos-14
+            bundles: app,dmg
+          - target: x86_64-pc-windows-msvc
+            os: windows-2022
+            bundles: msi,nsis
+          - target: aarch64-pc-windows-msvc
+            os: windows-2022
+            bundles: nsis
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf rpm
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: pnpm
+
+      - name: Toolchain
+        run: rustup target add ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          key: ${{ matrix.target }}
+
+      - run: pnpm install --frozen-lockfile
+
+      # tauri-action builds with the bundles below and uploads them to the release.
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          releaseId: ${{ github.event.release.id }}
+          args: --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
