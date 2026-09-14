@@ -23,7 +23,6 @@
   export let onDelete: () => void;
   export let onClose: () => void = () => {};
 
-  /** Menu-flat fields: no chrome at rest, a soft fill only on focus, like Notion. */
   const fieldClass =
     "w-full rounded-md bg-stone-500/6 px-2 py-1.5 text-sm font-normal " +
     "text-stone-800 outline-none placeholder:text-stone-400 " +

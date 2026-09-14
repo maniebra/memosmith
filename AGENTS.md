@@ -7,7 +7,7 @@ Welcome to MemoSmith! This document is your source of truth for navigating, deve
 MemoSmith is a Tauri 2 desktop application built with:
 - **Frontend**: Svelte, Vite, Tailwind CSS, and TypeScript.
 - **Backend**: Rust (via Tauri).
-- **Core Concept**: A Notion-like markdown editor. Users open a folder (a "space") and manage notes in a sidebar tree.
+- **Core Concept**: A markdown editor. Users open a folder (a "space") and manage notes in a sidebar tree.
 
 ## 🛠️ Getting Started
 
@@ -78,7 +78,7 @@ cargo check
 
 ### 📂 Media Handling
 - **Storage**: Files are copied to `assets/{images|videos|audio|misc}` relative to the note.
-- **Embed Syntax**: Obsidian-style: `![alt|center|400](src)`.
+- **Embed Syntax**: `![alt|center|400](src)`.
 - **Optimization**: Images > 1920px or > 512KB are downscaled and re-encoded to `.webp`.
 - **Pruning**: Deleting a note triggers `prune_assets` to remove unused media.
 

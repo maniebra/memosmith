@@ -207,7 +207,6 @@
   }
   /**
    * Reorders rows to the order they are shown in.
-   * ponytail: a sorted view fights this; positions win once the sort is cleared.
    */
   function reorderRows(orderedIds: string[]) {
     if (!database) {

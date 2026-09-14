@@ -12,7 +12,7 @@ export function isMediaLine(line: string) {
   return MEDIA_LINE.test(line);
 }
 
-/** Obsidian-style pipe options in the alt text: `![alt|center|400](src)`. */
+/** Pipe options in the alt text: `![alt|center|400](src)`. */
 export function mediaOptions(line: string): MediaOptions {
   const parts = MEDIA_LINE.exec(line)?.[2].split("|").slice(1) ?? [];
   const width = parts.find((part) => /^\d+$/.test(part));

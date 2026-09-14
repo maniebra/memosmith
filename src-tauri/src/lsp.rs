@@ -99,7 +99,6 @@ impl Server {
     }
 }
 
-/// ponytail: one server per language, shared by every note. Per-space servers if projects need isolating.
 fn servers() -> &'static Mutex<HashMap<String, Server>> {
     static SERVERS: OnceLock<Mutex<HashMap<String, Server>>> = OnceLock::new();
 

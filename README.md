@@ -1,6 +1,6 @@
 # MemoSmith
 
-Notion-like markdown editor on Tauri 2 + Svelte + Tailwind. Markdown is styled
+Markdown editor on Tauri 2 + Svelte + Tailwind. Markdown is styled
 live as you type (headings, lists, quotes, bold/italic/code/links), with list
 continuation, open/save, and local autosave.
 

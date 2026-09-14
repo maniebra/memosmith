@@ -428,10 +428,6 @@ fn cut_marker(kernel: &str) -> String {
     }
 }
 
-/// ponytail: a compiler has no REPL to keep state in, so a shared session replays the note's
-/// earlier cells ahead of the new one and shows only what came after the marker. Cells stay
-/// cheap to re-run, but their side effects (files, network, clocks) happen again every time.
-/// A real out-of-process interpreter per language is the upgrade if that ever bites.
 fn run_compiled(
     kernel: &str,
     session: &str,
@@ -478,7 +474,6 @@ fn run_compiled(
     std::fs::write(&source, program).map_err(|error| error.to_string())?;
 
     if !csharp {
-        // ponytail: the compile itself is not on the clock, only the program it produces.
         let build = background_command(&compiler)
             .args(if rust {
                 ["--edition", "2021"]
@@ -501,8 +496,6 @@ fn run_compiled(
         }
     }
 
-    // ponytail: `dotnet run cell.cs` compiles and runs in one step, so a C# cell's build
-    // time is on the clock. Publish it up front if the first-run wait ever matters.
     let mut launch = if csharp {
         let mut command = background_command(&compiler);
 

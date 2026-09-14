@@ -115,7 +115,7 @@
       return;
     }
 
-    // Dragging down reveals the upper part of the image, like Notion.
+    // Dragging down reveals the upper part of the image.
     const height = coverElement.clientHeight || 1;
     const delta = ((event.clientY - dragStartY) / height) * 100;
     dragPosition = Math.min(100, Math.max(0, dragStartPosition - delta));

@@ -164,8 +164,6 @@
   onMount(() => {
     // The page pins itself to the light theme while this modal is open, and diagrams re-render
     // for it asynchronously.
-    // ponytail: fixed wait for that repaint; add a re-clone button if a slow PlantUML server
-    // ever lands after it.
     const timer = setTimeout(clone, 500);
 
     return () => clearTimeout(timer);

@@ -150,7 +150,7 @@ textarea,
     @apply relative transition-colors duration-150;
   }
 
-  /* Notion-like slabs: only plain text blocks get the inset padding — code,
+  /* Only plain text blocks get the inset padding — code,
      tables and callouts draw their own continuous surface. */
   .md-block:not(
       .md-codeblock,

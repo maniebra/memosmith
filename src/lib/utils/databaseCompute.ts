@@ -147,8 +147,6 @@ function computeFormula(
   if (!column.formula) {
     return null;
   }
-  // ponytail: a formula referencing another formula resolves one level per pass;
-  // `depth` stops a cycle rather than ordering the dependency graph.
   return evaluateFormula(column.formula, (name) => {
     const referenced = columns.find(
       (entry) => entry.name.toLowerCase() === name.toLowerCase(),
