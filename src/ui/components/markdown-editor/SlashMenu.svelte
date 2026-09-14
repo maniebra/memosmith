@@ -18,18 +18,22 @@
   export let onHover: (index: number) => void = () => {};
   export let onPick: (command: SlashCommand) => void = () => {};
 
-  // Room the menu can take: max-h-72 list plus padding and border.
-  const menuHeight = 300;
   const menuWidth = 256;
+  const viewportPadding = 8;
   let innerWidth = 0;
   let innerHeight = 0;
-  // Open upward when the caret sits too close to the bottom and above has more room.
-  $: above = top + menuHeight > innerHeight && caretTop > innerHeight - top;
-  $: x = Math.max(8, Math.min(left, innerWidth - menuWidth - 8));
-  // Anchor on the real height, so the menu sits right above the caret line.
   let height = 0;
+  // Use the measured menu size: a short filtered list can still fit below the
+  // caret even where the full command list could not.
+  $: above = height > 0 && top + height > innerHeight - viewportPadding;
+  $: x = Math.max(
+    viewportPadding,
+    Math.min(left, innerWidth - menuWidth - viewportPadding),
+  );
+  // `bottom` anchors the menu's lower edge to the caret without depending on a
+  // previous measurement, so it stays directly above it as its contents change.
   $: position = above
-    ? `top: ${caretTop - 4 - height}px; left: ${x}px; transform-origin: bottom left;`
+    ? `bottom: ${innerHeight - caretTop + 4}px; left: ${x}px; transform-origin: bottom left;`
     : `top: ${top}px; left: ${x}px; transform-origin: top left;`;
 
   let items: HTMLElement[] = [];
