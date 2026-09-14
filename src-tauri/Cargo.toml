@@ -2,6 +2,7 @@
 name = "memosmith"
 version = "0.1.0"
 description = "Markdown editor"
+license = "MIT"
 authors = ["mani.ebra"]
 edition = "2021"
 

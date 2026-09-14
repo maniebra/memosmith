@@ -1,5 +1,6 @@
 {
   "name": "memosmith",
+  "license": "MIT",
   "private": true,
   "version": "0.1.2",
   "type": "module",

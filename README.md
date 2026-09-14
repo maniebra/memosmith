@@ -1,57 +1,34 @@
 # MemoSmith
 
-Markdown editor on Tauri 2 + Svelte + Tailwind. Markdown is styled
-live as you type (headings, lists, quotes, bold/italic/code/links), with list
-continuation, open/save, and local autosave.
+A calm, local-first notes app for people who think in Markdown.
 
-Open a folder as a **space** and its notes show up as a sidebar tree, with
-create, rename, and delete in place. The space root is remembered between runs.
+Point MemoSmith at a folder and it becomes your space: every note is a plain
+Markdown file on your disk, organized in a sidebar you can drag and drop. No
+accounts, no lock-in, nothing leaves your machine unless you want it to.
 
-## Use
+## What it does
+
+- **Write without markup in the way.** Markdown styles itself as you type, and
+  blocks can be rearranged by dragging.
+- **Go beyond text.** Callouts, tables, math, drawings, and Mermaid or PlantUML
+  diagrams, all stored in the note itself.
+- **Organize with databases.** Turn notes into tables, boards, or calendars.
+- **Study with quizzes.** Write multiple-choice or fill-in-the-blank questions
+  right inside your notes and check your answers.
+- **Run your code.** Execute code blocks and see the output in place.
+- **Polish your writing.** Built-in grammar checking helps clean up drafts.
+- **Make it yours.** Themes, accent colors, fonts, custom keybindings, Vim mode,
+  and right-to-left language support.
+
+## Getting started
 
 ```sh
 pnpm install
 pnpm tauri dev
 ```
 
-## Build
+MemoSmith runs on Windows, macOS, and Linux.
 
-```sh
-pnpm check
-pnpm build
-pnpm tauri build
-```
+## License
 
-## Source Layout
-
-- `src/App.svelte`: top-level app composition
-- `src/ui/pages`: page-level Svelte components
-- `src/ui/components`: reusable Tailwind UI components
-- `src/ui/sections`: page sections and layout chunks
-- `src/ui/forms`: form/editor components
-- `src/lib/tauri`: frontend Tauri wrappers
-- `src/lib/storage`: browser storage helpers
-- `src/lib/utils`: shared helpers
-- `src/app.css`: global styles
-
-## UI Components
-
-Ready-to-use components live in `src/ui/components`.
-
-- `Badge.svelte`
-- `Button.svelte`
-- `Card.svelte`
-- `Checkbox.svelte`
-- `Field.svelte`
-- `Input.svelte`
-- `Progress.svelte`
-- `Select.svelte`
-- `Slider.svelte`
-- `Switch.svelte`
-- `MarkdownEditor.svelte`
-- `TextArea.svelte`
-
-## KDE
-
-The `tauri` script runs with `GDK_BACKEND=x11` so KWin gets normal window
-decorations on KDE.
+MIT, see [LICENSE](LICENSE).
