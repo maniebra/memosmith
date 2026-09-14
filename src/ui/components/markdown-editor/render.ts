@@ -64,6 +64,7 @@ class EditorRender {
         reveal: this.e.t("editor.quizReveal"),
         write: this.e.t("editor.quizWrite"),
         retry: this.e.t("editor.quizRetry"),
+        clear: this.e.t("editor.quizClear"),
         score: ({ hits, correct, misses }: QuizScore) =>
           this.e.t(misses ? "editor.quizScoreWrong" : "editor.quizScore", {
             hits,

@@ -21,6 +21,7 @@ export type QuizLabels = {
   check: string;
   reveal: string;
   retry: string;
+  clear: string;
   write: string;
   score: (score: QuizScore) => string;
 };
@@ -29,6 +30,7 @@ const DEFAULT_QUIZ_LABELS: QuizLabels = {
   check: "Check answers",
   reveal: "Show answer",
   retry: "Try again",
+  clear: "Clear answer",
   write: "Write your answer",
   score: ({ hits, correct, misses }) =>
     `${hits} / ${correct} correct${misses ? `, ${misses} wrong` : ""}`,
@@ -106,7 +108,7 @@ function quizFooterHtml(quiz: Quiz, state: QuizState, labels: QuizLabels) {
     : "";
 
   return `<div class="md-quiz-actions">${score}<button type="button" class="md-quiz-reset">${escapeHtml(
-    labels.retry,
+    quizVerdict(quiz, state) === "correct" ? labels.clear : labels.retry,
   )}</button></div>`;
 }
 

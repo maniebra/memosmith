@@ -349,6 +349,7 @@ export const en = {
   "editor.quizReveal": "Show answer",
   "editor.quizWrite": "Write your answer",
   "editor.quizRetry": "Try again",
+  "editor.quizClear": "Clear answer",
   "editor.quizScore": "{hits} / {total} correct",
   "editor.quizScoreWrong": "{hits} / {total} correct, {misses} wrong",
   "editor.databaseGroup": "Database",

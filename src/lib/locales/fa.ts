@@ -352,6 +352,7 @@ export const fa: Record<I18nKey, string> = {
   "editor.quizReveal": "نمایش پاسخ",
   "editor.quizWrite": "پاسخ خود را بنویسید",
   "editor.quizRetry": "تلاش دوباره",
+  "editor.quizClear": "پاک کردن پاسخ",
   "editor.quizScore": "{hits} از {total} درست",
   "editor.quizScoreWrong": "{hits} از {total} درست، {misses} نادرست",
   "editor.databaseGroup": "پایگاه داده",
