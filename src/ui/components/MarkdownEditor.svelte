@@ -206,7 +206,7 @@
   {#if ui.dragIndicatorTop !== null}
     <div
       class="md-block-drop-indicator"
-      style={`top: ${ui.dragIndicatorTop}px;`}
+      style={`transform: translateY(${ui.dragIndicatorTop}px);`}
       aria-hidden="true"
     ></div>
   {/if}

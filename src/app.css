@@ -200,8 +200,53 @@ textarea,
   }
 
   .md-block-drop-indicator {
-    @apply pointer-events-none absolute left-0 right-0 z-30 h-0.5 rounded-full bg-emerald-500;
+    @apply pointer-events-none absolute left-0 right-0 top-0 z-30 h-0.5 rounded-full bg-emerald-500;
     box-shadow: 0 0 0 3px rgb(var(--ms-accent-soft-rgb) / 0.14);
+    transition: transform 110ms cubic-bezier(0.2, 0, 0, 1);
+    will-change: transform;
+    animation: md-drop-indicator-in 120ms ease-out;
+  }
+
+  @keyframes md-drop-indicator-in {
+    from {
+      opacity: 0;
+    }
+  }
+
+  .md-block-ghost {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    z-index: 60;
+    min-height: 0 !important;
+    margin: 0 !important;
+    pointer-events: none;
+    opacity: 0.85;
+    will-change: transform;
+    border-radius: 0.5rem;
+    @apply bg-[#fffdfa] dark:bg-[#1a1917];
+    box-shadow:
+      0 12px 32px -8px rgb(0 0 0 / 0.25),
+      0 2px 6px rgb(0 0 0 / 0.08);
+    animation: md-block-ghost-in 140ms ease-out;
+  }
+
+  @keyframes md-block-ghost-in {
+    from {
+      opacity: 0;
+      scale: 0.98;
+    }
+  }
+
+  .md-block-dragging {
+    opacity: 0.35;
+    transition: opacity 120ms ease-out;
+  }
+
+  .md-block-dragging-active,
+  .md-block-dragging-active * {
+    cursor: grabbing !important;
+    user-select: none !important;
   }
 
   @media (max-width: 640px) {

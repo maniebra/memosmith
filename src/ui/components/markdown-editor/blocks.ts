@@ -141,7 +141,9 @@ class EditorBlocks {
 
     if (this.e.element && group !== undefined && grouped) {
       return Array.from(
-        this.e.element.querySelectorAll(`[data-${kind}="${CSS.escape(group)}"]`),
+        this.e.element.querySelectorAll(
+          `[data-${kind}="${CSS.escape(group)}"]`,
+        ),
       ) as HTMLElement[];
     }
 
@@ -295,6 +297,134 @@ class EditorBlocks {
       moved: false,
       targetIndex: context.index,
     };
+    this.draggedElements = this.unitVisualElements(context.unit);
+    this.dragClientX = event.clientX;
+    this.dragClientY = event.clientY;
+  }
+
+  private draggedElements: HTMLElement[] = [];
+  private dragClientX = 0;
+  private dragClientY = 0;
+  private dragFrame = 0;
+  private ghost: HTMLElement | null = null;
+  private ghostOffset = { x: 0, y: 0 };
+
+  /**
+   * Copies the dragged blocks into a floating surface that follows the pointer.
+   * It reuses the editor's classes and inline style so the blocks render the same.
+   */
+  private createGhost() {
+    const surface = this.e.element;
+    const first = this.draggedElements[0];
+
+    if (!surface || !first) {
+      return;
+    }
+
+    const surfaceRect = surface.getBoundingClientRect();
+    const top = Math.min(
+      ...this.draggedElements.map((node) => node.getBoundingClientRect().top),
+    );
+    const ghost = document.createElement("div");
+
+    ghost.className = `${surface.className} md-block-ghost`;
+    ghost.style.cssText = surface.style.cssText;
+    ghost.style.width = `${surfaceRect.width}px`;
+    ghost.setAttribute("aria-hidden", "true");
+    ghost.dir = getComputedStyle(surface).direction;
+    this.draggedElements.forEach((node) =>
+      ghost.appendChild(node.cloneNode(true)),
+    );
+
+    // Keep the block where it was grabbed relative to the pointer.
+    this.ghostOffset = {
+      x: this.dragClientX - surfaceRect.left,
+      y: this.dragClientY - top,
+    };
+    document.body.appendChild(ghost);
+    this.ghost = ghost;
+    this.moveGhost();
+  }
+
+  private moveGhost() {
+    if (this.ghost) {
+      this.ghost.style.transform = `translate(${this.dragClientX - this.ghostOffset.x}px, ${this.dragClientY - this.ghostOffset.y}px)`;
+    }
+  }
+
+  /** Nearest ancestor that actually scrolls, so dragging near an edge can scroll it. */
+  private scrollParent() {
+    for (
+      let node = this.e.element?.parentElement;
+      node;
+      node = node.parentElement
+    ) {
+      const { overflowY } = getComputedStyle(node);
+
+      if (
+        /(auto|scroll)/.test(overflowY) &&
+        node.scrollHeight > node.clientHeight
+      ) {
+        return node;
+      }
+    }
+
+    return document.scrollingElement as HTMLElement | null;
+  }
+
+  /** One layout read per frame, plus edge auto-scroll while the pointer is held. */
+  private dragTick() {
+    this.dragFrame = 0;
+    const dragging = this.e.ui.draggingUnit;
+
+    if (!dragging) {
+      return;
+    }
+
+    const clientY = this.dragClientY;
+    const moved = dragging.moved || Math.abs(clientY - dragging.startY) > 4;
+
+    if (moved && !dragging.moved) {
+      this.createGhost();
+      document.body.classList.add("md-block-dragging-active");
+      this.draggedElements.forEach((node) =>
+        node.classList.add("md-block-dragging"),
+      );
+    }
+
+    const scroller = moved ? this.scrollParent() : null;
+
+    if (scroller) {
+      const box =
+        scroller === document.scrollingElement
+          ? { top: 0, bottom: window.innerHeight }
+          : scroller.getBoundingClientRect();
+      const edge = 64;
+      const speed =
+        clientY < box.top + edge
+          ? -(box.top + edge - clientY)
+          : clientY > box.bottom - edge
+            ? clientY - (box.bottom - edge)
+            : 0;
+
+      if (speed) {
+        scroller.scrollTop += Math.max(-24, Math.min(24, speed / 3));
+        this.dragFrame = requestAnimationFrame(() => this.dragTick());
+      }
+    }
+
+    if (!moved) {
+      return;
+    }
+
+    const units = this.sourceUnits();
+    const targetIndex = this.dragTargetIndex(clientY, units);
+
+    if (!dragging.moved || dragging.targetIndex !== targetIndex) {
+      this.e.ui.draggingUnit = { ...dragging, moved, targetIndex };
+    }
+
+    this.updateDragIndicator(units, targetIndex);
   }
 
   private updateDragIndicator(units: BlockUnit[], targetIndex: number) {
@@ -320,7 +450,7 @@ class EditorBlocks {
     e.ui.dragIndicatorTop = last ? last.bottom - shellRect.top : null;
   }
 
-  private dragTargetIndex(event: PointerEvent, units: BlockUnit[]) {
+  private dragTargetIndex(clientY: number, units: BlockUnit[]) {
     for (const [index, unit] of units.entries()) {
       const rect = this.unitVisualRect(unit);
 
@@ -328,7 +458,7 @@ class EditorBlocks {
         continue;
       }
 
-      if (event.clientY < rect.top + rect.height / 2) {
+      if (clientY < rect.top + rect.height / 2) {
         return index;
       }
     }
@@ -337,19 +467,14 @@ class EditorBlocks {
   }
 
   handleBlockDragMove(event: PointerEvent) {
-    const dragging = this.e.ui.draggingUnit;
-
-    if (!dragging) {
+    if (!this.e.ui.draggingUnit) {
       return;
     }
 
-    const units = this.sourceUnits();
-    const targetIndex = this.dragTargetIndex(event, units);
-    const moved =
-      dragging.moved || Math.abs(event.clientY - dragging.startY) > 4;
-
-    this.e.ui.draggingUnit = { ...dragging, moved, targetIndex };
-    this.updateDragIndicator(units, targetIndex);
+    this.dragClientX = event.clientX;
+    this.dragClientY = event.clientY;
+    this.moveGhost();
+    this.dragFrame ||= requestAnimationFrame(() => this.dragTick());
   }
 
   private dropDraggedUnit(units: BlockUnit[], moved: boolean, target: number) {
@@ -384,6 +509,15 @@ class EditorBlocks {
 
     const { moved, targetIndex } = dragging;
 
+    cancelAnimationFrame(this.dragFrame);
+    this.dragFrame = 0;
+    document.body.classList.remove("md-block-dragging-active");
+    this.draggedElements.forEach((node) =>
+      node.classList.remove("md-block-dragging"),
+    );
+    this.draggedElements = [];
+    this.ghost?.remove();
+    this.ghost = null;
     this.dropDraggedUnit(this.sourceUnits(), moved, targetIndex);
     this.suppressBlockMenuClick = dragging.moved;
 

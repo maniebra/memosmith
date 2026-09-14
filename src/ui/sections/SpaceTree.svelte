@@ -77,6 +77,7 @@
   }
   let dropHint: { path: string; where: "before" | "inside" | "after" } | null =
     null;
+  let dragging: string | null = null;
   let expandTimer: ReturnType<typeof setTimeout> | undefined;
   let contextMenu: {
     x: number;
@@ -125,7 +126,7 @@
       if (where === "inside" && node.children && collapsed[node.path]) {
         expandTimer = setTimeout(() => {
           collapsed = { ...collapsed, [node.path]: false };
-        }, 700);
+        }, 500);
       }
     }
   }
@@ -243,29 +244,43 @@
       {:else}
         <div
           class={cn(
-            "group flex items-center rounded-md pr-1 transition-colors",
+            "group flex items-center rounded-md pr-1 transition-[background-color,box-shadow,opacity] duration-150",
+            dragging === node.path && "opacity-40",
             node.note && node.note === activePath
               ? "bg-emerald-600/12 text-emerald-800 dark:text-emerald-300"
               : "text-stone-600 hover:bg-stone-500/10 dark:text-stone-400",
             dropHint?.path === node.path &&
               {
-                inside: "ring-1 ring-emerald-600/50",
-                before: "border-t border-emerald-600",
-                after: "border-b border-emerald-600",
+                inside: "bg-emerald-600/10 ring-1 ring-emerald-600/50",
+                before: "shadow-[inset_0_2px_0_0_var(--color-emerald-600)]",
+                after: "shadow-[inset_0_-2px_0_0_var(--color-emerald-600)]",
               }[dropHint.where],
           )}
           role="presentation"
           draggable="true"
           oncontextmenu={(event) => openContextMenu(event, node)}
           ondragstart={(event) => {
+            dragging = node.path;
             event.dataTransfer?.setData("text/memosmith-path", node.path);
             if (event.dataTransfer) {
               event.dataTransfer.effectAllowed = "move";
             }
           }}
-          ondragend={clearHint}
+          ondragend={() => {
+            dragging = null;
+            clearHint();
+          }}
           ondragover={(event) => handleDragOver(event, node)}
-          ondragleave={clearHint}
+          ondragleave={(event) => {
+            // Crossing into the row's own buttons is not leaving the row.
+            if (
+              !(event.currentTarget as HTMLElement).contains(
+                event.relatedTarget as Node | null,
+              )
+            ) {
+              clearHint();
+            }
+          }}
           ondrop={(event) => handleDrop(event, node)}
         >
           {#if node.children}
