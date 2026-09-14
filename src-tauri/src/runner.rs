@@ -233,14 +233,19 @@ fn resolve(kernel: &str, command: Option<&str>) -> Result<String, String> {
 
 fn pump(reader: impl std::io::Read + Send + 'static, sender: Sender<String>) {
     std::thread::spawn(move || {
-        for line in BufReader::new(reader).lines() {
-            match line {
-                Ok(line) => {
-                    if sender.send(line).is_err() {
-                        return;
-                    }
-                }
-                Err(_) => return,
+        let mut reader = BufReader::new(reader);
+        let mut bytes = Vec::new();
+
+        // Bytes, not `lines()`: one non-UTF-8 byte (a Windows code page) would end the pump
+        // and leave the cell waiting on an end marker it can never see.
+        while matches!(reader.read_until(b'\n', &mut bytes), Ok(read) if read > 0) {
+            let line = String::from_utf8_lossy(&bytes);
+            let line = line.trim_end_matches(['\n', '\r']).to_string();
+
+            bytes.clear();
+
+            if sender.send(line).is_err() {
+                return;
             }
         }
     });
@@ -252,7 +257,8 @@ fn spawn(kernel: &str, command: Option<&str>) -> Result<Session, String> {
 
     match kernel {
         "python" => {
-            process.args(["-u", "-c", PYTHON_DRIVER]);
+            // Windows defaults the pipes to its ANSI code page, which mangles anything past ASCII.
+            process.args(["-u", "-c", PYTHON_DRIVER]).env("PYTHONIOENCODING", "utf-8");
         }
         "node" => {
             process.args(["-e", NODE_DRIVER]);

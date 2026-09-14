@@ -165,6 +165,23 @@ fn r_keeps_variables_between_cells() {
     assert_eq!(run("r-note", "r", "total + 2"), "[1] 42\n");
 }
 
+/// Non-UTF-8 output (a Windows code page, say) must not silence the kernel until it times out.
+#[test]
+fn python_survives_output_that_is_not_utf8() {
+    let result = run_code_blocking(
+        "python-bytes-note".into(),
+        "python".into(),
+        "import sys\nsys.stdout.buffer.write(b'caf\\xe9\\n')\nsys.stdout.flush()\nprint('\u{e9}')".into(),
+        None,
+        Some(5_000),
+        None,
+    )
+    .expect("cell ran");
+
+    assert!(!result.timed_out);
+    assert_eq!(result.output, "caf\u{fffd}\n\u{e9}\n");
+}
+
 #[test]
 fn a_hung_cell_times_out() {
     let result = run_code_blocking(
