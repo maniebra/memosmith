@@ -18,6 +18,17 @@ export type AppearanceSettings = {
   windowButtons: WindowButtons;
 };
 
+/** Window buttons that match the host OS: its own look on Windows and macOS, the real frame on Linux. */
+function platformWindowButtons(): WindowButtons {
+  const agent = typeof navigator === "undefined" ? "" : navigator.userAgent;
+
+  if (/Mac/.test(agent)) {
+    return "macos";
+  }
+
+  return /Windows/.test(agent) ? "windows" : "native";
+}
+
 export const defaultAppearanceSettings: AppearanceSettings = {
   accentColor: "emerald",
   uiFont: "system",
@@ -27,7 +38,7 @@ export const defaultAppearanceSettings: AppearanceSettings = {
   cornerStyle: "soft",
   density: "comfortable",
   editorLineHeight: "comfortable",
-  windowButtons: "windows",
+  windowButtons: platformWindowButtons(),
 };
 
 export const accentOptions: {
