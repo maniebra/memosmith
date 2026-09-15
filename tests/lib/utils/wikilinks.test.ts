@@ -33,6 +33,11 @@ assert(
   "bare note names prefer the current folder",
 );
 assert(
+  resolveWikilinkTarget("Projects\\Alpha", notes).path ===
+    "Projects/Alpha.md",
+  "Windows separators resolve note references",
+);
+assert(
   resolveWikilinkTarget("Areas", notes, "Index.md").path ===
     "Areas/Areas.dir.md",
   "folder notes resolve by displayed name",

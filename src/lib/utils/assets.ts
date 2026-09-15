@@ -1,4 +1,4 @@
-import { basename } from "./path";
+import { basename, normalizePath } from "./path";
 
 export type AssetFolder = "images" | "videos" | "audio" | "misc";
 
@@ -46,8 +46,9 @@ export function assetFolder(name: string, mime = ""): AssetFolder {
 
 /** Embed media so the editor can preview it; anything else stays a plain link. */
 export function assetMarkdown(relativePath: string) {
-  const name = basename(relativePath);
+  const path = normalizePath(relativePath);
+  const name = basename(path);
   const bang = assetFolder(name) === "misc" ? "" : "!";
 
-  return `${bang}[${name}](${encodeURI(relativePath)})`;
+  return `${bang}[${name}](${encodeURI(path)})`;
 }

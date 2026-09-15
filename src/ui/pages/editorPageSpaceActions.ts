@@ -17,6 +17,8 @@ import {
   basename,
   dirNotePath,
   displayNotePath,
+  joinPath,
+  normalizePath,
   withNoteExtension,
 } from "../../lib/utils/path";
 import {
@@ -54,7 +56,7 @@ class SpaceActions {
   ) {}
 
   spacePath(relativePath: string) {
-    return `${this.context.spaceRoot}/${relativePath}`;
+    return joinPath(this.context.spaceRoot ?? "", relativePath);
   }
 
   async refreshSpace() {
@@ -82,7 +84,7 @@ class SpaceActions {
     if (!selectedRoot) {
       return;
     }
-    this.context.spaceRoot = selectedRoot;
+    this.context.spaceRoot = normalizePath(selectedRoot);
     saveSpaceRoot(this.context.spaceRoot);
     this.context.activeTab = null;
     this.context.activeDatabaseId = null;

@@ -3,7 +3,13 @@ import { chooseFiles, copyAsset, writeAsset } from "../../lib/tauri/files";
 import { generateContent } from "../../lib/tauri/llm";
 import { assetFolder, assetMarkdown } from "../../lib/utils/assets";
 import { compressImage } from "../../lib/utils/image";
-import { basename } from "../../lib/utils/path";
+import {
+  basename,
+  isAbsolutePath,
+  joinPath,
+  normalizePath,
+  relativePath,
+} from "../../lib/utils/path";
 import type { EditorPageContext } from "./editorPageContext";
 
 type MetaActions = {
@@ -87,10 +93,16 @@ class AssetActions {
   }
 
   resolveAssetFromDir(dir: string | null, source: string) {
-    if (!dir || /^[a-z][\w+.-]*:/i.test(source) || source.startsWith("/")) {
+    if (/^[a-z][\w+.-]*:/i.test(source) && !/^[a-z]:[\\/]/i.test(source)) {
       return source;
     }
-    return convertFileSrc(`${dir}/${decodeURI(source)}`);
+    const path = normalizePath(decodeURI(source));
+
+    if (isAbsolutePath(path)) {
+      return convertFileSrc(path);
+    }
+
+    return dir ? convertFileSrc(joinPath(dir, path)) : source;
   }
 
   resolveAsset(source: string) {
@@ -98,13 +110,16 @@ class AssetActions {
   }
 
   private assetDir = (name: string, mime = "") => {
-    return `${this.context.noteDir}/assets/${assetFolder(name, mime)}`;
+    return joinPath(
+      this.context.noteDir ?? "",
+      "assets",
+      assetFolder(name, mime),
+    );
   };
 
   private relativeToNote(assetPath: string) {
-    return assetPath.startsWith(`${this.context.noteDir}/`)
-      ? assetPath.slice(this.context.noteDir!.length + 1)
-      : assetPath;
+    return relativePath(this.context.noteDir ?? "", assetPath) ??
+      normalizePath(assetPath);
   }
 }
 

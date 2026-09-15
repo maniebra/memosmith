@@ -21,7 +21,9 @@
   import {
     displayNoteName,
     displayNotePath,
+    dirname,
     entryPathFromNote,
+    normalizePath,
   } from "../../lib/utils/path";
   import { backlinksForNote } from "../../lib/utils/wikilinks";
   import { applyAppearanceTheme } from "../../lib/utils/theme";
@@ -59,7 +61,7 @@
 
   let path: string | null = null;
   let settings = loadSettings();
-  let spaceRoot = loadSpaceRoot();
+  let spaceRoot = normalizePath(loadSpaceRoot() ?? "") || null;
   let spaceNotes: string[] = [];
   let noteContents: Record<string, string> = {};
   let spaceMeta: SpaceMeta = {};
@@ -96,7 +98,7 @@
   let pinnedTabs = storedTabs.pinned;
   let activeTab: string | null = null;
 
-  $: noteDir = path ? path.slice(0, path.lastIndexOf("/")) : null;
+  $: noteDir = path ? dirname(path) : null;
   $: spacePrefix = spaceRoot ? `${spaceRoot}/` : null;
   $: activeRelativePath =
     path && spacePrefix && path.startsWith(spacePrefix)

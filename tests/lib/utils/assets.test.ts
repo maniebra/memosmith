@@ -25,3 +25,8 @@ assert(
     "[report.pdf](assets/misc/report.pdf)",
   "misc stays a link",
 );
+assert(
+  assetMarkdown("assets\\images\\nested folder\\photo.png") ===
+    "![photo.png](assets/images/nested%20folder/photo.png)",
+  "Windows separators stay portable in asset references",
+);

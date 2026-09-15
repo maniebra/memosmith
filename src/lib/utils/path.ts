@@ -1,3 +1,37 @@
+/** Keep paths exchanged with Tauri portable between Windows and Unix. */
+export function normalizePath(path: string): string {
+  const normalized = path.replace(/\\/g, "/");
+  const prefix = normalized.startsWith("//") ? "//" : "";
+
+  return `${prefix}${normalized.slice(prefix.length).replace(/\/{2,}/g, "/")}`;
+}
+
+export function joinPath(...parts: string[]): string {
+  return normalizePath(parts.filter(Boolean).join("/"));
+}
+
+export function dirname(filePath: string): string {
+  const path = normalizePath(filePath);
+  const index = path.lastIndexOf("/");
+
+  return index === -1 ? "" : path.slice(0, index);
+}
+
+export function isAbsolutePath(filePath: string): boolean {
+  const path = normalizePath(filePath);
+
+  return path.startsWith("/") || /^[a-z]:\//i.test(path);
+}
+
+/** Returns `path` relative to `directory`, or null when it lies elsewhere. */
+export function relativePath(directory: string, filePath: string): string | null {
+  const base = normalizePath(directory).replace(/\/+$/, "");
+  const path = normalizePath(filePath);
+  const prefix = `${base}/`;
+
+  return base && path.startsWith(prefix) ? path.slice(prefix.length) : null;
+}
+
 export function basename(filePath: string): string {
   return filePath.split(/[\\/]/).pop() || "Note";
 }
