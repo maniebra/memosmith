@@ -31,7 +31,7 @@
 <div class="min-h-0 flex-1 overflow-y-auto p-3">
   <div
     class="grid gap-3"
-    style="grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr))"
+    style="grid-template-columns: repeat(auto-fill, minmax(min(15rem, 100%), 1fr))"
   >
     {#each rows as row (row.id)}
       <article

@@ -114,7 +114,7 @@
 <div
   class="flex shrink-0 flex-col gap-2 border-b border-stone-200/70 dark:border-stone-800 {compact
     ? 'px-2 py-2'
-    : 'px-4 py-3'}"
+    : 'px-3 py-3 @2xl:px-4'}"
 >
   {#if compact}
     <DatabaseEmbedBar
@@ -128,7 +128,7 @@
     />
   {:else}
     <input
-      class="w-full bg-transparent text-2xl font-semibold text-stone-900 outline-none dark:text-stone-100"
+      class="w-full bg-transparent text-xl font-semibold @2xl:text-2xl text-stone-900 outline-none dark:text-stone-100"
       value={database.name}
       oninput={(event) => onRenameDatabase(event.currentTarget.value)}
     />
@@ -214,16 +214,20 @@
       {/if}
     </div>
     <input
-      class="ml-1 w-24 min-w-0 bg-transparent text-xs text-stone-500 outline-none"
+      class="ml-1 hidden w-24 min-w-0 bg-transparent @md:block text-xs text-stone-500 outline-none"
       aria-label={$i18n.t("database.renameView")}
       value={view.name}
       oninput={(event) => onUpdateView({ name: event.currentTarget.value })}
     />
-    <div class="ml-auto flex items-center gap-1.5">
-      <label class="flex items-center gap-1 rounded-md bg-stone-500/5 px-2">
+    <div
+      class="flex w-full flex-wrap items-center gap-1.5 @3xl:ml-auto @3xl:w-auto"
+    >
+      <label
+        class="flex min-w-0 flex-1 items-center gap-1 rounded-md bg-stone-500/5 px-2 @3xl:flex-none"
+      >
         <Search class="size-3.5 text-stone-400" strokeWidth={1.8} />
         <input
-          class="h-7 w-28 bg-transparent text-xs outline-none"
+          class="h-7 w-full min-w-16 bg-transparent text-xs outline-none @3xl:w-28"
           placeholder={$i18n.t("database.searchRows")}
           aria-label={$i18n.t("database.searchRows")}
           value={search}
@@ -232,12 +236,12 @@
       </label>
       {#if showsGroupBy}
         <label class="flex items-center gap-1 text-xs text-stone-500">
-          {$i18n.t("database.groupBy")}
+          <span class="hidden @xl:inline">{$i18n.t("database.groupBy")}</span>
           <Select
             value={view.groupBy ?? ""}
             options={groupOptions}
             rootClassName=""
-            className="h-7 w-32 rounded-md text-xs"
+            className="h-7 w-28 rounded-md text-xs @xl:w-32"
             onChange={(groupBy) =>
               onUpdateView({ groupBy: groupBy || undefined })}
           />
@@ -245,12 +249,12 @@
       {/if}
       {#if view.type === "gantt"}
         <label class="flex items-center gap-1 text-xs text-stone-500">
-          {$i18n.t("database.endDate")}
+          <span class="hidden @xl:inline">{$i18n.t("database.endDate")}</span>
           <Select
             value={view.endBy ?? ""}
             options={groupOptions}
             rootClassName=""
-            className="h-7 w-32 rounded-md text-xs"
+            className="h-7 w-28 rounded-md text-xs @xl:w-32"
             onChange={(endBy) => onUpdateView({ endBy: endBy || undefined })}
           />
         </label>
@@ -259,6 +263,7 @@
         <button
           type="button"
           class="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-stone-500 hover:bg-stone-500/10"
+          title={$i18n.t("database.properties")}
           onclick={() => (menu = menu === "properties" ? null : "properties")}
         >
           <SlidersHorizontal
@@ -266,11 +271,11 @@
             strokeWidth={1.8}
             aria-hidden="true"
           />
-          {$i18n.t("database.properties")}
+          <span class="hidden @xl:inline">{$i18n.t("database.properties")}</span>
         </button>
         {#if menu === "properties"}
           <div
-            class="absolute top-8 right-0 z-50 w-56 rounded-lg border border-stone-200 bg-white p-2 shadow-lg dark:border-stone-700 dark:bg-stone-900"
+            class="absolute top-8 right-0 z-50 max-h-[60vh] w-56 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-lg border border-stone-200 bg-white p-2 shadow-lg dark:border-stone-700 dark:bg-stone-900"
           >
             {#each table.columns as column (column.id)}
               <label
@@ -364,10 +369,12 @@
         class="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors {filterCount
           ? 'bg-emerald-600/15 text-emerald-700 dark:text-emerald-300'
           : 'text-stone-500 hover:bg-stone-500/10'}"
+        title={$i18n.t("common.filter")}
         onclick={onToggleFilters}
       >
         <Filter class="size-3.5" strokeWidth={1.8} aria-hidden="true" />
-        {$i18n.t("common.filter")}{filterCount ? ` (${filterCount})` : ""}
+        <span class="hidden @xl:inline">{$i18n.t("common.filter")}</span
+        >{filterCount ? ` (${filterCount})` : ""}
       </button>
     </div>
   </div>

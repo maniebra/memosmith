@@ -95,7 +95,11 @@
     </div>
 
     <div
-      class="grid min-h-0 flex-1 grid-cols-7 grid-rows-[repeat(6,minmax(6rem,1fr))] overflow-y-auto rounded-lg border border-stone-200/70 dark:border-stone-800"
+      class="min-h-0 flex-1 overflow-auto rounded-lg border border-stone-200/70 dark:border-stone-800"
+    >
+    <!-- Below ~30rem day cells stop fitting a title, so the month scrolls sideways. -->
+    <div
+      class="grid min-h-full min-w-[30rem] grid-cols-7 grid-rows-[repeat(6,minmax(4.5rem,1fr))] @2xl:grid-rows-[repeat(6,minmax(6rem,1fr))]"
     >
       {#each days as date (date.getTime())}
         <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -155,6 +159,7 @@
           </div>
         </div>
       {/each}
+    </div>
     </div>
   </div>
 {/if}

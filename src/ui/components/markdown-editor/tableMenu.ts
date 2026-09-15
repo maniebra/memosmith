@@ -41,7 +41,11 @@ class EditorTableMenu {
     const column = Number(selected.dataset.column);
     const update = this.e.updateTable;
 
-    if (actionName === "insert-row") {
+    if (actionName === "copy-all") {
+      void this.e.copyTable(preview);
+    } else if (actionName === "paste-all") {
+      void this.e.pasteTable(preview);
+    } else if (actionName === "insert-row") {
       update(preview, { type: "insert-row", row });
     } else if (actionName === "insert-column") {
       update(preview, { type: "insert-column", column });
@@ -354,6 +358,15 @@ class EditorTableMenu {
     }
 
     return [
+      {
+        label: this.e.t("editor.copyTable"),
+        onSelect: () => this.e.copyTable(preview),
+      },
+      {
+        label: this.e.t("editor.pasteTable"),
+        onSelect: () => this.e.pasteTable(preview),
+      },
+      { separator: true },
       this.item(preview, cell, "editor.addRowBelow", "insert-row"),
       this.item(preview, cell, "editor.addColumnRight", "insert-column"),
       this.item(preview, cell, "editor.deleteRow", "delete-row"),

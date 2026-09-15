@@ -1,4 +1,7 @@
-import { editMarkdownTable } from "../../../lib/utils/markdown";
+import {
+  editMarkdownTable,
+  parseMarkdownTable,
+} from "../../../lib/utils/markdown";
 import type { Editor, TableApi } from "./types";
 
 export function createTables(e: Editor): TableApi {
@@ -6,10 +9,12 @@ export function createTables(e: Editor): TableApi {
 
   return {
     bindTableToolbars: service.bindTableToolbars.bind(service),
+    copyTable: service.copyTable.bind(service),
     handleTableCellInput: service.handleTableCellInput.bind(service),
     markSelectedTableCell: service.markSelectedTableCell.bind(service),
     replaceTableCellSelection:
       service.replaceTableCellSelection.bind(service),
+    pasteTable: service.pasteTable.bind(service),
     focusTableSource: service.focusTableSource.bind(service),
     selectTableCell: service.selectTableCell.bind(service),
     selectTableCellContents: service.selectTableCellContents.bind(service),
@@ -50,6 +55,23 @@ class EditorTables {
     return this.tableSourceBlocks(preview)
       .map((block) => this.e.sourceText(block))
       .join("\n");
+  }
+
+  async copyTable(preview: HTMLElement) {
+    await navigator.clipboard.writeText(this.tableSourceText(preview));
+  }
+
+  async pasteTable(preview: HTMLElement) {
+    const text = (await navigator.clipboard.readText())
+      .replace(/\r\n?/g, "\n")
+      .trim();
+
+    if (!text || !parseMarkdownTable(text.split("\n"))) {
+      this.e.props.onStatus(this.e.t("editor.pasteTableInvalid"));
+      return;
+    }
+
+    this.replaceTable(preview, text, true);
   }
 
   private syncTableSourceBlocks(preview: Element, text: string) {

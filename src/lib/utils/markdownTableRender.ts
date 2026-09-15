@@ -96,7 +96,7 @@ export function tablePreview(
   const divider =
     '<span class="md-table-tool-divider" aria-hidden="true">|</span>';
   const toolbar = showToolbar
-    ? `<div class="md-table-tools-shell" contenteditable="false"><div class="md-table-tools"><button type="button" data-table-action="insert-row" title="Add row">Row +</button>${divider}<button type="button" data-table-action="insert-column" title="Add column">Col +</button>${divider}<button type="button" data-table-action="merge-right" title="Merge with cell on the right">Merge H</button>${divider}<button type="button" data-table-action="merge-down" title="Merge with cell below">Merge V</button>${divider}<button type="button" data-table-action="split-cell" title="Split cell">Split</button>${divider}${Array.from(
+    ? `<div class="md-table-tools-shell" contenteditable="false"><div class="md-table-tools"><button type="button" data-table-action="copy-all" title="Copy the whole table">Copy all</button>${divider}<button type="button" data-table-action="paste-all" title="Replace the whole table from the clipboard">Paste all</button>${divider}<button type="button" data-table-action="insert-row" title="Add row">Row +</button>${divider}<button type="button" data-table-action="insert-column" title="Add column">Col +</button>${divider}<button type="button" data-table-action="merge-right" title="Merge with cell on the right">Merge H</button>${divider}<button type="button" data-table-action="merge-down" title="Merge with cell below">Merge V</button>${divider}<button type="button" data-table-action="split-cell" title="Split cell">Split</button>${divider}${Array.from(
         TABLE_BACKGROUNDS,
       )
         .map(

@@ -35,7 +35,7 @@
 <svelte:window onkeydown={(event) => event.key === "Escape" && onClose()} />
 
 <div
-  class="fixed inset-0 z-40 flex items-start justify-center bg-stone-900/30 p-6 backdrop-blur-sm"
+  class="fixed inset-0 z-40 flex items-start justify-center bg-stone-900/30 p-2 backdrop-blur-sm sm:p-6"
   role="presentation"
   onclick={(event) => event.target === event.currentTarget && onClose()}
 >
@@ -72,12 +72,12 @@
     <div class="min-h-0 flex-1 overflow-y-auto px-4 py-3">
       <div class="flex flex-col gap-1">
         {#each columns as column (column.id)}
-          <div class="flex items-start gap-3">
+          <div class="flex flex-col gap-0.5 sm:flex-row sm:items-start sm:gap-3">
             <span
-              class="w-32 shrink-0 truncate pt-2 text-xs text-stone-400"
+              class="shrink-0 truncate pt-2 text-xs text-stone-400 sm:w-32"
               title={column.name}>{column.name}</span
             >
-            <div class="min-w-0 flex-1">
+            <div class="w-full min-w-0 flex-1">
               <DatabaseCell
                 {column}
                 choices={choices[column.id] ?? []}

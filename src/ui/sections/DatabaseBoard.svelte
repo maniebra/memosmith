@@ -175,10 +175,10 @@
     Pick a "Group by" column to use the board.
   </p>
 {:else}
-  <div class="flex min-h-0 flex-1 gap-3 overflow-x-auto p-3">
+  <div class="flex min-h-0 flex-1 snap-x gap-3 overflow-x-auto scroll-p-3 p-3">
     {#each groups as group (group.key)}
       <section
-        class="relative flex max-h-full shrink-0 flex-col rounded-xl p-2 transition-colors {over ===
+        class="relative flex max-h-full max-w-[85cqw] shrink-0 snap-start flex-col rounded-xl p-2 transition-colors {over ===
         group.key
           ? 'bg-emerald-600/10 ring-1 ring-emerald-600/30'
           : 'bg-stone-500/5 dark:bg-stone-800/40'}"

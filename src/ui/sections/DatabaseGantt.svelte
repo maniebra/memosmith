@@ -85,7 +85,7 @@
         {#each bars as bar (bar.row.id)}
           <button
             type="button"
-            class="flex h-7 w-40 items-center truncate px-2 text-left text-xs text-stone-600 hover:bg-stone-500/10 dark:text-stone-300"
+            class="flex h-7 w-28 items-center @2xl:w-40 truncate px-2 text-left text-xs text-stone-600 hover:bg-stone-500/10 dark:text-stone-300"
             onclick={() => onOpenRow(bar.row.id)}
           >
             {rowTitle(bar.row, columns)}

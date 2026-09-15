@@ -168,7 +168,7 @@
             class="relative border-r border-stone-200/70 px-2 py-1.5 text-left font-medium dark:border-stone-800 {dropColumn ===
             column.id
               ? 'bg-emerald-600/10'
-              : ''} {widthOf(column) ? '' : 'min-w-44'}"
+              : ''} {widthOf(column) ? '' : 'min-w-32 @2xl:min-w-44'}"
             style={widthOf(column)
               ? `width:${widthOf(column)}px;min-width:${widthOf(column)}px;max-width:${widthOf(column)}px`
               : ""}

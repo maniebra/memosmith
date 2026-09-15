@@ -327,7 +327,7 @@
   }
 </script>
 {#if database && table && view}
-  <div class="flex min-h-0 flex-col {compact ? 'max-h-[32rem]' : 'h-full'}">
+  <div class="@container flex min-h-0 flex-col {compact ? 'max-h-[32rem]' : 'h-full'}">
     <DatabaseViewHeader
       {database}
       {table}

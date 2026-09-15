@@ -242,6 +242,7 @@ export type BlockEditApi = {
 
 export type TableApi = {
   bindTableToolbars: () => void;
+  copyTable: (preview: HTMLElement) => Promise<void>;
   focusTableSource: (block: HTMLElement) => void;
   markSelectedTableCell: () => void;
   selectTableCell: (cell: HTMLElement) => void;
@@ -254,6 +255,7 @@ export type TableApi = {
   } | null;
   selectTableCellContents: (cell: HTMLElement) => void;
   replaceTableCellSelection: (cell: HTMLElement, text: string) => void;
+  pasteTable: (preview: HTMLElement) => Promise<void>;
   updateTable: (
     preview: HTMLElement,
     edit: Parameters<typeof editMarkdownTable>[1],

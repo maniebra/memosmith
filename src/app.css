@@ -1442,3 +1442,10 @@ textarea,
     max-height: 240mm !important;
   }
 }
+
+/* Touch screens have no hover, so row and card actions that wait for one stay visible. */
+@media (hover: none) {
+  .group .group-hover\:opacity-100 {
+    opacity: 1;
+  }
+}
