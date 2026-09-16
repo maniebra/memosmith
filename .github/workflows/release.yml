@@ -66,18 +66,6 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # draw.io ships inside the app so diagrams work offline; vite copies public/ into the bundle.
-      # The servlet half (WEB-INF, META-INF) is Java for self-hosting and is dropped.
-      - name: Bundle draw.io
-        shell: bash
-        run: |
-          set -euo pipefail
-          curl -fsSL -o draw.war \
-            https://github.com/jgraph/drawio/releases/download/v31.4.5/draw.war
-          mkdir -p public/drawio
-          unzip -q draw.war -d public/drawio
-          rm -rf draw.war public/drawio/WEB-INF public/drawio/META-INF
-
       # tauri-action builds with the bundles below and uploads them to the release.
       - uses: tauri-apps/tauri-action@v0
         env:

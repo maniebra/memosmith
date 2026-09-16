@@ -8,7 +8,7 @@
     "dev": "npm run fonts && vite",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "lint": "eslint \"src/**/*.{ts,svelte}\" \"tests/**/*.ts\"",
-    "build": "npm run fonts && svelte-check --tsconfig ./tsconfig.json && vite build",
+    "build": "npm run fonts && bash scripts/drawio.sh && svelte-check --tsconfig ./tsconfig.json && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
     "fonts": "node -e \"fs.cpSync('node_modules/@excalidraw/excalidraw/dist/prod/fonts','public/fonts',{recursive:true,filter:p=>!p.includes('Xiaolai')})\""
