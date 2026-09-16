@@ -160,7 +160,7 @@
     }
   }
   $: applyAppearanceTheme(
-    pdfPreviewOpen ? "light" : settings.theme,
+    settings.theme,
     settings.appearance,
     prefersDark,
     settings.features.badges,

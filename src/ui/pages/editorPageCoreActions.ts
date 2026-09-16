@@ -17,7 +17,6 @@ export function syncEditorPageEffects(
   context: EditorPageContext,
   deps: EditorPageActionDeps,
   prefersDark: boolean,
-  pdfPreviewOpen: boolean,
 ) {
   const dirtyMarker = context.isDirty ? " *" : "";
   document.title = `${context.t("app.noSpace")}${dirtyMarker} - ${appTitle}`;
@@ -25,7 +24,7 @@ export function syncEditorPageEffects(
   document.documentElement.lang = context.settings.locale;
   document.documentElement.dir = context.isRtl ? "rtl" : "ltr";
   applyAppearanceTheme(
-    pdfPreviewOpen ? "light" : context.settings.theme,
+    context.settings.theme,
     context.settings.appearance,
     prefersDark,
     context.settings.features.badges,

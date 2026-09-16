@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
-@custom-variant dark (&:where(.dark, .dark *));
+/* `.ms-light` opts a subtree out of dark mode: the PDF preview is paper whatever the app theme. */
+@custom-variant dark (&:where(.dark, .dark *):not(:where(.ms-light, .ms-light *)));
 
 :root {
   --ms-ui-font:
@@ -136,12 +137,12 @@ textarea,
     padding: 0.05em 0.15em;
   }
 
-  .dark .md-highlight {
+  .dark .md-highlight:not(.ms-light *) {
     background: var(--chip-bg-dark);
     color: var(--chip-fg-dark);
   }
 
-  .dark .db-chip {
+  .dark .db-chip:not(.ms-light *) {
     background: var(--chip-bg-dark);
     color: var(--chip-fg-dark);
   }
@@ -351,7 +352,7 @@ textarea,
     text-shadow: inherit !important;
   }
 
-  .dark .md-callout-line:not([data-active]) {
+  .dark .md-callout-line:not([data-active]):not(.ms-light *) {
     caret-color: var(--ms-accent-soft);
   }
 
@@ -537,7 +538,7 @@ textarea,
     @apply rounded-full px-2 py-0.5 text-[0.9em] font-medium;
   }
 
-  :root[data-badges].dark .md-badge {
+  :root[data-badges].dark .md-badge:not(.ms-light *) {
     background: var(--chip-bg-dark);
     color: var(--chip-fg-dark);
   }
@@ -570,7 +571,7 @@ textarea,
     text-shadow: inherit !important;
   }
 
-  .dark .md-wikilink-embed-line:not([data-active]) {
+  .dark .md-wikilink-embed-line:not([data-active]):not(.ms-light *) {
     caret-color: var(--ms-accent-soft);
   }
 
@@ -634,7 +635,7 @@ textarea,
     text-shadow: inherit !important;
   }
 
-  .dark .md-subblocks-line[data-closed] {
+  .dark .md-subblocks-line[data-closed]:not(.ms-light *) {
     caret-color: var(--ms-accent-soft);
   }
 
@@ -712,7 +713,7 @@ textarea,
     @apply opacity-100;
   }
 
-  .dark .md-table-tools-shell {
+  .dark .md-table-tools-shell:not(.ms-light *) {
     --md-table-toolbar-bg: rgb(41 37 36);
   }
 
@@ -834,7 +835,7 @@ textarea,
     text-shadow: inherit !important;
   }
 
-  .dark .md-media-line:not([data-active]) {
+  .dark .md-media-line:not([data-active]):not(.ms-light *) {
     caret-color: var(--ms-accent-soft);
   }
 
@@ -946,7 +947,7 @@ textarea,
     color-scheme: light !important;
   }
 
-  .dark .md-diagram-open.md-diagram-thumbnail svg {
+  .dark .md-diagram-open.md-diagram-thumbnail svg:not(.ms-light *) {
     color-scheme: dark !important;
   }
 
@@ -1329,6 +1330,7 @@ textarea,
 /* PDF export: the sheet is a page of paper — always light, and nothing runs off its edge. */
 .ms-print-sheet {
   overflow-wrap: anywhere;
+  color-scheme: light;
   /* Paper is white: dark-theme text colours never reach the page, whatever the app theme does. */
   color: #1c1917;
   background: #ffffff;
@@ -1364,12 +1366,20 @@ textarea,
   height: auto;
 }
 
-/* Print only the cloned sheet, exactly as the preview shows it. */
-@media print {
-  @page {
-    margin: 10mm;
+/* The preview scales the page to fit its pane; print always runs at 1:1. */
+@media screen {
+  .ms-print-paper {
+    zoom: var(--ms-paper-zoom, 1);
   }
 
+  .ms-print-sheet {
+    zoom: var(--ms-sheet-zoom, 1);
+  }
+}
+
+/* Print only the cloned sheet, exactly as the preview shows it. Page size and margins come
+   from the export modal's injected `@page` rule. */
+@media print {
   html,
   body {
     height: auto !important;
@@ -1398,6 +1408,9 @@ textarea,
     margin: 0 !important;
     background: transparent !important;
     backdrop-filter: none !important;
+    width: auto !important;
+    min-height: 0 !important;
+    box-shadow: none !important;
   }
 
   /* Width stays as laid out: absolutely positioned database embeds only line up there. */
