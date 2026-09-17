@@ -124,6 +124,7 @@ export const fa: Record<I18nKey, string> = {
   "gitlab.url": "آدرس",
   "gitlab.token": "توکن دسترسی شخصی (read_api)",
   "gitlab.group": "مسیر گروه (خالی: ایشوها و MRهای خودتان)",
+  "gitlab.interval": "همگام‌سازی خودکار هر N دقیقه (خالی: دستی)",
   "gitlab.sync": "همگام‌سازی",
   "gitlab.syncing": "در حال همگام‌سازی…",
   "gitlab.synced": "{issues} ایشو، {mrs} مرج ریکوئست، {epics} اپیک همگام شد",

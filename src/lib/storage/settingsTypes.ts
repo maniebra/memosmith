@@ -138,6 +138,8 @@ export type GitlabInstance = {
   token: string;
   /** Group path to sync; empty syncs the token owner's own issues and MRs. */
   group: string;
+  /** Minutes between automatic syncs; empty or 0 syncs only on demand. */
+  interval: string;
 };
 
 /** What a coach knows beyond the note itself, plus its own LLM overrides. */

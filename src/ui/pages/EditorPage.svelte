@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onDestroy, onMount } from "svelte";
+  import { scheduleGitlabSync } from "../../lib/tauri/gitlab";
   import { cubicOut } from "svelte/easing";
   import { explainIssue } from "../../lib/tauri/llm";
   import type { DatabaseSummary } from "../../lib/tauri/databases";
@@ -322,6 +323,16 @@
       statusMessage = $i18n.t("app.saving");
     }
   }
+
+  onMount(() =>
+    scheduleGitlabSync(
+      () => ({
+        root: settings.features.databases ? spaceRoot : null,
+        instances: settings.gitlab,
+      }),
+      (message) => (statusMessage = message),
+    ),
+  );
 
   onMount(() =>
     registerKeybindings(createEditorPageKeybindings(context, actions, tabs)),

@@ -5,6 +5,7 @@ import {
   gitlabTables,
   listPath,
   mergeItems,
+  staleRowIds,
 } from "../../../src/lib/utils/gitlab";
 
 const table = gitlabTables()[0];
@@ -21,6 +22,7 @@ const rows = mergeItems(
     {
       id: 1,
       title: "new",
+      description: "body text",
       state: "opened",
       labels: ["bug", { name: "ui" }],
       assignees: [{ username: "ann" }],
@@ -52,3 +54,15 @@ assert(
   listPath("issues", " ").startsWith("/issues?"),
   "no group lists own items",
 );
+assert(rows[0].data.__body === "body text", "description fills the page");
+const stale = staleRowIds(
+  table,
+  [
+    kept,
+    { ...kept, id: "issues-9" },
+    { ...kept, id: "abc123" },
+    { ...kept, id: "merge_requests-9" },
+  ],
+  rows,
+);
+assert(String(stale) === "issues-9", "only vanished synced rows go");

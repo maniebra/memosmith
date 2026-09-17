@@ -1,6 +1,6 @@
 import type { GitlabInstance } from "../storage/settingsTypes";
 import type { CellValue, Column, Row, Table } from "./databaseTypes";
-import { emptyFilter } from "./database";
+import { BODY, emptyFilter } from "./database";
 
 export type GitlabKind = "issues" | "merge_requests" | "epics";
 
@@ -68,6 +68,7 @@ type GitlabUser = { username?: string };
 export type GitlabItem = {
   id: number;
   title?: string;
+  description?: string | null;
   state?: string;
   references?: { full?: string };
   author?: GitlabUser;
@@ -96,6 +97,7 @@ export function itemCells(item: GitlabItem): Record<string, CellValue> {
     created: day(item.created_at),
     updated: day(item.updated_at),
     url: item.web_url ?? "",
+    [BODY]: item.description ?? "",
   };
 }
 
@@ -132,6 +134,15 @@ export function mergeItems(
   return merged;
 }
 
+/** Synced rows no longer returned by GitLab; rows the user added are left alone. */
+export function staleRowIds(table: Table, rows: Row[], synced: Row[]) {
+  const keep = new Set(synced.map((row) => row.id));
+  const pattern = new RegExp(`^${table.id}-\\d+$`);
+  return rows
+    .filter((row) => pattern.test(row.id) && !keep.has(row.id))
+    .map((row) => row.id);
+}
+
 export function readGitlab(value: unknown): GitlabInstance[] {
   if (!Array.isArray(value)) {
     return [];
@@ -149,6 +160,7 @@ export function readGitlab(value: unknown): GitlabInstance[] {
         url: text(item.url),
         token: text(item.token),
         group: text(item.group),
+        interval: text(item.interval),
       },
     ];
   });

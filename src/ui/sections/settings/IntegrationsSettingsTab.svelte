@@ -28,6 +28,7 @@
       type: "password",
     },
     { key: "group", label: "gitlab.group", placeholder: "my-org/team" },
+    { key: "interval", label: "gitlab.interval", placeholder: "30" },
   ] as const;
 
   function setInstances(gitlab: GitlabInstance[]) {
@@ -51,6 +52,7 @@
         url: "https://gitlab.com",
         token: "",
         group: "",
+        interval: "",
       },
     ]);
   }

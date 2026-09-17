@@ -7,17 +7,21 @@ import {
   gitlabTables,
   listPath,
   mergeItems,
+  staleRowIds,
   type GitlabItem,
   type GitlabKind,
 } from "../utils/gitlab";
 import { rowsOf, tableOf } from "../utils/databaseTypes";
 import {
   createDatabase,
+  deleteDatabaseRow,
   listDatabases,
   loadDatabase,
   saveDatabaseMeta,
   saveDatabaseRow,
 } from "./databases";
+
+const lastSync = new Map<string, number>();
 
 async function fetchAll(instance: GitlabInstance, kind: GitlabKind) {
   const items: GitlabItem[] = [];
@@ -45,6 +49,7 @@ async function fetchAll(instance: GitlabInstance, kind: GitlabKind) {
 
 /** Pulls issues, merge requests and epics into the space database of an instance. */
 export async function syncGitlab(root: string, instance: GitlabInstance) {
+  lastSync.set(instance.id, Date.now());
   if (!instance.url.trim() || !instance.token.trim()) {
     throw new Error("GitLab URL and token are required");
   }
@@ -64,11 +69,47 @@ export async function syncGitlab(root: string, instance: GitlabInstance) {
         ? null
         : await fetchAll(instance, kind);
     if (!items) continue;
-    for (const row of mergeItems(table, rowsOf(database, kind), items)) {
+    const rows = rowsOf(database, kind);
+    const synced = mergeItems(table, rows, items);
+    for (const row of synced) {
       await saveDatabaseRow(root, id, row);
+    }
+    for (const rowId of staleRowIds(table, rows, synced)) {
+      await deleteDatabaseRow(root, id, rowId);
     }
     counts[kind] = items.length;
   }
   await saveDatabaseMeta(root, id, name, database.tables);
   return counts;
+}
+
+/**
+ * Checks every minute for instances whose interval has passed and syncs them.
+ * Returns the cleanup for `onMount`.
+ */
+export function scheduleGitlabSync(
+  current: () => { root: string | null; instances: GitlabInstance[] },
+  onError: (message: string) => void,
+) {
+  const running = new Set<string>();
+  const tick = () => {
+    const { root, instances } = current();
+    if (!root) return;
+    for (const instance of instances) {
+      const minutes = Number(instance.interval);
+      const due = (lastSync.get(instance.id) ?? 0) + minutes * 60_000;
+      if (!(minutes > 0) || Date.now() < due || running.has(instance.id)) {
+        continue;
+      }
+      running.add(instance.id);
+      syncGitlab(root, instance)
+        .catch((error) =>
+          onError(error instanceof Error ? error.message : String(error)),
+        )
+        .finally(() => running.delete(instance.id));
+    }
+  };
+  const timer = setInterval(tick, 60_000);
+  tick();
+  return () => clearInterval(timer);
 }
