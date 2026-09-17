@@ -19,8 +19,10 @@
     type EmbedEditing,
     type EditorLineHeight,
     type FontChoice,
+    parseMemoTheme,
     type WindowButtons,
   } from "../../../lib/utils/theme";
+  import { chooseThemeFile, readNote } from "../../../lib/tauri/files";
   import { cn } from "../../../lib/utils/cn";
   import Input from "../../components/Input.svelte";
   import Select, { type SelectOption } from "../../components/Select.svelte";
@@ -34,6 +36,20 @@
 
   export let settings: AppSettings;
   export let onChange: (settings: AppSettings) => void;
+
+  let themeError = "";
+
+  async function loadThemeFile() {
+    const path = await chooseThemeFile();
+    if (!path) {
+      return;
+    }
+    const customTheme = parseMemoTheme(await readNote(path).catch(() => ""));
+    themeError = customTheme ? "" : $i18n.t("settings.themeFileInvalid");
+    if (customTheme) {
+      updateAppearance(settings, onChange, { customTheme });
+    }
+  }
 
   const compactSelectRoot = "w-full sm:w-56";
   const shortSelectRoot = "w-full sm:w-44";
@@ -149,6 +165,36 @@
           })}
       />
     {/if}
+  </section>
+  <section class="grid gap-2 sm:grid-cols-[8rem_auto] sm:items-center">
+    <span class="text-sm font-medium text-stone-800 dark:text-stone-200">
+      {$i18n.t("settings.themeFile")}
+    </span>
+    <div class="flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        class="h-9 rounded-lg border border-stone-200 px-3 text-sm text-stone-600 hover:bg-stone-100 dark:border-stone-700 dark:text-stone-300 dark:hover:bg-stone-800"
+        onclick={loadThemeFile}
+      >
+        {$i18n.t("settings.themeFileLoad")}
+      </button>
+      {#if settings.appearance.customTheme}
+        <span class="truncate text-sm text-stone-700 dark:text-stone-200">
+          {settings.appearance.customTheme.name}
+        </span>
+        <button
+          type="button"
+          class="h-9 rounded-lg px-3 text-sm text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-800"
+          onclick={() =>
+            updateAppearance(settings, onChange, { customTheme: null })}
+        >
+          {$i18n.t("settings.themeFileClear")}
+        </button>
+      {/if}
+      {#if themeError}
+        <span class="text-xs text-rose-600">{themeError}</span>
+      {/if}
+    </div>
   </section>
   <section class="grid gap-2 sm:grid-cols-[8rem_auto] sm:items-center">
     <span class="text-sm font-medium text-stone-800 dark:text-stone-200">

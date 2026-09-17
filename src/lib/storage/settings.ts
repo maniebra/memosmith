@@ -10,6 +10,7 @@ import type { Kernel } from "../utils/runner";
 import {
   defaultAppearanceSettings,
   normalizeFontStack,
+  parseMemoTheme,
   type AccentColor,
   type AppearanceSettings,
   type CornerStyle,
@@ -208,6 +209,7 @@ function readAppearance(value: unknown): AppearanceSettings {
       typeof parsed.islands === "boolean"
         ? parsed.islands
         : defaultAppearanceSettings.islands,
+    customTheme: parsed.customTheme ? parseMemoTheme(parsed.customTheme) : null,
   };
 }
 /** Every feature flag but the one that is not a boolean. */

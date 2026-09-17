@@ -21,7 +21,90 @@ export type AppearanceSettings = {
   embedEditing: EmbedEditing;
   /** IntelliJ-style islands: panes float as rounded cards on a darker backdrop. */
   islands: boolean;
+  /** Theme loaded from a `.memotheme` file; kept inline so it survives the file moving. */
+  customTheme: MemoTheme | null;
 };
+
+/**
+ * A `.memotheme` file: JSON naming CSS custom properties to override.
+ * `accent` and `neutral` are shorthands for the emerald and stone scales
+ * (keys 50..950, values any CSS color); `mode` pins light or dark.
+ *
+ * { "name": "Nord", "mode": "dark",
+ *   "neutral": { "900": "#2e3440" }, "accent": { "600": "#88c0d0" },
+ *   "variables": { "--ms-editor-line-height": "1.8" } }
+ */
+export type MemoTheme = {
+  name: string;
+  mode?: "light" | "dark";
+  variables: Record<string, string>;
+};
+
+const scaleSteps = [
+  "50",
+  "100",
+  "200",
+  "300",
+  "400",
+  "500",
+  "600",
+  "700",
+  "800",
+  "900",
+  "950",
+];
+
+function safeValue(value: unknown) {
+  return typeof value === "string" &&
+    value.length <= 200 &&
+    !/[;{}<>]/.test(value)
+    ? value.trim()
+    : "";
+}
+
+/** Validates untrusted theme JSON; returns null when it is not a usable theme. */
+export function parseMemoTheme(input: unknown): MemoTheme | null {
+  let raw = input;
+  if (typeof raw === "string") {
+    try {
+      raw = JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }
+  if (!raw || typeof raw !== "object") {
+    return null;
+  }
+  const data = raw as Record<string, unknown>;
+  const variables: Record<string, string> = {};
+  const scales = { accent: "--color-emerald-", neutral: "--color-stone-" };
+
+  for (const [key, prefix] of Object.entries(scales)) {
+    const scale = (data[key] ?? {}) as Record<string, unknown>;
+    for (const step of scaleSteps) {
+      const value = safeValue(scale[step]);
+      if (value) {
+        variables[prefix + step] = value;
+      }
+    }
+  }
+  for (const [name, value] of Object.entries(
+    (data.variables ?? {}) as Record<string, unknown>,
+  )) {
+    const clean = safeValue(value);
+    if (/^--[\w-]{1,80}$/.test(name) && clean) {
+      variables[name] = clean;
+    }
+  }
+  if (!Object.keys(variables).length) {
+    return null;
+  }
+
+  const name = safeValue(data.name) || "Custom";
+  const mode =
+    data.mode === "light" || data.mode === "dark" ? data.mode : undefined;
+  return mode ? { name, mode, variables } : { name, variables };
+}
 
 /** Window buttons that match the host OS: its own look on Windows and macOS, the real frame on Linux. */
 function platformWindowButtons(): WindowButtons {
@@ -46,6 +129,7 @@ export const defaultAppearanceSettings: AppearanceSettings = {
   windowButtons: platformWindowButtons(),
   embedEditing: "modal",
   islands: false,
+  customTheme: null,
 };
 
 export const accentOptions: {
@@ -251,8 +335,13 @@ export function applyAppearanceTheme(
   badges = true,
 ) {
   const root = document.documentElement;
-  const useDark = theme === "dark" || (theme === "system" && systemPrefersDark);
+  const custom = appearance.customTheme;
+  const mode = custom?.mode ?? theme;
+  const useDark = mode === "dark" || (mode === "system" && systemPrefersDark);
   const palette = accentPalettes[appearance.accentColor];
+
+  // Drop the previous theme's overrides before the built-ins are set again.
+  applyThemeVariables(root, {});
 
   root.classList.toggle("dark", useDark);
   root.style.colorScheme = useDark ? "dark" : "light";
@@ -287,6 +376,24 @@ export function applyAppearanceTheme(
   for (const [name, value] of Object.entries(
     cornerVariables[appearance.cornerStyle],
   )) {
+    root.style.setProperty(name, value);
+  }
+
+  // Last, so a theme file wins over every built-in choice above.
+  applyThemeVariables(root, custom?.variables ?? {});
+}
+
+let appliedThemeVariables: string[] = [];
+
+function applyThemeVariables(
+  root: HTMLElement,
+  variables: Record<string, string>,
+) {
+  for (const name of appliedThemeVariables) {
+    root.style.removeProperty(name);
+  }
+  appliedThemeVariables = Object.keys(variables);
+  for (const [name, value] of Object.entries(variables)) {
     root.style.setProperty(name, value);
   }
 }

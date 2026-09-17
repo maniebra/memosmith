@@ -57,6 +57,16 @@ export function pruneAssets(dir: string) {
   return invoke<number>("prune_assets", { dir });
 }
 
+/** Path of a `.memotheme` file the user picked, or null. */
+export async function chooseThemeFile() {
+  const selected = await open({
+    multiple: false,
+    filters: [{ name: "Memosmith theme", extensions: ["memotheme"] }],
+  });
+
+  return typeof selected === "string" ? selected : null;
+}
+
 export async function chooseFiles() {
   const selected = await open({ multiple: true });
 
