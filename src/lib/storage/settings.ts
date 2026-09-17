@@ -204,6 +204,10 @@ function readAppearance(value: unknown): AppearanceSettings {
       parsed.embedEditing === "inline" || parsed.embedEditing === "modal"
         ? parsed.embedEditing
         : defaultAppearanceSettings.embedEditing,
+    islands:
+      typeof parsed.islands === "boolean"
+        ? parsed.islands
+        : defaultAppearanceSettings.islands,
   };
 }
 /** Every feature flag but the one that is not a boolean. */

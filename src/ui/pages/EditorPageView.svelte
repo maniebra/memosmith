@@ -70,7 +70,7 @@
   onpointerup={actions.stopResize}
 />
 <main
-  class="grid h-screen overflow-hidden bg-[#fffdfa] text-stone-900 dark:bg-[#1a1917] dark:text-stone-100"
+  class="ms-islands grid h-screen overflow-hidden bg-[#fffdfa] text-stone-900 dark:bg-[#1a1917] dark:text-stone-100"
   style="grid-template-rows: auto minmax(0, 1fr) auto; grid-template-columns: minmax(0, 1fr);"
 >
   <EditorToolbar
@@ -106,7 +106,7 @@
     onToggleGrammar={actions.toggleGrammar}
     onExportPdf={path ? () => (pdfPreviewOpen = true) : null}
   />
-  <div class="flex min-h-0 min-w-0">
+  <div class="ms-islands-row flex min-h-0 min-w-0">
     {#if settings.spacePaneOpen}
       <div class="flex min-h-0 shrink-0" transition:slide={paneSlide}>
         <SpaceSidebar
@@ -149,7 +149,7 @@
         ></button>
       </div>
     {/if}
-    <div class="flex min-w-0 flex-1 flex-col">
+    <div class="ms-island flex min-w-0 flex-1 flex-col">
       <EditorTabs
         tabs={openTabs}
         pinned={pinnedTabs}
@@ -279,7 +279,7 @@
             onkeydown={(event) => actions.resizeWithKeyboard(event, "backlinks")}
           ></button>
           <div
-            class="flex min-h-0 shrink-0 border-l border-stone-200/70 bg-[#fbf8f1] dark:border-stone-800 dark:bg-[#181714]"
+            class="ms-island flex min-h-0 shrink-0 border-l border-stone-200/70 bg-[#fbf8f1] dark:border-stone-800 dark:bg-[#181714]"
             style={`width: ${settings.backlinksPaneWidth}px`}
           >
             <BacklinksPanel
@@ -300,7 +300,7 @@
       {:else}
         <button
           type="button"
-          class="flex w-9 shrink-0 items-center justify-center border-l border-stone-200/70 bg-[#fbf8f1] text-xs font-semibold tracking-wide text-stone-500 uppercase transition-colors hover:bg-emerald-50/70 hover:text-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600/25 dark:border-stone-800 dark:bg-[#181714] dark:text-stone-400 dark:hover:bg-emerald-950/20 dark:hover:text-emerald-300"
+          class="ms-island flex w-9 shrink-0 items-center justify-center border-l border-stone-200/70 bg-[#fbf8f1] text-xs font-semibold tracking-wide text-stone-500 uppercase transition-colors hover:bg-emerald-50/70 hover:text-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600/25 dark:border-stone-800 dark:bg-[#181714] dark:text-stone-400 dark:hover:bg-emerald-950/20 dark:hover:text-emerald-300"
           title={$i18n.t("toolbar.showBacklinks")}
           aria-label={$i18n.t("toolbar.showBacklinks")}
           onclick={() => (settings = { ...settings, backlinksPaneOpen: true })}
@@ -313,7 +313,7 @@
       {/if}
     {/if}
     {#if settings.features.grammarPolice && grammarOpen && !activeDatabaseTabId}
-      <div class="flex min-h-0" transition:slide={paneSlide}>
+      <div class="ms-island ms-island-gap flex min-h-0" transition:slide={paneSlide}>
         <GrammarPolice
           report={grammarReport}
           checking={grammarChecking}

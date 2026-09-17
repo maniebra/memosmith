@@ -87,6 +87,41 @@ textarea,
   background: rgb(var(--ms-accent-rgb) / 0.22);
 }
 
+/* IntelliJ-style islands: panes become rounded cards floating on a darker backdrop. */
+:root[data-islands] .ms-islands {
+  background: #ece8e0;
+}
+
+:root[data-islands].dark .ms-islands {
+  background: #0f0e0d;
+}
+
+:root[data-islands] .ms-islands-row {
+  padding: 0 0.375rem;
+}
+
+:root[data-islands] .ms-island {
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--radius-xl);
+  background: #fffdfa;
+}
+
+:root[data-islands].dark .ms-island {
+  background: #1a1917;
+}
+
+/* Toolbar and status bar blend into the backdrop around the islands. */
+:root[data-islands] .ms-island-chrome {
+  border-color: transparent;
+  background: transparent;
+}
+
+/* Panes without a resize handle next to them need their own gap. */
+:root[data-islands] .ms-island-gap {
+  margin-left: 0.375rem;
+}
+
 :root[data-density="compact"] .ms-editor-frame {
   @apply pt-10 pb-24;
 }

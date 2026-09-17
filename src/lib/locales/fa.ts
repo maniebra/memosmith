@@ -143,6 +143,8 @@ export const fa: Record<I18nKey, string> = {
   "settings.density": "تراکم",
   "settings.lineSpacing": "فاصله خطوط",
   "settings.embedEditing": "طرح‌ها",
+  "settings.islands": "جزیره‌ها",
+  "settings.islandsHint": "نمایش پنل‌ها به‌صورت کارت‌های گرد، به سبک IntelliJ",
   "settings.embedEditingModal": "ویرایش در پنجره",
   "settings.embedEditingInline": "ویرایش در همان‌جا",
   "settings.checkMode": "حالت بررسی",

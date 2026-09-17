@@ -66,7 +66,7 @@
 </script>
 
 <header
-  class="flex h-12 items-center gap-1.5 border-b border-stone-200/70 bg-stone-50/80 px-3 backdrop-blur dark:border-stone-800 dark:bg-stone-900/70"
+  class="ms-island-chrome flex h-12 items-center gap-1.5 border-b border-stone-200/70 bg-stone-50/80 px-3 backdrop-blur dark:border-stone-800 dark:bg-stone-900/70"
   aria-label={$i18n.t("toolbar.aria")}
   data-tauri-drag-region
 >

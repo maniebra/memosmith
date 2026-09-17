@@ -19,6 +19,8 @@ export type AppearanceSettings = {
   editorLineHeight: EditorLineHeight;
   windowButtons: WindowButtons;
   embedEditing: EmbedEditing;
+  /** IntelliJ-style islands: panes float as rounded cards on a darker backdrop. */
+  islands: boolean;
 };
 
 /** Window buttons that match the host OS: its own look on Windows and macOS, the real frame on Linux. */
@@ -43,6 +45,7 @@ export const defaultAppearanceSettings: AppearanceSettings = {
   editorLineHeight: "comfortable",
   windowButtons: platformWindowButtons(),
   embedEditing: "modal",
+  islands: false,
 };
 
 export const accentOptions: {
@@ -255,6 +258,7 @@ export function applyAppearanceTheme(
   root.style.colorScheme = useDark ? "dark" : "light";
   root.dataset.density = appearance.density;
   root.dataset.corners = appearance.cornerStyle;
+  root.toggleAttribute("data-islands", appearance.islands);
   root.toggleAttribute("data-badges", badges);
 
   for (const [step, rgb] of Object.entries(palette)) {

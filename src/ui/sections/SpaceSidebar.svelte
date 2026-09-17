@@ -248,7 +248,7 @@
 
 
 <aside
-  class="flex min-h-0 shrink-0 flex-col border-r border-stone-200/70 bg-stone-100/50 dark:border-stone-800 dark:bg-stone-900/40"
+  class="ms-island flex min-h-0 shrink-0 flex-col border-r border-stone-200/70 bg-stone-100/50 dark:border-stone-800 dark:bg-stone-900/40"
   style="width: {width}px;"
   aria-label={$i18n.t("sidebar.space")}
 >

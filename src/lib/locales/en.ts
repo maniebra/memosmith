@@ -141,6 +141,8 @@ export const en = {
   "settings.density": "Density",
   "settings.lineSpacing": "Line spacing",
   "settings.embedEditing": "Drawings",
+  "settings.islands": "Islands",
+  "settings.islandsHint": "Float panes as rounded cards, IntelliJ style",
   "settings.embedEditingModal": "Edit in a pop-up",
   "settings.embedEditingInline": "Edit in place",
   "settings.checkMode": "Check mode",

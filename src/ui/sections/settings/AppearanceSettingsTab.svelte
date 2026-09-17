@@ -152,6 +152,17 @@
   </section>
   <section class="grid gap-2 sm:grid-cols-[8rem_auto] sm:items-center">
     <span class="text-sm font-medium text-stone-800 dark:text-stone-200">
+      {$i18n.t("settings.islands")}
+    </span>
+    <Switch
+      checked={settings.appearance.islands}
+      label={$i18n.t("settings.islandsHint")}
+      className="h-10 w-full"
+      onChange={(islands) => updateAppearance(settings, onChange, { islands })}
+    />
+  </section>
+  <section class="grid gap-2 sm:grid-cols-[8rem_auto] sm:items-center">
+    <span class="text-sm font-medium text-stone-800 dark:text-stone-200">
       {$i18n.t("settings.embedEditing")}
     </span>
     <Select

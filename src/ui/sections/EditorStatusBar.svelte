@@ -8,7 +8,7 @@
 </script>
 
 <footer
-  class="flex h-9 items-center gap-4 border-t border-stone-200/70 bg-stone-50/80 px-4 text-xs text-stone-400 backdrop-blur dark:border-stone-800 dark:bg-stone-900/70 dark:text-stone-500"
+  class="ms-island-chrome flex h-9 items-center gap-4 border-t border-stone-200/70 bg-stone-50/80 px-4 text-xs text-stone-400 backdrop-blur dark:border-stone-800 dark:bg-stone-900/70 dark:text-stone-500"
 >
   <span class="min-w-0 truncate">{statusMessage}</span>
   {#if $vimSubMode}
