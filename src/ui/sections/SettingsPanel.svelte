@@ -4,6 +4,7 @@
   import type { AppSettings } from "../../lib/storage/settings";
   import Button from "../components/Button.svelte";
   import AppearanceSettingsTab from "./settings/AppearanceSettingsTab.svelte";
+  import IntegrationsSettingsTab from "./settings/IntegrationsSettingsTab.svelte";
   import AiSettingsTab from "./settings/AiSettingsTab.svelte";
   import EditorSettingsTab from "./settings/EditorSettingsTab.svelte";
   import FeatureSettingsTab from "./settings/FeatureSettingsTab.svelte";
@@ -11,6 +12,7 @@
   import { cn } from "../../lib/utils/cn";
 
   export let settings: AppSettings;
+  export let root: string | null = null;
   export let onClose: () => void;
   export let onReset: () => void;
   export let onChange: (settings: AppSettings) => void;
@@ -20,7 +22,8 @@
     | "features"
     | "editor"
     | "keybindings"
-    | "ai";
+    | "ai"
+    | "integrations";
 
   let activeTab: SettingsTab = "appearance";
 
@@ -30,6 +33,7 @@
     { label: $i18n.t("settings.editor"), value: "editor" },
     { label: $i18n.t("settings.keybindings"), value: "keybindings" },
     { label: $i18n.t("settings.ai"), value: "ai" },
+    { label: $i18n.t("settings.integrations"), value: "integrations" },
   ] satisfies { label: string; value: SettingsTab }[];
 </script>
 
@@ -99,6 +103,8 @@
         </div>
       {:else if activeTab === "ai"}
         <AiSettingsTab {settings} {onChange} />
+      {:else if activeTab === "integrations"}
+        <IntegrationsSettingsTab {settings} {onChange} {root} />
       {:else}
         <EditorSettingsTab {settings} {onChange} />
       {/if}

@@ -127,6 +127,17 @@ export type AppSettings = {
   grammarMode: GrammarMode;
   grammarProfiles: Record<GrammarMode, GrammarProfile>;
   llm: LlmSettings;
+  gitlab: GitlabInstance[];
+};
+
+/** A GitLab server synced into a space database with a personal access token. */
+export type GitlabInstance = {
+  id: string;
+  name: string;
+  url: string;
+  token: string;
+  /** Group path to sync; empty syncs the token owner's own issues and MRs. */
+  group: string;
 };
 
 /** What a coach knows beyond the note itself, plus its own LLM overrides. */

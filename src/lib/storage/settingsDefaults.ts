@@ -177,4 +177,5 @@ export const defaultSettings: AppSettings = {
   grammarMode: "normal",
   grammarProfiles: defaultProfiles(),
   llm: defaultLlmSettings,
+  gitlab: [],
 };

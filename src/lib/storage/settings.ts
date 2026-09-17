@@ -6,6 +6,7 @@ import {
 import { isLocale } from "../i18n";
 import { normalizeCalloutIcon } from "../utils/calloutIcons";
 import { readPalette } from "./settingsPalette";
+import { readGitlab } from "../utils/gitlab";
 import type { Kernel } from "../utils/runner";
 import {
   defaultAppearanceSettings,
@@ -383,6 +384,7 @@ export function loadSettings(): AppSettings {
         : defaultSettings.grammarMode,
       grammarProfiles: readProfiles(parsed.grammarProfiles),
       llm: readLlm(parsed.llm),
+      gitlab: readGitlab(parsed.gitlab),
     };
   } catch {
     return { ...defaultSettings };

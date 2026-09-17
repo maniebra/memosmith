@@ -372,6 +372,7 @@
         >
           <SettingsPanel
             {settings}
+            root={settings.features.databases ? spaceRoot : null}
             onClose={() => (settingsOpen = false)}
             onReset={actions.resetSettings}
             onChange={actions.updateSettings}
