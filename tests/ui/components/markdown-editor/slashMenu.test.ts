@@ -2,10 +2,7 @@ const assert = (ok: unknown, msg: string) => {
   if (!ok) throw new Error(msg);
 };
 
-import {
-  createSlash,
-  SLASH_LIMIT,
-} from "../../../../src/ui/components/markdown-editor/slash";
+import { createSlash } from "../../../../src/ui/components/markdown-editor/slash";
 import type {
   Editor,
   EditorUi,
@@ -69,7 +66,7 @@ function editor() {
 }
 
 const { ui, slash } = editor();
-const top = slash.slashMatches(true);
+const top = slash.slashMatches();
 
 // The whole point: two databases with three views between them stay one entry.
 assert(
@@ -159,7 +156,7 @@ const calloutEditor = (() => {
 })();
 
 const calloutEntry = calloutEditor.slash
-  .slashMatches(true)
+  .slashMatches()
   .find((command) => command.label === "editor.callout");
 
 assert(calloutEntry !== undefined, "callouts stay one top-level entry");
@@ -206,8 +203,7 @@ assert(
 
 console.log("slash menu tracking ok");
 
-// The menu never scrolls: it shows a fixed number of rows, and GitLab search
-// reaches items across every kind.
+// GitLab search reaches items across every kind, only inside its menu.
 {
   const card = (id: number, kind: string, title: string) => ({
     key: `db/${kind}-${id}`,
@@ -231,6 +227,7 @@ console.log("slash menu tracking ok");
     ui: gitlabUi,
     t: (key: string) => key,
     props: {
+      slashCommands: true,
       calloutDefinitions: [],
       databaseRoot: "/space",
       databaseOptions: [],
@@ -245,12 +242,28 @@ console.log("slash menu tracking ok");
     found[0]?.label === "Fix login" && found[0].detail === "g/p#99",
     "gitlab search reaches items of every kind",
   );
-  gitlabUi.slashPath = ["GitLab", "Issues"];
-  gitlabUi.slashQuery = "gitlab issues ";
-  gitlabUi.slashPathQuery = gitlabUi.slashQuery.length;
+  gitlabUi.slashPath = [];
+  gitlabUi.slashQuery = "login";
+  gitlabUi.slashPathQuery = 0;
   assert(
-    gitlabSlash.slashMatches().length === SLASH_LIMIT &&
-      gitlabSlash.slashMatches(true).length === 20,
-    "the menu is capped, the full list is still countable",
+    !gitlabSlash
+      .slashMatches()
+      .some((command) => command.label === "Fix login"),
+    "items stay inside the GitLab menu",
+  );
+  (globalThis as { getSelection?: () => null }).getSelection = () => null;
+  gitlabUi.slashPath = ["GitLab"];
+  gitlabUi.slashPathQuery = 0;
+  const typeText = (text: string) =>
+    gitlabSlash.syncMenu({ text, caret: text.length } as never);
+  typeText("/fix\u00a0log");
+  assert(
+    gitlabSlash.slashMatches()[0]?.label === "Fix login",
+    "an editable space still searches",
+  );
+  typeText("/باگ");
+  assert(
+    gitlabUi.slashStart === 0 && gitlabUi.slashPath[0] === "GitLab",
+    "non-latin typing keeps the menu open",
   );
 }

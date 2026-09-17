@@ -15,17 +15,10 @@ import {
   EMPTY_QUIZ_BLANK,
   SLASH_COMMANDS,
 } from "../../../lib/utils/markdown";
-import {
-  GITLAB_KINDS,
-  gitlabEmbed,
-  type GitlabCard,
-} from "../../../lib/utils/gitlab";
+import { gitlabMenu } from "../../../lib/utils/gitlab";
 import { matchCommands } from "../../../lib/utils/slashMatching";
 import { editSurface, type EditSurface } from "./surface";
 import type { Editor, SlashApi, SlashCommand } from "./types";
-
-/** The menu never scrolls; anything past this is reached by typing. */
-export const SLASH_LIMIT = 8;
 
 const SLASH_LABELS: Record<string, I18nKey> = {
   Text: "editor.text",
@@ -94,7 +87,7 @@ class EditorSlash {
         : []),
       ...(props.quizzes ? [this.quizCommand()] : []),
       ...this.databaseCommands(databases),
-      ...this.gitlabCommands(props.gitlabCards),
+      ...gitlabMenu(props.gitlabCards),
     ];
   }
 
@@ -147,26 +140,6 @@ class EditorSlash {
     };
   }
 
-  /** GitLab, then a kind, then the items: typing filters by title or reference. */
-  private gitlabCommands(cards: GitlabCard[]): SlashCommand[] {
-    const children = GITLAB_KINDS.map(({ kind, name }) => ({
-      label: name,
-      hint: "",
-      prefix: "",
-      children: cards
-        .filter((card) => card.kind === kind)
-        .map((card) => ({
-          label: card.title || card.reference,
-          hint: card.reference,
-          detail: card.reference,
-          prefix: gitlabEmbed(card),
-        })),
-    })).filter((command) => command.children.length);
-    return children.length
-      ? [{ label: "GitLab", hint: "embed", prefix: "", children }]
-      : [];
-  }
-
   /** One entry, not one per view: the databases hang off it as submenus. */
   private databaseCommands(databases: DatabaseSummary[]): SlashCommand[] {
     if (!databases.length) {
@@ -214,7 +187,7 @@ class EditorSlash {
     );
   }
 
-  slashMatches(all = false) {
+  slashMatches() {
     const ui = this.e.ui;
     let commands: SlashCommand[] = [
       ...SLASH_COMMANDS.map((command) => ({
@@ -233,15 +206,23 @@ class EditorSlash {
     }
 
     // Inside a submenu only what was typed after drilling in filters it.
-    const query = ui.slashQuery.toLowerCase().slice(ui.slashPathQuery);
+    // Editable text types spaces as NBSP, which titles never contain.
+    const query = ui.slashQuery
+      .slice(ui.slashPathQuery)
+      .replace(/\u00a0/g, " ")
+      .toLowerCase();
+
+    const leaves = (list: SlashCommand[]): SlashCommand[] =>
+      list.flatMap((command) =>
+        command.children ? leaves(command.children) : [command],
+      );
 
     // Searching the GitLab menu reaches every item, not just the kind names.
     if (query.trim() && ui.slashPath[0] === "GitLab") {
-      commands = commands.flatMap((command) => command.children ?? [command]);
+      return matchCommands(leaves(commands), query);
     }
 
-    const matches = matchCommands(commands, query);
-    return all ? matches : matches.slice(0, SLASH_LIMIT);
+    return matchCommands(commands, query);
   }
 
   /** A command with children opens its submenu; a leaf inserts. */
@@ -278,7 +259,8 @@ class EditorSlash {
 
     const { text, caret } = surface;
     const line = text.slice(lineStartAt(text, caret), caret);
-    const typed = /(?:^|\s)\/([\w .#!&-]*)$/.exec(line);
+    // Any script and punctuation: titles are searched, not just command names.
+    const typed = /(?:^|\s)\/([^/\n\t]{0,80})$/.exec(line);
 
     if (!typed) {
       this.closeMenu();

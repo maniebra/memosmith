@@ -76,7 +76,19 @@ function scoreTerm(text: string, query: string) {
   return subsequence(text, query) ? 20 : 0;
 }
 
-export function scoreCommand(command: Matchable, query: string) {
+export function scoreCommand(command: Matchable, query: string): number {
+  const words = query.split(/\s+/).filter(Boolean);
+  if (words.length > 1) {
+    // Every word has to land somewhere; the weakest one sets the score.
+    const whole = scoreSingle(command, query);
+    return (
+      whole || Math.min(...words.map((word) => scoreSingle(command, word)))
+    );
+  }
+  return scoreSingle(command, query);
+}
+
+function scoreSingle(command: Matchable, query: string) {
   const label = command.label.toLowerCase();
   const terms = [
     scoreTerm(label, query),

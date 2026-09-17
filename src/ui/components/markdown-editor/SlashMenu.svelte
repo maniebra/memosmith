@@ -1,6 +1,7 @@
 <script lang="ts">
   import { fly, scale } from "svelte/transition";
   import { cubicOut } from "svelte/easing";
+  import { Search } from "@lucide/svelte";
   import { cn } from "../../../lib/utils/cn";
   import { portal } from "../../../lib/utils/portal";
   import { calloutIconSvg } from "../../../lib/utils/calloutIcons";
@@ -13,9 +14,21 @@
   /** Top of the caret line, the anchor when the menu opens upward. */
   export let caretTop = top;
   export let label = "";
-  /** Matches cut by the row limit; the menu says so instead of scrolling. */
-  export let hidden = 0;
-  export let hiddenLabel = "";
+  /** Submenus drilled into and the text filtering the current pane. */
+  export let path: string[] = [];
+  export let query = "";
+  export let searchLabel = "";
+  export let emptyLabel = "";
+
+  /** The menu never scrolls: this many rows show, and they follow the selection. */
+  const ROWS = 8;
+  let start = 0;
+  $: start = Math.min(
+    Math.max(start, index - ROWS + 1),
+    index,
+    Math.max(0, commands.length - ROWS),
+  );
+  $: visible = commands.slice(start, start + ROWS);
   /** Submenu depth, so drilling in and out slides the pane. */
   export let depth = 0;
   export let onHover: (index: number) => void = () => {};
@@ -38,9 +51,6 @@
   $: position = above
     ? `bottom: ${innerHeight - caretTop + 4}px; left: ${x}px; transform-origin: bottom left;`
     : `top: ${top}px; left: ${x}px; transform-origin: top left;`;
-
-  let items: HTMLElement[] = [];
-  $: items[index]?.scrollIntoView({ block: "nearest" });
 
   /** Which way the next pane slides in: 1 deeper, -1 back out. */
   let direction = 1;
@@ -69,6 +79,22 @@
   bind:offsetHeight={height}
   in:scale={{ start: 0.96, duration: 110, easing: cubicOut }}
 >
+  {#if path.length || query.trim() || commands.length > ROWS}
+    <div
+      class="mb-1 flex items-center gap-1.5 border-b border-stone-200/70 px-2.5 pt-1 pb-1.5 text-xs dark:border-stone-700/70"
+    >
+      <Search class="size-3.5 shrink-0 text-stone-400" aria-hidden="true" />
+      {#each path as crumb}
+        <span class="shrink-0 font-medium text-stone-500">{crumb}</span>
+        <span class="shrink-0 text-stone-300 dark:text-stone-600">›</span>
+      {/each}
+      {#if query.trim()}
+        <span class="truncate text-stone-800 dark:text-stone-100">{query}</span>
+      {:else}
+        <span class="truncate text-stone-400">{searchLabel}</span>
+      {/if}
+    </div>
+  {/if}
   <div
     class="relative overflow-hidden"
     style="height: {listHeight
@@ -89,12 +115,12 @@
         role="listbox"
         aria-label={label}
       >
-  {#each commands as command, commandIndex}
+  {#each visible as command, row}
+    {@const commandIndex = start + row}
     <li>
       <button
         type="button"
         role="option"
-        bind:this={items[commandIndex]}
         aria-selected={commandIndex === index}
         class={cn(
           "flex w-full items-center justify-between gap-3 rounded-lg px-2.5 py-2 text-left text-sm transition-colors",
@@ -138,11 +164,16 @@
       </button>
     </li>
   {/each}
-  {#if hidden > 0}
+  {#if !commands.length}
+    <li class="px-2.5 py-2 text-sm text-stone-400">{emptyLabel}</li>
+  {:else if commands.length > ROWS}
     <li
-      class="px-2.5 pt-1.5 pb-1 text-[0.7rem] text-stone-400 dark:text-stone-500"
+      class="flex justify-between px-2.5 pt-1.5 pb-1 text-[0.7rem] text-stone-400 dark:text-stone-500"
     >
-      {hiddenLabel}
+      <span>↑↓</span>
+      <span
+        >{start + 1}–{start + visible.length} / {commands.length}</span
+      >
     </li>
   {/if}
       </ul>

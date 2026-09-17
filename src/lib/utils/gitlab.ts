@@ -280,3 +280,31 @@ export function gitlabResolver(cards: GitlabCard[]) {
   const byKey = new Map(cards.map((card) => [card.key, card]));
   return (key: string) => byKey.get(key);
 }
+
+/** Slash menu entries: GitLab, then a kind, then its items. */
+type GitlabMenuEntry = {
+  label: string;
+  hint: string;
+  prefix: string;
+  detail?: string;
+  children?: GitlabMenuEntry[];
+};
+
+export function gitlabMenu(cards: GitlabCard[]): GitlabMenuEntry[] {
+  const children = GITLAB_KINDS.map(({ kind, name }) => ({
+    label: name,
+    hint: "",
+    prefix: "",
+    children: cards
+      .filter((card) => card.kind === kind)
+      .map((card) => ({
+        label: card.title || card.reference,
+        hint: card.reference,
+        detail: card.reference,
+        prefix: gitlabEmbed(card),
+      })),
+  })).filter((command) => command.children.length);
+  return children.length
+    ? [{ label: "GitLab", hint: "embed", prefix: "", children }]
+    : [];
+}

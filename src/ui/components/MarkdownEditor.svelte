@@ -143,9 +143,6 @@
    * keep showing the matches for the query it opened with.
    */
   $: slashMatches = ui.slashStart === null ? [] : editor.slashMatches();
-  $: slashHidden = slashMatches.length
-    ? editor.slashMatches(true).length - slashMatches.length
-    : 0;
 
   /** The props these depend on are listed so Svelte knows when to run them. */
   function syncEditor(..._dependencies: unknown[]) {
@@ -326,11 +323,13 @@
   />
 {/if}
 
-{#if ui.slashStart !== null && slashMatches.length}
+{#if ui.slashStart !== null && (slashMatches.length || ui.slashPath.length)}
   <SlashMenu
     commands={slashMatches}
-    hidden={slashHidden}
-    hiddenLabel={$i18n.t("editor.moreCommands", { count: slashHidden })}
+    path={ui.slashPath}
+    query={ui.slashQuery.slice(ui.slashPathQuery)}
+    searchLabel={$i18n.t("editor.searchCommands")}
+    emptyLabel={$i18n.t("editor.noResults")}
     index={ui.slashIndex}
     depth={ui.slashPath.length}
     top={ui.menuPosition.top}

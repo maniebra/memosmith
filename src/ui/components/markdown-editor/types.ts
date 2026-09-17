@@ -358,7 +358,7 @@ export type DatabaseApi = {
 
 export type SlashApi = {
   highlightSlash: (index: number) => void;
-  slashMatches: (all?: boolean) => SlashCommand[];
+  slashMatches: () => SlashCommand[];
   closeMenu: () => void;
   syncMenu: (surface: EditSurface) => void;
   trackMenu: () => void;
