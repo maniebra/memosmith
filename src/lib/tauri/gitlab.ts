@@ -1,4 +1,6 @@
 import { fetch } from "@tauri-apps/plugin-http";
+import { openUrl } from "@tauri-apps/plugin-opener";
+import { derived, writable } from "svelte/store";
 import type { GitlabInstance } from "../storage/settingsTypes";
 import {
   apiBase,
@@ -7,6 +9,8 @@ import {
   gitlabTables,
   listPath,
   mergeItems,
+  rowCard,
+  type GitlabCard,
   staleRowIds,
   type GitlabItem,
   type GitlabKind,
@@ -22,6 +26,31 @@ import {
 } from "./databases";
 
 const lastSync = new Map<string, number>();
+
+/** Synced items of each enabled instance, for embeds and the slash menu. */
+const cardsByInstance = writable<Record<string, GitlabCard[]>>({});
+export const gitlabCards = derived(cardsByInstance, (all) =>
+  Object.values(all).flat(),
+);
+
+function setCards(instanceId: string, cards: GitlabCard[] | null) {
+  cardsByInstance.update((all) => {
+    const next = { ...all };
+    if (cards) next[instanceId] = cards;
+    else delete next[instanceId];
+    return next;
+  });
+}
+
+async function loadCards(root: string, instance: GitlabInstance) {
+  const id = gitlabDatabaseId(instance);
+  if (!(await listDatabases(root)).some((db) => db.id === id)) return;
+  const database = await loadDatabase(root, id);
+  setCards(
+    instance.id,
+    database.rows.map((row) => rowCard(id, row)),
+  );
+}
 
 async function fetchAll(instance: GitlabInstance, kind: GitlabKind) {
   const items: GitlabItem[] = [];
@@ -61,6 +90,7 @@ export async function syncGitlab(root: string, instance: GitlabInstance) {
   }
   const database = await loadDatabase(root, id);
   const counts: Record<string, number> = {};
+  const cards: GitlabCard[] = [];
   for (const { kind } of GITLAB_KINDS) {
     const table = tableOf(database, kind);
     if (table?.id !== kind) continue;
@@ -72,6 +102,7 @@ export async function syncGitlab(root: string, instance: GitlabInstance) {
     const rows = rowsOf(database, kind);
     const synced = mergeItems(table, rows, items);
     for (const row of synced) {
+      cards.push(rowCard(id, row));
       await saveDatabaseRow(root, id, row);
     }
     for (const rowId of staleRowIds(table, rows, synced)) {
@@ -80,22 +111,37 @@ export async function syncGitlab(root: string, instance: GitlabInstance) {
     counts[kind] = items.length;
   }
   await saveDatabaseMeta(root, id, name, database.tables);
+  setCards(instance.id, cards);
   return counts;
 }
 
 /**
  * Checks every minute for instances whose interval has passed and syncs them.
- * Returns the cleanup for `onMount`.
  */
 export function scheduleGitlabSync(
   current: () => { root: string | null; instances: GitlabInstance[] },
   onError: (message: string) => void,
 ) {
   const running = new Set<string>();
-  const tick = () => {
+  let loadedFor = "";
+  /** Reloads cards when the space or the set of enabled instances changes. */
+  const refresh = (..._dependencies: unknown[]) => {
     const { root, instances } = current();
+    const enabled = instances.filter((instance) => instance.enabled);
+    const signature = `${root}|${enabled.map((item) => item.id)}`;
+    if (signature === loadedFor) return;
+    loadedFor = signature;
+    cardsByInstance.set({});
+    for (const instance of root ? enabled : []) {
+      loadCards(root!, instance).catch(() => {});
+    }
+  };
+  const tick = () => {
+    refresh();
+    const { root, instances } = current();
+    const enabled = instances.filter((instance) => instance.enabled);
     if (!root) return;
-    for (const instance of instances) {
+    for (const instance of enabled) {
       const minutes = Number(instance.interval);
       const due = (lastSync.get(instance.id) ?? 0) + minutes * 60_000;
       if (!(minutes > 0) || Date.now() < due || running.has(instance.id)) {
@@ -111,5 +157,11 @@ export function scheduleGitlabSync(
   };
   const timer = setInterval(tick, 60_000);
   tick();
-  return () => clearInterval(timer);
+  return { refresh, stop: () => clearInterval(timer) };
+}
+
+export function openGitlabUrl(url: string) {
+  if (/^https?:\/\//.test(url)) {
+    openUrl(url).catch(() => {});
+  }
 }

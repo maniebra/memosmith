@@ -960,6 +960,72 @@ textarea,
     @apply my-3 overflow-hidden rounded-lg border border-stone-200 bg-surface text-[0.95em] shadow-sm dark:border-stone-800 dark:bg-stone-900/65;
   }
 
+  .md-gitlab-preview {
+    @apply my-3 grid gap-1.5 rounded-lg border border-stone-200 bg-surface px-4 py-3 text-[0.9em] leading-snug shadow-sm transition-colors hover:border-stone-300 dark:border-stone-800 dark:bg-stone-900/65 dark:hover:border-stone-700;
+    user-select: none;
+  }
+
+  .md-gitlab-head {
+    @apply flex items-center gap-2 text-xs text-stone-500 dark:text-stone-400;
+  }
+
+  .md-gitlab-icon {
+    @apply size-4 shrink-0;
+  }
+
+  .md-gitlab-ref {
+    @apply min-w-0 truncate font-mono;
+  }
+
+  .md-gitlab-state {
+    @apply ml-auto shrink-0 rounded-full bg-stone-100 px-2 py-0.5 text-[0.7rem] font-medium capitalize text-stone-600 dark:bg-stone-800 dark:text-stone-300;
+  }
+
+  .md-gitlab-state.md-gitlab-opened {
+    @apply bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300;
+  }
+
+  .md-gitlab-state.md-gitlab-merged {
+    @apply bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300;
+  }
+
+  .md-gitlab-state.md-gitlab-closed,
+  .md-gitlab-state.md-gitlab-locked {
+    @apply bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300;
+  }
+
+  .md-gitlab-icon.md-gitlab-opened {
+    @apply text-emerald-600 dark:text-emerald-400;
+  }
+
+  .md-gitlab-icon.md-gitlab-merged {
+    @apply text-sky-600 dark:text-sky-400;
+  }
+
+  .md-gitlab-icon.md-gitlab-closed {
+    @apply text-rose-600 dark:text-rose-400;
+  }
+
+  .md-gitlab-title {
+    @apply cursor-pointer text-[1.05em] font-semibold text-stone-900 no-underline decoration-stone-400 underline-offset-2 hover:underline dark:text-stone-100;
+  }
+
+  .md-gitlab-meta {
+    @apply flex flex-wrap items-center gap-1.5 text-xs text-stone-500 dark:text-stone-400;
+  }
+
+  .md-gitlab-label {
+    @apply rounded-md border border-stone-200 px-1.5 py-px text-[0.7rem] text-stone-600 dark:border-stone-700 dark:text-stone-300;
+  }
+
+  .md-gitlab-people:not(:empty) {
+    @apply ml-1;
+  }
+
+  .md-gitlab-empty {
+    @apply m-0 text-sm text-stone-400;
+  }
+
   .md-database-anchor {
     min-height: 12rem;
     visibility: hidden;

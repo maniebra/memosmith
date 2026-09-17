@@ -156,6 +156,7 @@ export function readGitlab(value: unknown): GitlabInstance[] {
     return [
       {
         id: item.id,
+        enabled: item.enabled !== false,
         name: text(item.name),
         url: text(item.url),
         token: text(item.token),
@@ -164,4 +165,118 @@ export function readGitlab(value: unknown): GitlabInstance[] {
       },
     ];
   });
+}
+
+/** Language of the fenced block that embeds one GitLab item as a card. */
+export const GITLAB_LANGUAGE = "gitlab";
+
+/** What a card shows; the fence keeps a copy so it renders before any sync. */
+export type GitlabCard = {
+  /** `<database id>/<row id>`, used to look up the latest synced cells. */
+  key: string;
+  kind: GitlabKind;
+  title: string;
+  state: string;
+  reference: string;
+  author: string;
+  assignees: string[];
+  labels: string[];
+  updated: string;
+  url: string;
+};
+
+const strings = (value: CellValue | undefined) =>
+  Array.isArray(value) ? value : [];
+const text = (value: CellValue | undefined) =>
+  typeof value === "string" ? value : "";
+
+export function rowCard(databaseId: string, row: Row): GitlabCard {
+  const data = row.data;
+  return {
+    key: `${databaseId}/${row.id}`,
+    kind: row.tableId as GitlabKind,
+    title: text(data.title),
+    state: text(data.state),
+    reference: text(data.reference),
+    author: text(data.author),
+    assignees: strings(data.assignees),
+    labels: strings(data.labels),
+    updated: text(data.updated),
+    url: text(data.url),
+  };
+}
+
+export function gitlabEmbed(card: GitlabCard) {
+  return "```" + GITLAB_LANGUAGE + "\n" + JSON.stringify(card) + "\n```";
+}
+
+const ICONS: Record<GitlabKind, string> = {
+  issues:
+    '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/>',
+  merge_requests:
+    '<circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M6 8.5v7M18 15.5V10a3 3 0 0 0-3-3h-4"/><path d="m13 5-2 2 2 2"/>',
+  epics: '<path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="m3 13 9 5 9-5"/>',
+};
+
+const esc = (value: string) =>
+  value.replace(
+    /[&<>"']/g,
+    (char) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+        char
+      ]!,
+  );
+
+export function parseGitlabCard(source: string): GitlabCard | null {
+  try {
+    const card = JSON.parse(source) as Partial<GitlabCard>;
+    return typeof card.key === "string" ? (card as GitlabCard) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The card for a `gitlab` fence; synced data wins over the stored copy. */
+export function gitlabPreview(
+  group: number,
+  source: string,
+  resolve?: (key: string) => GitlabCard | undefined,
+) {
+  const stored = parseGitlabCard(source);
+  const card = stored && (resolve?.(stored.key) ?? stored);
+  const open = `<div class="md-preview md-gitlab-preview" data-code="${group}" contenteditable="false">`;
+  if (!card) {
+    return `${open}<p class="md-gitlab-empty">Invalid GitLab embed</p></div>`;
+  }
+  const state = card.state || "unknown";
+  const chips = card.labels
+    .map((label) => `<span class="md-gitlab-label">${esc(label)}</span>`)
+    .join("");
+  const people = [
+    card.author && `by ${esc(card.author)}`,
+    card.assignees.length && `→ ${card.assignees.map(esc).join(", ")}`,
+    card.updated && `updated ${esc(card.updated)}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  return `${open}<div class="md-gitlab-head"><svg class="md-gitlab-icon md-gitlab-${esc(
+    state,
+  )}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${
+    ICONS[card.kind] ?? ICONS.issues
+  }</svg><span class="md-gitlab-ref">${esc(
+    card.reference,
+  )}</span><span class="md-gitlab-state md-gitlab-${esc(state)}">${esc(
+    state,
+  )}</span></div><a class="md-gitlab-title" data-gitlab-url="${esc(
+    card.url,
+  )}">${esc(card.title)}</a>${
+    chips || people
+      ? `<div class="md-gitlab-meta">${chips}<span class="md-gitlab-people">${people}</span></div>`
+      : ""
+  }</div>`;
+}
+
+export function gitlabResolver(cards: GitlabCard[]) {
+  const byKey = new Map(cards.map((card) => [card.key, card]));
+  return (key: string) => byKey.get(key);
 }

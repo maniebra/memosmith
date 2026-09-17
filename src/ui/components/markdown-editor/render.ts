@@ -1,3 +1,4 @@
+import { gitlabResolver } from "../../../lib/utils/gitlab";
 import {
   renderDocument,
   type QuizScore,
@@ -76,6 +77,7 @@ class EditorRender {
       resolveWikilink: props.resolveWikilink,
       renderWikilinkEmbed: props.renderWikilinkEmbed,
       databaseEmbeds: Boolean(props.databaseRoot),
+      resolveGitlab: gitlabResolver(props.gitlabCards),
       plantuml: props.plantuml,
       mermaid: props.mermaid,
     };

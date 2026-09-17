@@ -324,15 +324,15 @@
     }
   }
 
-  onMount(() =>
-    scheduleGitlabSync(
-      () => ({
-        root: settings.features.databases ? spaceRoot : null,
-        instances: settings.gitlab,
-      }),
-      (message) => (statusMessage = message),
-    ),
+  const gitlabSync = scheduleGitlabSync(
+    () => ({
+      root: settings.features.databases ? spaceRoot : null,
+      instances: settings.gitlab,
+    }),
+    (message) => (statusMessage = message),
   );
+  $: gitlabSync.refresh(settings.gitlab, settings.features.databases, spaceRoot);
+  onDestroy(gitlabSync.stop);
 
   onMount(() =>
     registerKeybindings(createEditorPageKeybindings(context, actions, tabs)),

@@ -1,3 +1,4 @@
+import { gitlabResolver } from "../../../lib/utils/gitlab";
 import {
   renderDocument,
   serializeColumnSubblocks,
@@ -74,6 +75,7 @@ class EditorSubblocks {
       callouts: props.callouts,
       codeExecution: props.codeExecution,
       databaseEmbeds: Boolean(props.databaseRoot),
+      resolveGitlab: gitlabResolver(props.gitlabCards),
       diagrams: props.diagrams,
       drawings: props.drawings,
       fancyTableEditor: props.fancyTableEditor,

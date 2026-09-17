@@ -1,3 +1,4 @@
+import type { GitlabCard } from "../../../lib/utils/gitlab";
 import type { I18nKey } from "../../../lib/i18n";
 import type { DatabaseSummary } from "../../../lib/tauri/databases";
 import type {
@@ -107,6 +108,8 @@ export type EditorProps = {
   wikilinkKey: string;
   databaseRoot: string;
   databaseOptions: DatabaseSummary[];
+  /** Synced GitLab items the slash menu offers and embeds show. */
+  gitlabCards: GitlabCard[];
   onOpenDatabase: ((databaseId: string) => void) | null;
   onStatus: (message: string) => void;
   decorations: Decoration[];

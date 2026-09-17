@@ -9,6 +9,7 @@
   import { newId } from "../../../lib/utils/database";
   import Button from "../../components/Button.svelte";
   import Input from "../../components/Input.svelte";
+  import Switch from "../../components/Switch.svelte";
   import { updateSettings } from "./settingsHelpers";
 
   export let settings: AppSettings;
@@ -48,6 +49,7 @@
       ...settings.gitlab,
       {
         id: newId(),
+        enabled: true,
         name: "",
         url: "https://gitlab.com",
         token: "",
@@ -107,7 +109,15 @@
     <section
       class="grid gap-3 border-t border-stone-200/50 pt-5 dark:border-stone-800/80"
     >
-      <div class="grid grid-cols-2 gap-3">
+      <Switch
+        checked={instance.enabled}
+        label={instance.name || instance.url || $i18n.t("gitlab.title")}
+        onChange={(enabled) => patch(instance.id, { enabled })}
+      />
+      <div
+        class="grid grid-cols-2 gap-3"
+        class:opacity-50={!instance.enabled}
+      >
         {#each fields as field (field.key)}
           <label class="grid gap-1.5 text-xs text-stone-500">
             {$i18n.t(field.label)}
@@ -128,7 +138,7 @@
           label={$i18n.t("gitlab.sync")}
           icon={RefreshCw}
           onClick={() => sync(instance)}
-          disabled={!root || syncing[instance.id]}
+          disabled={!root || !instance.enabled || syncing[instance.id]}
           size="sm"
           showLabel
         />

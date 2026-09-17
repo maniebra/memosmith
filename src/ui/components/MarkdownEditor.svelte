@@ -16,6 +16,7 @@
     type RunnerSettings,
   } from "../../lib/storage/settings";
   import { cn } from "../../lib/utils/cn";
+  import { gitlabCards, openGitlabUrl } from "../../lib/tauri/gitlab";
   import type { WikilinkEmbed, WikilinkResolver } from "../../lib/utils/markdown";
   import ContextMenu from "./ContextMenu.svelte";
   import DiagramModal from "./DiagramModal.svelte";
@@ -101,7 +102,8 @@
     plantumlSettings, mermaid, mermaidSettings, runSession, runner, lsp,
     lspSettings, editable, onInput, onAssets, onPickAssets, onGenerate,
     onWikilink, resolveWikilink, renderWikilinkEmbed, wikilinkKey, databaseRoot,
-    databaseOptions, onOpenDatabase, onStatus, decorations, resolveAsset,
+    databaseOptions, gitlabCards: databaseRoot ? $gitlabCards : [],
+    onOpenDatabase, onStatus, decorations, resolveAsset,
   };
 
   const editor = createEditor(
@@ -241,6 +243,13 @@
       editor.enterDatabaseIsland(event);
     }}
     onpointerdown={(event) => {
+      const link = (event.target as Element).closest?.("[data-gitlab-url]");
+      if (link) {
+        event.preventDefault();
+        openGitlabUrl((link as HTMLElement).dataset.gitlabUrl ?? "");
+        return;
+      }
+
       if (editor.enterDatabaseIsland(event)) {
         return;
       }

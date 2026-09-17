@@ -6,6 +6,10 @@ import {
   listPath,
   mergeItems,
   staleRowIds,
+  rowCard,
+  gitlabEmbed,
+  gitlabPreview,
+  gitlabResolver,
 } from "../../../src/lib/utils/gitlab";
 
 const table = gitlabTables()[0];
@@ -66,3 +70,15 @@ const stale = staleRowIds(
   rows,
 );
 assert(String(stale) === "issues-9", "only vanished synced rows go");
+
+const card = rowCard("gitlab-x", rows[0]);
+const html = gitlabPreview(0, gitlabEmbed(card).split("\n")[1]);
+assert(html.includes("md-gitlab-opened"), "card shows state");
+assert(html.includes(">new<"), "card shows title");
+const live = gitlabPreview(
+  0,
+  JSON.stringify(card),
+  gitlabResolver([{ ...card, title: "<fresh>" }]),
+);
+assert(live.includes("&lt;fresh&gt;"), "synced data wins and is escaped");
+assert(gitlabPreview(0, "nope").includes("Invalid"), "bad source is flagged");

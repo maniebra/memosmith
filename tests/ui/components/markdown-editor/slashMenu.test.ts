@@ -58,6 +58,7 @@ function editor() {
       calloutDefinitions: [],
       databaseRoot: "/space",
       databaseOptions: databases,
+      gitlabCards: [],
     },
   } as unknown as Editor;
 
@@ -148,6 +149,7 @@ const calloutEditor = (() => {
       ],
       databaseRoot: "",
       databaseOptions: [],
+      gitlabCards: [],
     },
   } as unknown as Editor;
   return { ui, slash: createSlash(e) };

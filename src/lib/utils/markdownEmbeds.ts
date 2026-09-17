@@ -1,6 +1,7 @@
 import { kernelFor, KERNEL_LABELS } from "./runner";
 import type { CalloutDefinition, PaletteColor } from "../storage/settings";
 import { calloutIconSvg } from "./calloutIcons";
+import type { GitlabCard } from "./gitlab";
 import { preferredTextDirection } from "./textDirection";
 import type { QuizLabels } from "./markdownQuizRender";
 import {
@@ -33,6 +34,7 @@ export type RenderDocumentOptions = {
   staticDiagramPreviews?: boolean;
   codeExecution?: boolean;
   databaseEmbeds?: boolean;
+  resolveGitlab?: (key: string) => GitlabCard | undefined;
   plantuml?: boolean;
   mermaid?: boolean;
   subblockDepth?: number;
@@ -311,7 +313,7 @@ export function embedLineClass(language: string) {
     return "md-diagram-line";
   }
 
-  return language === DATABASE_LANGUAGE
+  return language === DATABASE_LANGUAGE || language === "gitlab"
     ? "md-database-line"
     : "md-drawing-line";
 }

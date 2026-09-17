@@ -15,6 +15,11 @@ import {
   EMPTY_QUIZ_BLANK,
   SLASH_COMMANDS,
 } from "../../../lib/utils/markdown";
+import {
+  GITLAB_KINDS,
+  gitlabEmbed,
+  type GitlabCard,
+} from "../../../lib/utils/gitlab";
 import { matchCommands } from "../../../lib/utils/slashMatching";
 import { editSurface, type EditSurface } from "./surface";
 import type { Editor, SlashApi, SlashCommand } from "./types";
@@ -86,6 +91,7 @@ class EditorSlash {
         : []),
       ...(props.quizzes ? [this.quizCommand()] : []),
       ...this.databaseCommands(databases),
+      ...this.gitlabCommands(props.gitlabCards),
     ];
   }
 
@@ -136,6 +142,30 @@ class EditorSlash {
         },
       ],
     };
+  }
+
+  /** GitLab, then a kind, then the items: typing filters by title or reference. */
+  private gitlabCommands(cards: GitlabCard[]): SlashCommand[] {
+    const children = GITLAB_KINDS.flatMap(({ kind, name }) => {
+      const items = cards.filter((card) => card.kind === kind);
+      return items.length
+        ? [
+            {
+              label: name,
+              hint: String(items.length),
+              prefix: "",
+              children: items.map((card) => ({
+                label: card.title || card.reference,
+                hint: card.reference,
+                prefix: gitlabEmbed(card),
+              })),
+            },
+          ]
+        : [];
+    });
+    return children.length
+      ? [{ label: "GitLab", hint: "embed", prefix: "", children }]
+      : [];
   }
 
   /** One entry, not one per view: the databases hang off it as submenus. */
@@ -271,10 +301,9 @@ class EditorSlash {
     }
 
     const selection = getSelection();
-    const rect =
-      selection?.rangeCount
-        ? selection.getRangeAt(0).getBoundingClientRect()
-        : null;
+    const rect = selection?.rangeCount
+      ? selection.getRangeAt(0).getBoundingClientRect()
+      : null;
 
     if (rect) {
       this.e.ui.menuPosition = {

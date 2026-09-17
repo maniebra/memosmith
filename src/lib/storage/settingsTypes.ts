@@ -133,6 +133,7 @@ export type AppSettings = {
 /** A GitLab server synced into a space database with a personal access token. */
 export type GitlabInstance = {
   id: string;
+  enabled: boolean;
   name: string;
   url: string;
   token: string;
