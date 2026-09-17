@@ -4,7 +4,8 @@ import { derived, writable } from "svelte/store";
 import type { GitlabInstance } from "../storage/settingsTypes";
 import {
   apiBase,
-  GITLAB_KINDS,
+  kindsFor,
+  PROVIDER_NAMES,
   gitlabDatabaseId,
   gitlabTables,
   listPath,
@@ -16,6 +17,13 @@ import {
   type GitlabKind,
 } from "../utils/gitlab";
 import { rowsOf, tableOf } from "../utils/databaseTypes";
+import {
+  githubApiBase,
+  githubItem,
+  githubListPath,
+  nextLink,
+  type GithubIssue,
+} from "../utils/github";
 import {
   createDatabase,
   deleteDatabaseRow,
@@ -52,6 +60,34 @@ async function loadCards(root: string, instance: GitlabInstance) {
   );
 }
 
+/** One listing returns both issues and pull requests; they are split by kind. */
+async function fetchGithub(instance: GitlabInstance) {
+  const items: Record<GitlabKind, GitlabItem[]> = {
+    issues: [],
+    merge_requests: [],
+    epics: [],
+  };
+  let url = `${githubApiBase(instance.url)}${githubListPath(instance.group)}`;
+  while (url) {
+    const response = await fetch(url, {
+      headers: {
+        Accept: "application/vnd.github+json",
+        Authorization: `Bearer ${instance.token.trim()}`,
+      },
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(`GitHub: ${payload?.message ?? response.status}`);
+    }
+    for (const issue of payload as GithubIssue[]) {
+      const { kind, item } = githubItem(issue);
+      items[kind].push(item);
+    }
+    url = nextLink(response.headers.get("link"));
+  }
+  return items;
+}
+
 async function fetchAll(instance: GitlabInstance, kind: GitlabKind) {
   const items: GitlabItem[] = [];
   let page = "1";
@@ -76,26 +112,30 @@ async function fetchAll(instance: GitlabInstance, kind: GitlabKind) {
   return items;
 }
 
-/** Pulls issues, merge requests and epics into the space database of an instance. */
+/** Pulls issues, merge/pull requests and epics into the space database of an instance. */
 export async function syncGitlab(root: string, instance: GitlabInstance) {
   lastSync.set(instance.id, Date.now());
-  if (!instance.url.trim() || !instance.token.trim()) {
-    throw new Error("GitLab URL and token are required");
+  const provider = PROVIDER_NAMES[instance.provider];
+  const github = instance.provider === "github";
+  if ((!github && !instance.url.trim()) || !instance.token.trim()) {
+    throw new Error(`${provider} URL and token are required`);
   }
   const id = gitlabDatabaseId(instance);
-  const name = `GitLab · ${instance.name || instance.url}`;
+  const name = `${provider} · ${instance.name || instance.url || "github.com"}`;
   const exists = (await listDatabases(root)).some((db) => db.id === id);
   if (!exists) {
-    await createDatabase(root, id, name, gitlabTables());
+    await createDatabase(root, id, name, gitlabTables(instance.provider));
   }
   const database = await loadDatabase(root, id);
   const counts: Record<string, number> = {};
   const cards: GitlabCard[] = [];
-  for (const { kind } of GITLAB_KINDS) {
+  const githubItems = github ? await fetchGithub(instance) : null;
+  for (const { kind } of kindsFor(instance.provider)) {
     const table = tableOf(database, kind);
     if (table?.id !== kind) continue;
-    const items =
-      kind === "epics" && !instance.group.trim()
+    const items = githubItems
+      ? githubItems[kind]
+      : kind === "epics" && !instance.group.trim()
         ? null
         : await fetchAll(instance, kind);
     if (!items) continue;

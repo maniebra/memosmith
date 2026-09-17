@@ -15,7 +15,7 @@ import {
   type RenderInlineOptions,
 } from "./markdownInline";
 import { MEDIA_LINE, mediaPreview } from "./markdownMedia";
-import { GITLAB_LANGUAGE, gitlabPreview } from "./gitlab";
+import { GITHUB_LANGUAGE, GITLAB_LANGUAGE, gitlabPreview } from "./gitlab";
 import {
   isTableRow,
   isTableStart,
@@ -62,6 +62,7 @@ const MAX_SUBBLOCK_DEPTH = 6;
 /** Embeds whose card is their only face: the raw source never unfolds under the caret. */
 const NON_EDITABLE_EMBEDS = new Set<string | null>([
   GITLAB_LANGUAGE,
+  GITHUB_LANGUAGE,
   DATABASE_LANGUAGE,
   DIAGRAM_LANGUAGE,
   DRAWING_LANGUAGE,
@@ -177,7 +178,8 @@ class DocumentRenderer {
       (this.drawings && this.language === DRAWING_LANGUAGE) ||
       (this.diagrams && this.language === DIAGRAM_LANGUAGE) ||
       (this.options.databaseEmbeds && this.language === DATABASE_LANGUAGE) ||
-      this.language === GITLAB_LANGUAGE
+      this.language === GITLAB_LANGUAGE ||
+      this.language === GITHUB_LANGUAGE
     ) {
       return this.language;
     }
@@ -302,7 +304,7 @@ class DocumentRenderer {
         ? diagramPreview(index, embedSource, this.options.staticDiagramPreviews)
         : embedded === DATABASE_LANGUAGE
           ? databasePreview(index, embedSource)
-          : embedded === GITLAB_LANGUAGE
+          : embedded === GITLAB_LANGUAGE || embedded === GITHUB_LANGUAGE
             ? gitlabPreview(index, embedSource, this.options.resolveGitlab)
             : drawingPreview(index),
     );

@@ -218,7 +218,7 @@ class EditorSlash {
       );
 
     // Searching the GitLab menu reaches every item, not just the kind names.
-    if (query.trim() && ui.slashPath[0] === "GitLab") {
+    if (query.trim() && ["GitLab", "GitHub"].includes(ui.slashPath[0])) {
       return matchCommands(leaves(commands), query);
     }
 

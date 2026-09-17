@@ -1,4 +1,7 @@
-import type { GitlabInstance } from "../storage/settingsTypes";
+import type {
+  GitlabInstance,
+  IntegrationProvider,
+} from "../storage/settingsTypes";
 import type { CellValue, Column, Row, Table } from "./databaseTypes";
 import { BODY, emptyFilter } from "./database";
 
@@ -9,6 +12,21 @@ export const GITLAB_KINDS: { kind: GitlabKind; name: string }[] = [
   { kind: "merge_requests", name: "Merge requests" },
   { kind: "epics", name: "Epics" },
 ];
+
+export const PROVIDER_NAMES: Record<IntegrationProvider, string> = {
+  gitlab: "GitLab",
+  github: "GitHub",
+};
+
+/** GitHub has no epics, and calls merge requests pull requests. */
+export function kindsFor(provider: IntegrationProvider = "gitlab") {
+  return provider === "github"
+    ? [
+        { kind: "issues" as const, name: "Issues" },
+        { kind: "merge_requests" as const, name: "Pull requests" },
+      ]
+    : GITLAB_KINDS;
+}
 
 /** Column ids are fixed so a re-sync writes into the same cells. */
 const COLUMNS: Column[] = [
@@ -24,11 +42,11 @@ const COLUMNS: Column[] = [
 ];
 
 export function gitlabDatabaseId(instance: GitlabInstance) {
-  return `gitlab-${instance.id}`;
+  return `${instance.provider}-${instance.id}`;
 }
 
-export function gitlabTables(): Table[] {
-  return GITLAB_KINDS.map(({ kind, name }) => ({
+export function gitlabTables(provider?: IntegrationProvider): Table[] {
+  return kindsFor(provider).map(({ kind, name }) => ({
     id: kind,
     name,
     columns: COLUMNS.map((column) => ({ ...column })),
@@ -168,6 +186,7 @@ export function readGitlab(value: unknown): GitlabInstance[] {
     return [
       {
         id: item.id,
+        provider: item.provider === "github" ? "github" : "gitlab",
         enabled: item.enabled !== false,
         name: text(item.name),
         url: text(item.url),
@@ -181,9 +200,12 @@ export function readGitlab(value: unknown): GitlabInstance[] {
 
 /** Language of the fenced block that embeds one GitLab item as a card. */
 export const GITLAB_LANGUAGE = "gitlab";
+export const GITHUB_LANGUAGE = "github";
 
 /** What a card shows; the fence keeps a copy so it renders before any sync. */
 export type GitlabCard = {
+  /** Absent on cards embedded before GitHub existed, which are GitLab. */
+  provider?: IntegrationProvider;
   /** `<database id>/<row id>`, used to look up the latest synced cells. */
   key: string;
   kind: GitlabKind;
@@ -237,6 +259,7 @@ export function rowCard(databaseId: string, row: Row): GitlabCard {
   const data = row.data;
   return {
     key: `${databaseId}/${row.id}`,
+    provider: databaseId.startsWith("github-") ? "github" : "gitlab",
     kind: row.tableId as GitlabKind,
     title: text(data.title),
     state: text(data.state),
@@ -251,7 +274,9 @@ export function rowCard(databaseId: string, row: Row): GitlabCard {
 }
 
 export function gitlabEmbed(card: GitlabCard) {
-  return "```" + GITLAB_LANGUAGE + "\n" + JSON.stringify(card) + "\n```";
+  const language =
+    card.provider === "github" ? GITHUB_LANGUAGE : GITLAB_LANGUAGE;
+  return "```" + language + "\n" + JSON.stringify(card) + "\n```";
 }
 
 const ICONS: Record<GitlabKind, string> = {
@@ -325,7 +350,6 @@ export function gitlabResolver(cards: GitlabCard[]) {
   return (key: string) => byKey.get(key);
 }
 
-/** Slash menu entries: GitLab, then a kind, then its items. */
 type GitlabMenuEntry = {
   label: string;
   hint: string;
@@ -334,21 +358,36 @@ type GitlabMenuEntry = {
   children?: GitlabMenuEntry[];
 };
 
+/** One entry per provider, then a kind, then its items. */
 export function gitlabMenu(cards: GitlabCard[]): GitlabMenuEntry[] {
-  const children = GITLAB_KINDS.map(({ kind, name }) => ({
-    label: name,
-    hint: "",
-    prefix: "",
-    children: cards
-      .filter((card) => card.kind === kind)
-      .map((card) => ({
-        label: card.title || card.reference,
-        hint: card.reference,
-        detail: card.reference,
-        prefix: gitlabEmbed(card),
-      })),
-  })).filter((command) => command.children.length);
-  return children.length
-    ? [{ label: "GitLab", hint: "embed", prefix: "", children }]
-    : [];
+  return (["gitlab", "github"] as const).flatMap((provider) => {
+    const own = cards.filter(
+      (card) => (card.provider ?? "gitlab") === provider,
+    );
+    const children = kindsFor(provider)
+      .map(({ kind, name }) => ({
+        label: name,
+        hint: "",
+        prefix: "",
+        children: own
+          .filter((card) => card.kind === kind)
+          .map((card) => ({
+            label: card.title || card.reference,
+            hint: card.reference,
+            detail: card.reference,
+            prefix: gitlabEmbed(card),
+          })),
+      }))
+      .filter((command) => command.children.length);
+    return children.length
+      ? [
+          {
+            label: PROVIDER_NAMES[provider],
+            hint: "embed",
+            prefix: "",
+            children,
+          },
+        ]
+      : [];
+  });
 }

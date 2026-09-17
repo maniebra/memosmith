@@ -313,7 +313,9 @@ export function embedLineClass(language: string) {
     return "md-diagram-line";
   }
 
-  return language === DATABASE_LANGUAGE || language === "gitlab"
+  return language === DATABASE_LANGUAGE ||
+    language === "gitlab" ||
+    language === "github"
     ? "md-database-line"
     : "md-drawing-line";
 }

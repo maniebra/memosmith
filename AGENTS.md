@@ -90,6 +90,12 @@ cargo check
 - **Access**: Databases open from the toolbar's Databases modal (`DatabaseManager.svelte`), not the note sidebar.
 - **Filtering**: Nested and/or condition groups, evaluated in the frontend (`src/lib/utils/database.ts`, tested by `database.test.ts`).
 
+### 🔗 Integrations (GitLab, GitHub)
+- **Config**: `Settings > Integrations` (one sidebar entry; it lists the providers and each opens its own page), backed by one list (`settings.gitlab`) of instances with a `provider`, URL, PAT, scope (GitLab group; GitHub `owner/repo` or org), auto-sync interval and an enable switch.
+- **Sync**: `src/lib/tauri/gitlab.ts` writes each instance into the space database `<provider>-<id>` (tables `issues`, `merge_requests`, plus `epics` on GitLab). Row ids are `<table>-<remote id>`, so re-syncs upsert, keep user columns, and delete synced rows that vanished. GitHub mapping lives in `src/lib/utils/github.ts`.
+- **Embeds**: `/` → GitLab/GitHub → kind → item inserts a ```` ```gitlab ```` / ```` ```github ```` fence holding a card snapshot; the card renders from the latest synced row when available (`gitlabPreview`). Scoped labels (`a::b`) render as two-part pills.
+- **Tests**: `gitlab.test.ts`, `github.test.ts`, `slashMenu.test.ts`.
+
 ### 🤖 LLM (BYOLLM)
 - **Config**: Base URL, API key, model, and system prompt live in settings (`Settings > AI`), stored with the rest of `AppSettings` in localStorage.
 - **Protocol**: OpenAI-compatible `POST {baseUrl}/chat/completions` (`src/lib/tauri/llm.ts`), sent through `@tauri-apps/plugin-http` so provider CORS rules do not apply.

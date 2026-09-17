@@ -130,14 +130,20 @@ export type AppSettings = {
   gitlab: GitlabInstance[];
 };
 
-/** A GitLab server synced into a space database with a personal access token. */
+/** A GitLab or GitHub server synced into a space database with a personal access token. */
+export type IntegrationProvider = "gitlab" | "github";
+
 export type GitlabInstance = {
   id: string;
+  provider: IntegrationProvider;
   enabled: boolean;
   name: string;
   url: string;
   token: string;
-  /** Group path to sync; empty syncs the token owner's own issues and MRs. */
+  /**
+   * GitLab: group path. GitHub: `owner/repo` or an organization.
+   * Empty syncs the token owner's own items.
+   */
   group: string;
   /** Minutes between automatic syncs; empty or 0 syncs only on demand. */
   interval: string;
