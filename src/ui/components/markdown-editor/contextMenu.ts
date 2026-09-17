@@ -10,6 +10,8 @@ import type { ContextMenuItem } from "../ContextMenu.svelte";
 import { databaseAnchorFor, databaseMenuItems } from "./databaseMenu";
 import { EMBED_SELECTOR } from "./embedLayout";
 import { formatMenuItems } from "./formatMenu";
+import { mediaMenuItems } from "./mediaMenu";
+import { playerSlotFor } from "./players";
 import type { ContextMenuApi, Editor } from "./types";
 
 /** What a right click landed on, and what it left selected. */
@@ -19,6 +21,8 @@ export type ContextMenuState = {
   hasSelection: boolean;
   textSelection?: { start: number; end: number } | null;
   embedPreview?: HTMLElement | null;
+  /** A right-clicked image or player preview. */
+  mediaPreview?: HTMLElement | null;
   /** The card in the note behind a right-clicked database view. */
   databaseCard?: HTMLElement | null;
 };
@@ -212,12 +216,16 @@ class EditorContextMenu {
     }
 
     const embedPreview = target.closest(EMBED_SELECTOR) as HTMLElement | null;
+    const mediaPreview = (playerSlotFor(target) ?? target).closest(
+      ".md-media-preview",
+    ) as HTMLElement | null;
 
     // An embed card holds no caret position, so focusing and placing one there
     // would drop the caret at the top of the note and scroll the editor.
-    if (embedPreview) {
+    if (embedPreview || mediaPreview) {
       e.ui.contextMenu = {
         embedPreview,
+        mediaPreview,
         x: event.clientX,
         y: event.clientY,
         hasSelection: false,
@@ -312,6 +320,10 @@ class EditorContextMenu {
         icon: Trash2,
         onDelete: (anchor) => e.deleteEmbed(anchor),
       });
+    }
+
+    if (e.ui.contextMenu?.mediaPreview) {
+      return mediaMenuItems(e, e.ui.contextMenu.mediaPreview);
     }
 
     const hasSelection = Boolean(e.ui.contextMenu?.hasSelection);

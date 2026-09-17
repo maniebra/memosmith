@@ -36,6 +36,8 @@ export type RenderDocumentOptions = {
   databaseEmbeds?: boolean;
   /** Unset: YouTube links render as images; otherwise whether we are online. */
   youtubeOnline?: boolean;
+  /** Same as `youtubeOnline`, for Spotify links. */
+  spotifyOnline?: boolean;
   resolveGitlab?: (key: string) => GitlabCard | undefined;
   plantuml?: boolean;
   mermaid?: boolean;

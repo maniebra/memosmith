@@ -1,5 +1,6 @@
 import { assetFolder } from "./assets";
 import { attribute } from "./markdownInline";
+import { spotifyMedia } from "./spotify";
 import { youtubeMedia } from "./youtube";
 
 export const MEDIA_LINE = /^(\s*)!\[([^\]\n]*)\]\(([^)\n]+)\)\s*$/;
@@ -46,6 +47,8 @@ export function mediaPreview(
   resolveAsset: (source: string) => string,
   /** Unset: YouTube links stay plain images. Otherwise whether we are online. */
   youtubeOnline?: boolean,
+  /** Same as `youtubeOnline`, for Spotify links. */
+  spotifyOnline?: boolean,
 ) {
   const url = attribute(resolveAsset(source));
   const folder = assetFolder(source);
@@ -55,8 +58,13 @@ export function mediaPreview(
     youtubeOnline === undefined
       ? null
       : youtubeMedia(source, alt.split("|")[0], size, youtubeOnline);
-  const media =
+  const embed =
     youtube ??
+    (spotifyOnline === undefined
+      ? null
+      : spotifyMedia(source, alt.split("|")[0], size, spotifyOnline));
+  const media =
+    embed ??
     (folder === "videos"
       ? `<video class="md-media" src="${url}"${size} controls></video>`
       : folder === "audio"
@@ -65,7 +73,7 @@ export function mediaPreview(
 
   // The handle is a drag target only; the editor rewrites the source line on release.
   const handle =
-    folder === "audio" && !youtube
+    folder === "audio" && !embed
       ? ""
       : `<span class="md-resize" aria-hidden="true"></span>`;
 

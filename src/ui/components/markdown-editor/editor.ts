@@ -3,6 +3,7 @@ import { createBlocks } from "./blocks";
 import { createCompletions } from "./completions";
 import { createContextMenu } from "./contextMenu";
 import { createDatabase } from "./database";
+import { disposePlayers } from "./players";
 import { createDom } from "./dom";
 import { createDrawings } from "./drawings";
 import { createEmbedLayout } from "./embedLayout";
@@ -152,4 +153,5 @@ export function destroyEditor(e: Editor) {
   e.stopDiagramTimer();
   e.clearBlockToolbarHide();
   e.disposeDatabaseViews();
+  disposePlayers(e);
 }

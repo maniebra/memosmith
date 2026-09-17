@@ -945,6 +945,32 @@ textarea,
     @apply cursor-pointer text-xs text-stone-400 underline underline-offset-2 hover:text-stone-100;
   }
 
+  .md-spotify {
+    @apply h-[152px] w-[480px] rounded-xl border-0;
+  }
+
+  .md-spotify-tall {
+    @apply h-[352px];
+  }
+
+  .md-spotify-offline {
+    @apply flex flex-col items-center justify-center gap-2 bg-stone-900 px-6 text-center text-sm text-stone-100;
+  }
+
+  /* Parked players (see players.ts) sit in a layer that ignores the pointer. */
+  .md-player-portal {
+    @apply pointer-events-auto absolute;
+  }
+
+  /* The player would swallow the pointer mid-drag and stop the resize. */
+  body:has(.md-resize:active) .md-player-portal {
+    pointer-events: none;
+  }
+
+  .md-spotify-link {
+    @apply cursor-pointer text-xs text-emerald-400 underline underline-offset-2 hover:text-emerald-300;
+  }
+
   audio.md-media {
     @apply w-full;
   }

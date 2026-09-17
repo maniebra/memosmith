@@ -71,6 +71,7 @@ export const defaultFeatureSettings: FeatureSettings = {
   plantuml: false,
   mermaid: false,
   youtube: true,
+  spotify: true,
   windowControls: true,
 };
 export const defaultPlantumlSettings: PlantumlSettings = {

@@ -423,6 +423,7 @@ class DocumentRenderer {
           media[3],
           this.resolveAsset,
           this.options.youtubeOnline,
+          this.options.spotifyOnline,
         ),
       );
       return index + 1;

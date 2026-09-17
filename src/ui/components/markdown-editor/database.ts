@@ -4,6 +4,7 @@ import { DATABASE_LANGUAGE } from "../../../lib/utils/markdown";
 import type { DatabaseEmbed } from "../../../lib/utils/markdownEmbeds";
 import DatabaseView from "../../sections/DatabaseView.svelte";
 import { layoutPortals } from "./databaseLayout";
+import { layoutPlayers } from "./players";
 import type { DatabaseApi, Editor } from "./types";
 
 type DatabasePortal = {
@@ -179,6 +180,7 @@ class EditorDatabase {
         return;
       }
 
+      layoutPlayers(this.e);
       layoutPortals(
         [...this.views.values()].filter((entry) => entry.card.isConnected),
         this.e.databaseLayer,

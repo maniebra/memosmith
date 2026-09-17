@@ -55,6 +55,8 @@
   export let mermaid = false;
   /** Pasted YouTube links become players. */
   export let youtube = false;
+  /** Pasted Spotify links become players. */
+  export let spotify = false;
   let online = typeof navigator === "undefined" || navigator.onLine;
   export let mermaidSettings: MermaidSettings = defaultMermaidSettings;
   /** Identifies the kernels a note owns, so its variables survive between cells. */
@@ -102,7 +104,7 @@
     inlineEmbeds,
     quizzes, codeExecution,
     plantuml,
-    plantumlSettings, mermaid, youtube, online, mermaidSettings, runSession, runner, lsp,
+    plantumlSettings, mermaid, youtube, spotify, online, mermaidSettings, runSession, runner, lsp,
     lspSettings, editable, onInput, onAssets, onPickAssets, onGenerate,
     onWikilink, resolveWikilink, renderWikilinkEmbed, wikilinkKey, databaseRoot,
     databaseOptions, gitlabCards: databaseRoot ? $gitlabCards : [],

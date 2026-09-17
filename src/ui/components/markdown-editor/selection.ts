@@ -86,6 +86,8 @@ class EditorSelection {
     }
 
     e.syncBlockToolbar();
+    // Unfolded source moves the cards below it; parked views must follow.
+    e.scheduleDatabaseLayout();
   }
 
   private adjacentSourceBlock(node: Element, direction: "previous" | "next") {

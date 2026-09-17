@@ -209,6 +209,7 @@
           plantumlSettings={settings.plantuml}
           mermaid={settings.features.mermaid}
           youtube={settings.features.youtube}
+          spotify={settings.features.spotify}
           mermaidSettings={settings.mermaid}
           runSession={path ?? ""}
           runner={settings.runner}

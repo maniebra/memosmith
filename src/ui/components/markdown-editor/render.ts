@@ -3,6 +3,7 @@ import {
   renderDocument,
   type QuizScore,
 } from "../../../lib/utils/markdown";
+import { paintPlayers } from "./players";
 import type { Editor, RenderApi } from "./types";
 
 export function createRender(e: Editor): RenderApi {
@@ -47,6 +48,7 @@ class EditorRender {
       plantuml: props.plantuml,
       mermaid: props.mermaid,
       youtube: props.youtube,
+      spotify: props.spotify,
       online: props.online,
     };
   }
@@ -81,6 +83,7 @@ class EditorRender {
       databaseEmbeds: Boolean(props.databaseRoot),
       resolveGitlab: gitlabResolver(props.gitlabCards),
       youtubeOnline: props.youtube ? props.online : undefined,
+      spotifyOnline: props.spotify ? props.online : undefined,
       plantuml: props.plantuml,
       mermaid: props.mermaid,
     };
@@ -100,6 +103,7 @@ class EditorRender {
     );
     e.bindTableToolbars();
     e.paintDatabaseEmbeds();
+    paintPlayers(e);
     e.paintDrawingPreviews();
     e.paintDiagramPreviews();
     e.trackInlineEditor();

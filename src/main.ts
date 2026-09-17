@@ -2,6 +2,7 @@ import "katex/dist/katex.min.css";
 import "./app.css";
 import { mount } from "svelte";
 import App from "./App.svelte";
+import { forwardFrameContextMenus } from "./lib/tauri/frameMenu";
 import { startYoutubeWrapper } from "./lib/tauri/youtube";
 
 const target = document.querySelector("#app");
@@ -12,6 +13,7 @@ if (!target) {
 
 // Players are rendered with the wrapper's port, so it is known before the first note.
 await startYoutubeWrapper().catch(() => {});
+forwardFrameContextMenus().catch(() => {});
 
 const app = mount(App, { target });
 

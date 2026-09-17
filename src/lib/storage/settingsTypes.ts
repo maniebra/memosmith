@@ -22,6 +22,7 @@ export type FeatureSettings = {
   plantuml: boolean;
   mermaid: boolean;
   youtube: boolean;
+  spotify: boolean;
   windowControls: boolean;
 };
 

@@ -1,5 +1,6 @@
 pub mod assets;
 pub mod databases;
+pub mod frame_menu;
 pub mod lsp;
 pub mod notes;
 pub mod pdf;
@@ -14,6 +15,10 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_opener::init())
+        .setup(|app| {
+            frame_menu::install(app);
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             notes::read_note,
             notes::write_note,

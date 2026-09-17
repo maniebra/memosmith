@@ -17,7 +17,7 @@
   export let onChange: (settings: AppSettings) => void;
   export let root: string | null = null;
   /** Null shows the list of integrations; picking one opens its page. */
-  let provider: IntegrationProvider | "youtube" | null = null;
+  let provider: IntegrationProvider | "youtube" | "spotify" | null = null;
 
   let status: Record<string, string> = {};
   let syncing: Record<string, boolean> = {};
@@ -168,6 +168,26 @@
       </span>
       <ChevronRight class="size-4 shrink-0 text-stone-400" aria-hidden="true" />
     </button>
+    <button
+      type="button"
+      class="flex items-center gap-3 rounded-lg border border-stone-200 bg-surface px-4 py-3 text-left transition-colors hover:border-stone-300 hover:bg-stone-100/60 focus-visible:ring-2 focus-visible:ring-emerald-600/25 focus-visible:outline-none dark:border-stone-800 dark:bg-stone-900 dark:hover:border-stone-700 dark:hover:bg-stone-800/60"
+      onclick={() => (provider = "spotify")}
+    >
+      <span class="grid min-w-0 flex-1 gap-0.5">
+        <span class="text-sm font-medium text-stone-800 dark:text-stone-100">
+          Spotify
+        </span>
+        <span class="truncate text-xs text-stone-500">
+          {$i18n.t("spotify.summary")}
+        </span>
+      </span>
+      <span class="shrink-0 text-xs text-stone-500">
+        {settings.features.spotify
+          ? $i18n.t("integrations.on")
+          : $i18n.t("integrations.off")}
+      </span>
+      <ChevronRight class="size-4 shrink-0 text-stone-400" aria-hidden="true" />
+    </button>
   </div>
 {:else}
   <nav class="flex items-center gap-1.5 text-sm">
@@ -184,7 +204,9 @@
         ? "GitHub"
         : provider === "youtube"
           ? "YouTube"
-          : "GitLab"}
+          : provider === "spotify"
+            ? "Spotify"
+            : "GitLab"}
     </span>
   </nav>
   {#if provider === "youtube"}
@@ -195,6 +217,15 @@
         onChange={(youtube) => updateFeatures(settings, onChange, { youtube })}
       />
       <span class="text-xs text-stone-500">{$i18n.t("youtube.help")}</span>
+    </section>
+  {:else if provider === "spotify"}
+    <section class="grid gap-2">
+      <Switch
+        checked={settings.features.spotify}
+        label={$i18n.t("spotify.enable")}
+        onChange={(spotify) => updateFeatures(settings, onChange, { spotify })}
+      />
+      <span class="text-xs text-stone-500">{$i18n.t("spotify.help")}</span>
     </section>
   {/if}
 {#each providers.filter((item) => item.id === provider) as section (section.id)}

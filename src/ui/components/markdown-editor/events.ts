@@ -1,3 +1,4 @@
+import { spotifyMarkdown } from "../../../lib/utils/spotify";
 import { youtubeMarkdown } from "../../../lib/utils/youtube";
 import {
   enterEdit,
@@ -327,7 +328,9 @@ class EditorEvents {
     }
 
     event.preventDefault();
-    const video = e.props.youtube ? youtubeMarkdown(text) : null;
+    const video =
+      (e.props.youtube ? youtubeMarkdown(text) : null) ??
+      (e.props.spotify ? spotifyMarkdown(text) : null);
 
     if (video) {
       // The player needs a line of its own.
