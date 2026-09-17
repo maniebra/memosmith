@@ -7,6 +7,7 @@ import {
   mergeItems,
   staleRowIds,
   rowCard,
+  labelHtml,
   gitlabEmbed,
   gitlabPreview,
   gitlabResolver,
@@ -82,3 +83,27 @@ const live = gitlabPreview(
 );
 assert(live.includes("&lt;fresh&gt;"), "synced data wins and is escaped");
 assert(gitlabPreview(0, "nope").includes("Invalid"), "bad source is flagged");
+
+const scoped = labelHtml("priority::high", "#ff0000");
+assert(
+  scoped.includes('md-gitlab-scope">priority<') &&
+    scoped.includes('md-gitlab-value">high<'),
+  "scoped labels split into scope and value",
+);
+assert(
+  labelHtml("a::b::c").includes('md-gitlab-scope">a::b<'),
+  "the last :: splits nested scopes",
+);
+assert(
+  labelHtml("x", "red;background:url(x)").includes("--label-bg:#6b7280"),
+  "only hex colours reach the style",
+);
+const colored = mergeItems(
+  gitlabTables()[0],
+  [],
+  [{ id: 5, labels: [{ name: "type::bug", color: "#dc143c" }] }],
+)[0];
+assert(
+  rowCard("db", colored).labelColors?.["type::bug"] === "#dc143c",
+  "label colours survive the sync",
+);

@@ -61,7 +61,7 @@ export function listPath(kind: GitlabKind, group: string) {
   const scope = group.trim()
     ? `/groups/${encodeURIComponent(group.trim())}`
     : "";
-  return `${scope}/${kind}?per_page=100&order_by=updated_at&state=all`;
+  return `${scope}/${kind}?per_page=100&order_by=updated_at&state=all&with_labels_details=true`;
 }
 
 type GitlabUser = { username?: string };
@@ -73,11 +73,14 @@ export type GitlabItem = {
   references?: { full?: string };
   author?: GitlabUser;
   assignees?: GitlabUser[];
-  labels?: (string | { name?: string })[];
+  labels?: (string | { name?: string; color?: string })[];
   created_at?: string;
   updated_at?: string;
   web_url?: string;
 };
+
+/** Label name -> GitLab colour, as JSON; the labels column only holds names. */
+const LABEL_COLORS = "__label_colors";
 
 const day = (value?: string) => (value ? value.slice(0, 10) : null);
 
@@ -98,6 +101,15 @@ export function itemCells(item: GitlabItem): Record<string, CellValue> {
     updated: day(item.updated_at),
     url: item.web_url ?? "",
     [BODY]: item.description ?? "",
+    [LABEL_COLORS]: JSON.stringify(
+      Object.fromEntries(
+        (item.labels ?? []).flatMap((label) =>
+          typeof label === "object" && label.name && label.color
+            ? [[label.name, label.color]]
+            : [],
+        ),
+      ),
+    ),
   };
 }
 
@@ -181,6 +193,7 @@ export type GitlabCard = {
   author: string;
   assignees: string[];
   labels: string[];
+  labelColors?: Record<string, string>;
   updated: string;
   url: string;
 };
@@ -189,6 +202,36 @@ const strings = (value: CellValue | undefined) =>
   Array.isArray(value) ? value : [];
 const text = (value: CellValue | undefined) =>
   typeof value === "string" ? value : "";
+
+function colorsOf(value: CellValue | undefined): Record<string, string> {
+  try {
+    const parsed = JSON.parse(text(value) || "{}");
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+const HEX = /^#[\da-f]{6}$/i;
+
+/** Dark text on light colours, white on dark, the way GitLab picks it. */
+function textOn(hex: string) {
+  const [r, g, b] = [1, 3, 5].map((at) => parseInt(hex.slice(at, at + 2), 16));
+  return 0.299 * r + 0.587 * g + 0.114 * b > 150 ? "#1f1e24" : "#ffffff";
+}
+
+/** `scope::value` splits on the last `::` into GitLab's two-part pill. */
+export function labelHtml(name: string, color?: string) {
+  const hex = color && HEX.test(color) ? color : "#6b7280";
+  const style = `--label-bg:${hex};--label-fg:${textOn(hex)}`;
+  const split = name.lastIndexOf("::");
+  if (split > 0) {
+    return `<span class="md-gitlab-label md-gitlab-scoped" style="${style}"><span class="md-gitlab-scope">${esc(
+      name.slice(0, split),
+    )}</span><span class="md-gitlab-value">${esc(name.slice(split + 2))}</span></span>`;
+  }
+  return `<span class="md-gitlab-label" style="${style}">${esc(name)}</span>`;
+}
 
 export function rowCard(databaseId: string, row: Row): GitlabCard {
   const data = row.data;
@@ -201,6 +244,7 @@ export function rowCard(databaseId: string, row: Row): GitlabCard {
     author: text(data.author),
     assignees: strings(data.assignees),
     labels: strings(data.labels),
+    labelColors: colorsOf(data[LABEL_COLORS]),
     updated: text(data.updated),
     url: text(data.url),
   };
@@ -250,7 +294,7 @@ export function gitlabPreview(
   }
   const state = card.state || "unknown";
   const chips = card.labels
-    .map((label) => `<span class="md-gitlab-label">${esc(label)}</span>`)
+    .map((label) => labelHtml(label, card.labelColors?.[label]))
     .join("");
   const people = [
     card.author && `by ${esc(card.author)}`,
