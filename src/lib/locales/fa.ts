@@ -339,6 +339,7 @@ export const fa: Record<I18nKey, string> = {
   "editor.addBlockBelow": "افزودن بلوک زیر",
   "editor.blockMenuDrag": "منوی بلوک. برای جابه جایی بکشید.",
   "editor.commands": "فرمان های بلوک",
+  "editor.moreCommands": "{count} مورد دیگر · برای جستجو تایپ کنید",
   "editor.completions": "تکمیل های کد",
   "editor.generateAi": "تولید با هوش مصنوعی",
   "editor.generating": "در حال تولید...",

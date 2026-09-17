@@ -13,12 +13,15 @@
   /** Top of the caret line, the anchor when the menu opens upward. */
   export let caretTop = top;
   export let label = "";
+  /** Matches cut by the row limit; the menu says so instead of scrolling. */
+  export let hidden = 0;
+  export let hiddenLabel = "";
   /** Submenu depth, so drilling in and out slides the pane. */
   export let depth = 0;
   export let onHover: (index: number) => void = () => {};
   export let onPick: (command: SlashCommand) => void = () => {};
 
-  const menuWidth = 256;
+  const menuWidth = 288;
   const viewportPadding = 8;
   let innerWidth = 0;
   let innerHeight = 0;
@@ -60,7 +63,7 @@
 <svelte:window bind:innerWidth bind:innerHeight />
 
 <div
-  class="fixed z-50 w-64 rounded-xl border border-stone-200 bg-surface/95 p-1 shadow-xl shadow-stone-900/10 backdrop-blur dark:border-stone-700 dark:bg-stone-900/95 dark:shadow-black/40"
+  class="fixed z-50 w-72 rounded-xl border border-stone-200 bg-surface/95 p-1 shadow-xl shadow-stone-900/10 backdrop-blur dark:border-stone-700 dark:bg-stone-900/95 dark:shadow-black/40"
   use:portal
   style={position}
   bind:offsetHeight={height}
@@ -74,7 +77,7 @@
   >
     {#key depth}
       <ul
-        class="absolute inset-x-0 top-0 max-h-72 overflow-y-auto"
+        class="absolute inset-x-0 top-0"
         bind:clientHeight={heights[depth]}
         in:fly={{ x: direction * 20, duration: 240, opacity: 0, easing: cubicOut }}
         out:fly={{
@@ -114,15 +117,34 @@
               {@html calloutIconSvg(command.icon)}
             </span>
           {/if}
-          <span class="truncate">{command.label}</span>
+          {#if command.detail}
+            <span class="grid min-w-0 leading-tight">
+              <span class="truncate font-medium">{command.label}</span>
+              <span
+                class="truncate font-mono text-[0.7rem] text-stone-400 dark:text-stone-500"
+                >{command.detail}</span
+              >
+            </span>
+          {:else}
+            <span class="truncate">{command.label}</span>
+          {/if}
         </span>
-        <span
-          class="rounded border border-stone-200 px-1.5 py-px font-mono text-[0.7rem] text-stone-400 dark:border-stone-700 dark:text-stone-500"
-          >{command.children?.length ? "›" : command.hint}</span
-        >
+        {#if !command.detail}
+          <span
+            class="rounded border border-stone-200 px-1.5 py-px font-mono text-[0.7rem] text-stone-400 dark:border-stone-700 dark:text-stone-500"
+            >{command.children?.length ? "›" : command.hint}</span
+          >
+        {/if}
       </button>
     </li>
   {/each}
+  {#if hidden > 0}
+    <li
+      class="px-2.5 pt-1.5 pb-1 text-[0.7rem] text-stone-400 dark:text-stone-500"
+    >
+      {hiddenLabel}
+    </li>
+  {/if}
       </ul>
     {/key}
   </div>

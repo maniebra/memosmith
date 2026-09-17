@@ -336,6 +336,7 @@ export const en = {
   "editor.addBlockBelow": "Add block below",
   "editor.blockMenuDrag": "Block menu. Drag to move.",
   "editor.commands": "Block commands",
+  "editor.moreCommands": "{count} more · type to search",
   "editor.completions": "Code completions",
   "editor.generateAi": "Generate with AI",
   "editor.generating": "Generating...",

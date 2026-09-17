@@ -2,7 +2,10 @@ const assert = (ok: unknown, msg: string) => {
   if (!ok) throw new Error(msg);
 };
 
-import { createSlash } from "../../../../src/ui/components/markdown-editor/slash";
+import {
+  createSlash,
+  SLASH_LIMIT,
+} from "../../../../src/ui/components/markdown-editor/slash";
 import type {
   Editor,
   EditorUi,
@@ -66,7 +69,7 @@ function editor() {
 }
 
 const { ui, slash } = editor();
-const top = slash.slashMatches();
+const top = slash.slashMatches(true);
 
 // The whole point: two databases with three views between them stay one entry.
 assert(
@@ -155,8 +158,8 @@ const calloutEditor = (() => {
   return { ui, slash: createSlash(e) };
 })();
 
-const calloutEntry = calloutEditor
-  .slash.slashMatches()
+const calloutEntry = calloutEditor.slash
+  .slashMatches(true)
   .find((command) => command.label === "editor.callout");
 
 assert(calloutEntry !== undefined, "callouts stay one top-level entry");
@@ -202,3 +205,52 @@ assert(
 );
 
 console.log("slash menu tracking ok");
+
+// The menu never scrolls: it shows a fixed number of rows, and GitLab search
+// reaches items across every kind.
+{
+  const card = (id: number, kind: string, title: string) => ({
+    key: `db/${kind}-${id}`,
+    kind,
+    title,
+    state: "opened",
+    reference: `g/p#${id}`,
+    author: "",
+    assignees: [],
+    labels: [],
+    updated: "",
+    url: "",
+  });
+  const gitlabUi = {
+    slashStart: 0,
+    slashQuery: "gitlab login",
+    slashPath: ["GitLab"],
+    slashPathQuery: 7,
+  } as Editor["ui"];
+  const gitlabSlash = createSlash({
+    ui: gitlabUi,
+    t: (key: string) => key,
+    props: {
+      calloutDefinitions: [],
+      databaseRoot: "/space",
+      databaseOptions: [],
+      gitlabCards: [
+        ...Array.from({ length: 20 }, (_, i) => card(i, "issues", `bug ${i}`)),
+        card(99, "merge_requests", "Fix login"),
+      ],
+    },
+  } as unknown as Editor);
+  const found = gitlabSlash.slashMatches();
+  assert(
+    found[0]?.label === "Fix login" && found[0].detail === "g/p#99",
+    "gitlab search reaches items of every kind",
+  );
+  gitlabUi.slashPath = ["GitLab", "Issues"];
+  gitlabUi.slashQuery = "gitlab issues ";
+  gitlabUi.slashPathQuery = gitlabUi.slashQuery.length;
+  assert(
+    gitlabSlash.slashMatches().length === SLASH_LIMIT &&
+      gitlabSlash.slashMatches(true).length === 20,
+    "the menu is capped, the full list is still countable",
+  );
+}

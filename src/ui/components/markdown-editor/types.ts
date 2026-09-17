@@ -44,6 +44,8 @@ export type SlashCommand = {
   /** Callout entries carry their own icon and colour into the menu row. */
   icon?: string;
   color?: string;
+  /** Second line under the label; replaces the hint badge. */
+  detail?: string;
 };
 
 export type BlockUnit = {
@@ -356,7 +358,7 @@ export type DatabaseApi = {
 
 export type SlashApi = {
   highlightSlash: (index: number) => void;
-  slashMatches: () => SlashCommand[];
+  slashMatches: (all?: boolean) => SlashCommand[];
   closeMenu: () => void;
   syncMenu: (surface: EditSurface) => void;
   trackMenu: () => void;
