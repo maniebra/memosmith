@@ -80,7 +80,7 @@
 <div
   bind:this={panel}
   use:portal
-  class="fixed z-50 flex flex-col gap-2 rounded-lg border border-stone-200/70 bg-white p-2 shadow-[0_10px_38px_-10px_rgba(22,23,24,0.35),0_10px_20px_-15px_rgba(22,23,24,0.2)] dark:border-white/10 dark:bg-stone-900"
+  class="fixed z-50 flex flex-col gap-2 rounded-lg border border-stone-200/70 bg-surface p-2 shadow-[0_10px_38px_-10px_rgba(22,23,24,0.35),0_10px_20px_-15px_rgba(22,23,24,0.2)] dark:border-white/10 dark:bg-stone-900"
   style="left: {left}px; top: {top}px; width: {width}px;"
 >
   <input

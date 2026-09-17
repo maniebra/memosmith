@@ -21,6 +21,23 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   accent-color: var(--ms-accent-color);
+  /* Surface tokens; `.memotheme` files override them. */
+  --ms-canvas: #fffdfa;
+  --ms-sidebar: #fbf8f1;
+  --ms-surface: #ffffff;
+  --ms-backdrop: #ece8e0;
+}
+
+:root.dark {
+  --ms-canvas: #1a1917;
+  --ms-sidebar: #181714;
+  --ms-backdrop: #0f0e0d;
+}
+
+@theme inline {
+  --color-canvas: var(--ms-canvas);
+  --color-sidebar: var(--ms-sidebar);
+  --color-surface: var(--ms-surface);
 }
 
 body {
@@ -89,11 +106,11 @@ textarea,
 
 /* IntelliJ-style islands: panes become rounded cards floating on a darker backdrop. */
 :root[data-islands] .ms-islands {
-  background: #ece8e0;
+  background: var(--ms-backdrop);
 }
 
 :root[data-islands].dark .ms-islands {
-  background: #0f0e0d;
+  background: var(--ms-backdrop);
 }
 
 :root[data-islands] .ms-islands-row {
@@ -104,11 +121,11 @@ textarea,
   overflow: hidden;
   border: 0;
   border-radius: var(--radius-xl);
-  background: #fffdfa;
+  background: var(--ms-canvas);
 }
 
 :root[data-islands].dark .ms-island {
-  background: #1a1917;
+  background: var(--ms-canvas);
 }
 
 /* Toolbar and status bar blend into the backdrop around the islands. */
@@ -149,7 +166,8 @@ textarea,
   /** A menu that scrolls keeps a thin, quiet scrollbar. */
   .menu-scroll {
     scrollbar-width: thin;
-    scrollbar-color: rgb(168 162 158 / 0.5) transparent;
+    scrollbar-color: color-mix(in srgb, var(--color-stone-400) 50%, transparent)
+      transparent;
   }
 
   .menu-scroll::-webkit-scrollbar {
@@ -158,7 +176,7 @@ textarea,
 
   .menu-scroll::-webkit-scrollbar-thumb {
     border-radius: 9999px;
-    background: rgb(168 162 158 / 0.5);
+    background: color-mix(in srgb, var(--color-stone-400) 50%, transparent);
   }
 
   .menu-scroll::-webkit-scrollbar-track {
@@ -189,14 +207,14 @@ textarea,
   /* Only plain text blocks get the inset padding — code,
      tables and callouts draw their own continuous surface. */
   .md-block:not(
-      .md-codeblock,
-      .md-fence,
-      .md-table-line,
-      .md-callout-line,
-      .md-run-store,
-      .md-run-preview,
-      .md-math-line
-    ) {
+    .md-codeblock,
+    .md-fence,
+    .md-table-line,
+    .md-callout-line,
+    .md-run-store,
+    .md-run-preview,
+    .md-math-line
+  ) {
     @apply -mx-3 rounded-lg px-3 py-1;
   }
 
@@ -219,7 +237,7 @@ textarea,
   }
 
   .md-block-toolbar {
-    @apply absolute -left-18 z-40 flex h-7 items-center gap-1 rounded-md bg-[#fffdfa]/90 p-0.5 shadow-sm ring-1 ring-stone-200/70 backdrop-blur dark:bg-[#1a1917]/90 dark:ring-stone-700/70;
+    @apply absolute -left-18 z-40 flex h-7 items-center gap-1 rounded-md bg-canvas/90 p-0.5 shadow-sm ring-1 ring-stone-200/70 backdrop-blur dark:bg-canvas/90 dark:ring-stone-700/70;
   }
 
   [dir="rtl"] .md-block-toolbar {
@@ -260,7 +278,7 @@ textarea,
     opacity: 0.85;
     will-change: transform;
     border-radius: 0.5rem;
-    @apply bg-[#fffdfa] dark:bg-[#1a1917];
+    @apply bg-canvas;
     box-shadow:
       0 12px 32px -8px rgb(0 0 0 / 0.25),
       0 2px 6px rgb(0 0 0 / 0.08);
@@ -611,7 +629,7 @@ textarea,
   }
 
   .md-wikilink-embed-preview {
-    @apply my-3 overflow-hidden rounded-lg border border-stone-200 bg-white shadow-sm dark:border-stone-800 dark:bg-stone-900/65;
+    @apply my-3 overflow-hidden rounded-lg border border-stone-200 bg-surface shadow-sm dark:border-stone-800 dark:bg-stone-900/65;
     user-select: none;
   }
 
@@ -715,8 +733,8 @@ textarea,
   }
 
   .md-table-tools-shell {
-    --md-table-toolbar-bg: rgb(255 255 255);
-    @apply relative mb-2 hidden max-w-full rounded-lg border border-stone-200 bg-white p-1.5 shadow-sm dark:border-stone-700 dark:bg-stone-800;
+    --md-table-toolbar-bg: var(--ms-surface);
+    @apply relative mb-2 hidden max-w-full rounded-lg border border-stone-200 bg-surface p-1.5 shadow-sm dark:border-stone-700 dark:bg-stone-800;
   }
 
   .md-table-preview[data-active] .md-table-tools-shell {
@@ -939,7 +957,7 @@ textarea,
   }
 
   .md-database-preview {
-    @apply my-3 overflow-hidden rounded-lg border border-stone-200 bg-white text-[0.95em] shadow-sm dark:border-stone-800 dark:bg-stone-900/65;
+    @apply my-3 overflow-hidden rounded-lg border border-stone-200 bg-surface text-[0.95em] shadow-sm dark:border-stone-800 dark:bg-stone-900/65;
   }
 
   .md-database-anchor {
@@ -1096,7 +1114,7 @@ textarea,
   /* PlantUML bakes black-on-white art, so its card owns the white and frames it on purpose.
      Mermaid draws with the chosen theme and transparent ground, so it gets no paper. */
   .md-livediagram-paper {
-    @apply border border-stone-200 bg-white p-3 dark:border-stone-700;
+    @apply border border-stone-200 bg-surface p-3 dark:border-stone-700;
   }
 
   .md-livediagram-preview svg,

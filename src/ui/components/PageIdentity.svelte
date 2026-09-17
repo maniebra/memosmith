@@ -220,7 +220,7 @@
           <button
             type="button"
             class={cn(
-              "absolute top-3 inline-flex h-8 items-center gap-1.5 rounded-md border border-stone-200/80 bg-stone-50/90 px-2.5 text-[0.8125rem] font-medium text-stone-700 opacity-0 shadow-sm backdrop-blur transition-opacity hover:bg-white focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/30 group-hover/cover:opacity-100 dark:border-stone-700/80 dark:bg-stone-900/90 dark:text-stone-200 dark:hover:bg-stone-800",
+              "absolute top-3 inline-flex h-8 items-center gap-1.5 rounded-md border border-stone-200/80 bg-stone-50/90 px-2.5 text-[0.8125rem] font-medium text-stone-700 opacity-0 shadow-sm backdrop-blur transition-opacity hover:bg-surface focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/30 group-hover/cover:opacity-100 dark:border-stone-700/80 dark:bg-stone-900/90 dark:text-stone-200 dark:hover:bg-stone-800",
               pageChromeDirection === "rtl" ? "left-3" : "right-3",
             )}
             aria-haspopup="menu"

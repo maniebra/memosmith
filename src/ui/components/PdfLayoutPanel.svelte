@@ -17,7 +17,7 @@
   const segment =
     "rounded-md text-[0.8125rem] font-medium transition-colors active:scale-[0.98]";
   const selected =
-    "bg-white text-stone-900 shadow-sm dark:bg-stone-700 dark:text-stone-100";
+    "bg-surface text-stone-900 shadow-sm dark:bg-stone-700 dark:text-stone-100";
   const idle =
     "text-stone-500 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100";
   const heading = "text-sm font-medium text-stone-900 dark:text-stone-100";

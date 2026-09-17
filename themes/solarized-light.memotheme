@@ -26,5 +26,11 @@
     "800": "#174e75",
     "900": "#144160",
     "950": "#0b283c"
+  },
+  "variables": {
+    "--ms-canvas": "#fdf6e3",
+    "--ms-sidebar": "#eee8d5",
+    "--ms-backdrop": "#e3dcc7",
+    "--ms-surface": "#fffbf0"
   }
 }

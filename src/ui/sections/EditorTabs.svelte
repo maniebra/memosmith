@@ -29,15 +29,15 @@
 
 {#if tabs.length}
   <div
-    class="flex shrink-0 items-stretch gap-px overflow-x-auto border-b border-stone-200/70 bg-[#fbf8f1] dark:border-stone-800 dark:bg-[#181714]"
+    class="flex shrink-0 items-stretch gap-px overflow-x-auto border-b border-stone-200/70 bg-sidebar dark:border-stone-800"
     role="tablist"
   >
     {#each tabs as id (id)}
       <div
         class="group flex max-w-56 items-center gap-1.5 border-r border-stone-200/70 px-3 py-1.5 text-sm dark:border-stone-800"
         class:min-w-32={!pinned.includes(id)}
-        class:bg-white={id === activeTab}
-        class:dark:bg-[#1a1917]={id === activeTab}
+        class:bg-surface={id === activeTab}
+        class:dark:bg-canvas={id === activeTab}
         class:text-stone-900={id === activeTab}
         class:dark:text-stone-100={id === activeTab}
         class:text-stone-500={id !== activeTab}

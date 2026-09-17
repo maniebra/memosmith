@@ -210,7 +210,7 @@
     <div
       bind:this={menuElement}
       use:portal
-      class="fixed z-50 max-h-72 min-w-40 overflow-y-auto rounded-lg border border-stone-200/70 bg-white p-1 shadow-[0_10px_38px_-10px_rgba(22,23,24,0.35),0_10px_20px_-15px_rgba(22,23,24,0.2)] dark:border-white/10 dark:bg-stone-900"
+      class="fixed z-50 max-h-72 min-w-40 overflow-y-auto rounded-lg border border-stone-200/70 bg-surface p-1 shadow-[0_10px_38px_-10px_rgba(22,23,24,0.35),0_10px_20px_-15px_rgba(22,23,24,0.2)] dark:border-white/10 dark:bg-stone-900"
       style="left: {menu.left}px; top: {menu.top}px; min-width: {menu.width}px;"
       role="listbox"
       tabindex="-1"

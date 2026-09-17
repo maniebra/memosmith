@@ -14,7 +14,7 @@
 </script>
 
 <ul
-  class="fixed z-50 max-h-72 w-72 overflow-y-auto rounded-xl border border-stone-200 bg-white/95 p-1 shadow-xl shadow-stone-900/10 backdrop-blur dark:border-stone-700 dark:bg-stone-900/95 dark:shadow-black/40"
+  class="fixed z-50 max-h-72 w-72 overflow-y-auto rounded-xl border border-stone-200 bg-surface/95 p-1 shadow-xl shadow-stone-900/10 backdrop-blur dark:border-stone-700 dark:bg-stone-900/95 dark:shadow-black/40"
   style="top: {top}px; left: {left}px; transform-origin: top left;"
   in:scale={{ start: 0.96, duration: 110, easing: cubicOut }}
   role="listbox"

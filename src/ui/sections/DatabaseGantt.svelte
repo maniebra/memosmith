@@ -78,7 +78,7 @@
 {:else}
   <div class="min-h-0 flex-1 overflow-auto p-3">
     <div class="flex w-max">
-      <div class="sticky left-0 z-10 bg-white dark:bg-stone-900">
+      <div class="sticky left-0 z-10 bg-surface dark:bg-stone-900">
         <div
           class="h-6 border-b border-stone-200/70 dark:border-stone-800"
         ></div>

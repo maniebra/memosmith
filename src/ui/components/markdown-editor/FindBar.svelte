@@ -47,7 +47,7 @@
 </script>
 
 <search
-  class="sticky top-2 z-30 mb-2 flex flex-wrap items-center gap-2 rounded-xl border border-stone-200 bg-white/95 p-2 shadow-lg shadow-stone-900/10 backdrop-blur dark:border-stone-700 dark:bg-stone-900/95 dark:shadow-black/40"
+  class="sticky top-2 z-30 mb-2 flex flex-wrap items-center gap-2 rounded-xl border border-stone-200 bg-surface/95 p-2 shadow-lg shadow-stone-900/10 backdrop-blur dark:border-stone-700 dark:bg-stone-900/95 dark:shadow-black/40"
   role="search"
 >
   <div class="w-48" use:focusQuery>

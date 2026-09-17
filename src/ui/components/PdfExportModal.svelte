@@ -287,7 +287,7 @@
   </div>
 
   <aside
-    class="ms-print-chrome flex max-h-[45dvh] w-full shrink-0 flex-col border-t border-stone-200 bg-white md:max-h-none md:w-80 md:border-s md:border-t-0 dark:border-stone-800 dark:bg-stone-900"
+    class="ms-print-chrome flex max-h-[45dvh] w-full shrink-0 flex-col border-t border-stone-200 bg-surface md:max-h-none md:w-80 md:border-s md:border-t-0 dark:border-stone-800 dark:bg-stone-900"
   >
     <header class="flex h-14 shrink-0 items-center gap-2 px-5">
       <div class="flex min-w-0 flex-col leading-tight">

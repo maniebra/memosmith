@@ -28,7 +28,7 @@
     variant === "primary" &&
       "border-emerald-700 bg-emerald-700 text-white shadow-sm hover:bg-emerald-800 dark:border-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-500",
     variant === "secondary" &&
-      "border-stone-200 bg-white text-stone-800 shadow-sm hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-100 dark:hover:bg-stone-700",
+      "border-stone-200 bg-surface text-stone-800 shadow-sm hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-100 dark:hover:bg-stone-700",
     variant === "ghost" &&
       "border-transparent bg-transparent text-stone-500 hover:bg-stone-500/10 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100",
     className,

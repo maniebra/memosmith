@@ -60,7 +60,7 @@
 <svelte:window bind:innerWidth bind:innerHeight />
 
 <div
-  class="fixed z-50 w-64 rounded-xl border border-stone-200 bg-white/95 p-1 shadow-xl shadow-stone-900/10 backdrop-blur dark:border-stone-700 dark:bg-stone-900/95 dark:shadow-black/40"
+  class="fixed z-50 w-64 rounded-xl border border-stone-200 bg-surface/95 p-1 shadow-xl shadow-stone-900/10 backdrop-blur dark:border-stone-700 dark:bg-stone-900/95 dark:shadow-black/40"
   use:portal
   style={position}
   bind:offsetHeight={height}

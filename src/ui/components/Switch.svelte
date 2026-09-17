@@ -38,7 +38,7 @@
     >
       <span
         class={cn(
-          "size-4 rounded-full bg-white shadow transition-transform",
+          "size-4 rounded-full bg-surface shadow transition-transform",
           checked && "translate-x-5",
         )}
       ></span>

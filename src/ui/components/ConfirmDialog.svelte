@@ -37,7 +37,7 @@
   >
     <div
       bind:this={dialog}
-      class="w-full max-w-sm rounded-xl border border-stone-200 bg-white p-4 shadow-xl outline-none dark:border-stone-700 dark:bg-stone-900"
+      class="w-full max-w-sm rounded-xl border border-stone-200 bg-surface p-4 shadow-xl outline-none dark:border-stone-700 dark:bg-stone-900"
       role="alertdialog"
       aria-modal="true"
       aria-labelledby="ms-confirm-title"

@@ -40,7 +40,7 @@
   onclick={(event) => event.target === event.currentTarget && onClose()}
 >
   <div
-    class="flex max-h-full w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-stone-200 bg-white shadow-xl dark:border-stone-700 dark:bg-stone-900"
+    class="flex max-h-full w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-stone-200 bg-surface shadow-xl dark:border-stone-700 dark:bg-stone-900"
     role="dialog"
     aria-label={rowTitle(row, columns)}
   >

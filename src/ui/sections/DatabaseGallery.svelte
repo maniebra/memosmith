@@ -35,7 +35,7 @@
   >
     {#each rows as row (row.id)}
       <article
-        class="group flex flex-col rounded-xl border border-stone-200/70 bg-white p-3 shadow-sm dark:border-stone-700/70 dark:bg-stone-900"
+        class="group flex flex-col rounded-xl border border-stone-200/70 bg-surface p-3 shadow-sm dark:border-stone-700/70 dark:bg-stone-900"
       >
         <div class="flex items-start justify-between gap-1">
           <button

@@ -31,7 +31,7 @@
 <input
   bind:this={input}
   bind:value
-  class="w-full rounded-md border border-emerald-600/40 bg-white py-0.5 pr-1 text-[0.8125rem] text-stone-800 outline-none dark:bg-stone-900 dark:text-stone-100"
+  class="w-full rounded-md border border-emerald-600/40 bg-surface py-0.5 pr-1 text-[0.8125rem] text-stone-800 outline-none dark:bg-stone-900 dark:text-stone-100"
   style="padding-left: {depth * 0.75 + 0.75}rem"
   onkeydown={(event) => {
     if (event.key === "Enter") {

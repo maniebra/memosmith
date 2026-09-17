@@ -139,7 +139,7 @@
     }}
   >
     <div
-      class="h-fit w-[32rem] max-w-[90vw] overflow-hidden rounded-xl border border-stone-200 bg-white shadow-2xl shadow-stone-900/20 dark:border-stone-700 dark:bg-stone-900"
+      class="h-fit w-[32rem] max-w-[90vw] overflow-hidden rounded-xl border border-stone-200 bg-surface shadow-2xl shadow-stone-900/20 dark:border-stone-700 dark:bg-stone-900"
       in:scale={{ start: 0.97, duration: 110, easing: cubicOut }}
     >
       <input

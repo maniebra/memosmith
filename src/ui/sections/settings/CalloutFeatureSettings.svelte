@@ -187,7 +187,7 @@
       <div class="grid gap-3">
         {#each settings.callouts as callout, index (index)}
           <div
-            class="grid gap-3 rounded-lg border border-stone-200 bg-white p-3 shadow-sm dark:border-stone-800 dark:bg-stone-950/35"
+            class="grid gap-3 rounded-lg border border-stone-200 bg-surface p-3 shadow-sm dark:border-stone-800 dark:bg-stone-950/35"
             in:fade={{ duration: 120 }}
             out:fade={{ duration: 80 }}
           >

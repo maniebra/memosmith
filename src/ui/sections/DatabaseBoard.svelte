@@ -234,7 +234,7 @@
         >
           {#each group.rows as row (row.id)}
             <article
-              class="group rounded-lg border bg-white p-2 shadow-sm dark:bg-stone-900 {overRow ===
+              class="group rounded-lg border bg-surface p-2 shadow-sm dark:bg-stone-900 {overRow ===
               row.id
                 ? 'border-t-2 border-t-emerald-600 border-stone-200/70 dark:border-stone-700/70'
                 : 'border-stone-200/70 dark:border-stone-700/70'}"

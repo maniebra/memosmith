@@ -51,7 +51,7 @@
         <li>
           <button
             type="button"
-            class="w-full rounded-md border border-stone-200 bg-white/70 px-3 py-2 text-left transition-colors hover:border-emerald-600/30 hover:bg-emerald-50/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 dark:border-stone-800 dark:bg-stone-900/45 dark:hover:border-emerald-400/30 dark:hover:bg-emerald-950/20"
+            class="w-full rounded-md border border-stone-200 bg-surface/70 px-3 py-2 text-left transition-colors hover:border-emerald-600/30 hover:bg-emerald-50/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 dark:border-stone-800 dark:bg-stone-900/45 dark:hover:border-emerald-400/30 dark:hover:bg-emerald-950/20"
             onclick={() => onSelect(backlink.path)}
           >
             <span

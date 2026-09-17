@@ -30,7 +30,7 @@
 
   const dateTypes = ["date", "created_time", "edited_time"];
   const controlClass =
-    "h-7 rounded-md border border-stone-200 bg-white px-1.5 text-xs text-stone-700 outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/30 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200";
+    "h-7 rounded-md border border-stone-200 bg-surface px-1.5 text-xs text-stone-700 outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/30 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200";
 
   function replaceChild(index: number, child: FilterNode) {
     onChange({

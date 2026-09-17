@@ -190,7 +190,7 @@
       </button>
       {#if menu === "view"}
         <div
-          class="absolute top-8 left-0 z-50 w-44 rounded-lg border border-stone-200 bg-white p-1 shadow-lg dark:border-stone-700 dark:bg-stone-900"
+          class="absolute top-8 left-0 z-50 w-44 rounded-lg border border-stone-200 bg-surface p-1 shadow-lg dark:border-stone-700 dark:bg-stone-900"
         >
           {#each viewTypes as type (type)}
             <button
@@ -275,7 +275,7 @@
         </button>
         {#if menu === "properties"}
           <div
-            class="absolute top-8 right-0 z-50 max-h-[60vh] w-56 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-lg border border-stone-200 bg-white p-2 shadow-lg dark:border-stone-700 dark:bg-stone-900"
+            class="absolute top-8 right-0 z-50 max-h-[60vh] w-56 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-lg border border-stone-200 bg-surface p-2 shadow-lg dark:border-stone-700 dark:bg-stone-900"
           >
             {#each table.columns as column (column.id)}
               <label
