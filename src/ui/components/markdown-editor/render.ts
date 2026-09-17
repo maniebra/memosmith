@@ -97,6 +97,7 @@ class EditorRender {
     e.paintDatabaseEmbeds();
     e.paintDrawingPreviews();
     e.paintDiagramPreviews();
+    e.trackInlineEditor();
     e.paintRunPreviews();
     e.paintDiagramLivePreviews();
 

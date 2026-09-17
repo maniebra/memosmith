@@ -45,6 +45,8 @@
   export let highlightColors: PaletteColor[] = defaultHighlightPalette;
   export let drawings = false;
   export let diagrams = false;
+  /** Edit drawings and diagrams where they sit in the note instead of in a modal. */
+  export let inlineEmbeds = false;
   export let quizzes = true;
   export let codeExecution = false;
   export let plantuml = false;
@@ -93,6 +95,7 @@
   $: props = {
     placeholder, textSize, spellcheck, slashCommands, fancyTableEditor,
     callouts, calloutDefinitions, highlightColors, drawings, diagrams,
+    inlineEmbeds,
     quizzes, codeExecution,
     plantuml,
     plantumlSettings, mermaid, mermaidSettings, runSession, runner, lsp,
@@ -273,23 +276,25 @@
   {/if}
 
   <DecorationLayer boxes={ui.decorationBoxes} />
+
+  {#if ui.editingDrawing}
+    <DrawingModal
+      scene={ui.editingDrawing.scene}
+      inlineTop={ui.editingDrawing.top ?? null}
+      onSave={editor.saveDrawing}
+      onClose={editor.closeDrawingModal}
+    />
+  {/if}
+
+  {#if ui.editingDiagram}
+    <DiagramModal
+      diagram={ui.editingDiagram.diagram}
+      inlineTop={ui.editingDiagram.top ?? null}
+      onSave={editor.saveDiagram}
+      onClose={editor.closeDiagramModal}
+    />
+  {/if}
 </div>
-
-{#if ui.editingDrawing}
-  <DrawingModal
-    scene={ui.editingDrawing.scene}
-    onSave={editor.saveDrawing}
-    onClose={editor.closeDrawingModal}
-  />
-{/if}
-
-{#if ui.editingDiagram}
-  <DiagramModal
-    diagram={ui.editingDiagram.diagram}
-    onSave={editor.saveDiagram}
-    onClose={editor.closeDiagramModal}
-  />
-{/if}
 
 {#if ui.contextMenu}
   <ContextMenu

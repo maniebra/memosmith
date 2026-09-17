@@ -16,6 +16,7 @@
     fontOptions,
     type CornerStyle,
     type Density,
+    type EmbedEditing,
     type EditorLineHeight,
     type FontChoice,
     type WindowButtons,
@@ -46,6 +47,10 @@
     { label: $i18n.t("options.windows"), value: "windows" },
     { label: $i18n.t("options.macos"), value: "macos" },
     { label: $i18n.t("options.native"), value: "native" },
+  ] satisfies SelectOption[];
+  $: embedEditingOptions = [
+    { label: $i18n.t("settings.embedEditingModal"), value: "modal" },
+    { label: $i18n.t("settings.embedEditingInline"), value: "inline" },
   ] satisfies SelectOption[];
   $: translatedAccentOptions = accentOptions.map((accent) => ({
     ...accent,
@@ -144,6 +149,21 @@
           })}
       />
     {/if}
+  </section>
+  <section class="grid gap-2 sm:grid-cols-[8rem_auto] sm:items-center">
+    <span class="text-sm font-medium text-stone-800 dark:text-stone-200">
+      {$i18n.t("settings.embedEditing")}
+    </span>
+    <Select
+      value={settings.appearance.embedEditing}
+      options={embedEditingOptions}
+      className="h-9"
+      rootClassName={compactSelectRoot}
+      onChange={(embedEditing) =>
+        updateAppearance(settings, onChange, {
+          embedEditing: embedEditing as EmbedEditing,
+        })}
+    />
   </section>
   <section
     class="grid gap-3 border-t border-stone-200/50 pt-5 sm:grid-cols-[8rem_minmax(0,1fr)] dark:border-stone-800/80"

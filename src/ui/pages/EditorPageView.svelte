@@ -202,6 +202,7 @@
           highlightColors={settings.highlightPalette}
           drawings={settings.features.drawings}
           diagrams={settings.features.diagrams}
+          inlineEmbeds={settings.appearance.embedEditing === "inline"}
           quizzes={settings.features.quizzes}
           codeExecution={settings.features.codeExecution}
           plantuml={settings.features.plantuml}

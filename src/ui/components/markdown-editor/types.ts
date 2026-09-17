@@ -84,6 +84,7 @@ export type EditorProps = {
   highlightColors: PaletteColor[];
   drawings: boolean;
   diagrams: boolean;
+  inlineEmbeds: boolean;
   quizzes: boolean;
   codeExecution: boolean;
   plantuml: boolean;
@@ -116,8 +117,9 @@ export type EditorProps = {
 export type EditorUi = {
   find: FindState | null;
   composing: boolean;
-  editingDrawing: { preview: HTMLElement; scene: string } | null;
-  editingDiagram: { preview: HTMLElement; diagram: string } | null;
+  /** `top` is the in-place editor's offset in the shell; unset for the modal. */
+  editingDrawing: { preview: HTMLElement; scene: string; top?: number } | null;
+  editingDiagram: { preview: HTMLElement; diagram: string; top?: number } | null;
   decorationBoxes: DecorationBox[];
   slashStart: number | null;
   slashQuery: string;
@@ -317,6 +319,7 @@ export type DrawingApi = {
   closeDiagramModal: () => void;
   closeDrawingModal: () => void;
   paintDrawingPreviews: () => void;
+  trackInlineEditor: () => void;
   paintDiagramPreviews: () => void;
   invalidateThumbnails: () => void;
   openDiagram: (preview: HTMLElement) => void;

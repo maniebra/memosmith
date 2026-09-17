@@ -15,6 +15,7 @@ export function createDrawings(e: Editor): DrawingApi {
     paintDrawingPreviews: service.paintDrawingPreviews.bind(service),
     saveDiagram: service.saveDiagram.bind(service),
     saveDrawing: service.saveDrawing.bind(service),
+    trackInlineEditor: service.trackInlineEditor.bind(service),
   };
 }
 
@@ -136,21 +137,83 @@ class EditorDrawings {
     }
   }
 
+  /** An inline editor sits over its embed; stretching the embed pushes the text below out of the way. */
+  private reserveSpace(preview: HTMLElement | undefined, reserve: boolean) {
+    if (preview) {
+      preview.style.minHeight = reserve && this.e.props.inlineEmbeds ? "32rem" : "";
+    }
+  }
+
+  /**
+   * Keeps an in-place editor on its embed. A re-render swaps the embed for a
+   * new element, so it is found again by its source, which cannot change
+   * while the editor holds it. Gone from the note: nothing left to save into.
+   */
+  trackInlineEditor() {
+    const ui = this.e.ui;
+    const drawing = ui.editingDrawing;
+    const diagram = ui.editingDiagram;
+    const editing = drawing ?? diagram;
+    const shell = this.e.shell;
+
+    if (!editing || !shell || !this.e.props.inlineEmbeds) {
+      return;
+    }
+
+    const scene = drawing ? drawing.scene : diagram!.diagram;
+    let preview: HTMLElement | undefined = editing.preview;
+
+    if (!preview.isConnected) {
+      const selector = drawing ? ".md-drawing-preview" : ".md-diagram-preview";
+      const candidates =
+        this.e.element?.querySelectorAll<HTMLElement>(selector) ?? [];
+
+      preview = Array.from(candidates).find(
+        (candidate) => this.e.sceneOf(candidate) === scene,
+      );
+    }
+
+    if (!preview) {
+      ui.editingDrawing = null;
+      ui.editingDiagram = null;
+      return;
+    }
+
+    this.reserveSpace(preview, true);
+
+    const top =
+      preview.getBoundingClientRect().top - shell.getBoundingClientRect().top;
+
+    if (preview === editing.preview && top === editing.top) {
+      return;
+    }
+
+    if (drawing) {
+      ui.editingDrawing = { ...drawing, preview, top };
+    } else {
+      ui.editingDiagram = { ...diagram!, preview, top };
+    }
+  }
+
   closeDiagramModal() {
+    this.reserveSpace(this.e.ui.editingDiagram?.preview, false);
     this.e.ui.editingDiagram = null;
   }
 
   closeDrawingModal() {
+    this.reserveSpace(this.e.ui.editingDrawing?.preview, false);
     this.e.ui.editingDrawing = null;
   }
 
   openDiagram(preview: HTMLElement) {
+    this.reserveSpace(preview, true);
     this.e.ui.editingDiagram = { preview, diagram: this.e.sceneOf(preview) };
+    this.trackInlineEditor();
   }
 
   saveDiagram(diagram: string) {
     const preview = this.e.ui.editingDiagram?.preview;
-    this.e.ui.editingDiagram = null;
+    this.closeDiagramModal();
 
     if (preview) {
       this.e.replaceFencedSource(
@@ -166,12 +229,14 @@ class EditorDrawings {
       .codeSourceBlocks(preview)
       .map((block) => this.e.sourceText(block));
 
+    this.reserveSpace(preview, true);
     this.e.ui.editingDrawing = { preview, scene: lines.slice(1, -1).join("\n") };
+    this.trackInlineEditor();
   }
 
   saveDrawing(scene: string) {
     const preview = this.e.ui.editingDrawing?.preview;
-    this.e.ui.editingDrawing = null;
+    this.closeDrawingModal();
 
     if (preview) {
       this.e.replaceFencedSource(

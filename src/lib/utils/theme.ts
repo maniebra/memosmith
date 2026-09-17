@@ -5,6 +5,8 @@ export type CornerStyle = "soft" | "rounded" | "square";
 export type Density = "comfortable" | "compact";
 export type EditorLineHeight = "compact" | "comfortable" | "loose";
 export type WindowButtons = "windows" | "macos" | "native";
+/** Where drawings and diagrams open for editing: a full-screen modal or in place in the note. */
+export type EmbedEditing = "modal" | "inline";
 
 export type AppearanceSettings = {
   accentColor: AccentColor;
@@ -16,6 +18,7 @@ export type AppearanceSettings = {
   density: Density;
   editorLineHeight: EditorLineHeight;
   windowButtons: WindowButtons;
+  embedEditing: EmbedEditing;
 };
 
 /** Window buttons that match the host OS: its own look on Windows and macOS, the real frame on Linux. */
@@ -39,6 +42,7 @@ export const defaultAppearanceSettings: AppearanceSettings = {
   density: "comfortable",
   editorLineHeight: "comfortable",
   windowButtons: platformWindowButtons(),
+  embedEditing: "modal",
 };
 
 export const accentOptions: {

@@ -124,6 +124,7 @@ export function mountEditor(e: Editor) {
     e.scheduleMeasure();
     e.syncTailAdd();
     e.scheduleDatabaseLayout();
+    e.trackInlineEditor();
   });
   const reposition = () => e.scheduleDatabaseLayout();
   const themeObserver = new MutationObserver(() => e.invalidateThumbnails());

@@ -31,6 +31,7 @@
   export let highlightColors: PaletteColor[] = defaultHighlightPalette;
   export let drawings: boolean;
   export let diagrams: boolean;
+  export let inlineEmbeds: boolean;
   export let quizzes: boolean;
   export let codeExecution: boolean;
   export let plantuml: boolean;
@@ -127,6 +128,7 @@
       {highlightColors}
       {drawings}
       {diagrams}
+      {inlineEmbeds}
       {quizzes}
       {codeExecution}
       {plantuml}

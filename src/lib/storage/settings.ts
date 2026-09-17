@@ -200,6 +200,10 @@ function readAppearance(value: unknown): AppearanceSettings {
     windowButtons: isWindowButtons(parsed.windowButtons)
       ? parsed.windowButtons
       : defaultAppearanceSettings.windowButtons,
+    embedEditing:
+      parsed.embedEditing === "inline" || parsed.embedEditing === "modal"
+        ? parsed.embedEditing
+        : defaultAppearanceSettings.embedEditing,
   };
 }
 /** Every feature flag but the one that is not a boolean. */

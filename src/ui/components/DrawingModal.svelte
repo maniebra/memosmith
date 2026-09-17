@@ -7,6 +7,8 @@
   export let scene: string;
   export let onSave: (scene: string) => void;
   export let onClose: () => void;
+  /** Offset in the editor shell to edit at, in place of the full-screen modal. */
+  export let inlineTop: number | null = null;
 
   let host: HTMLDivElement | undefined;
   let root: any;
@@ -94,7 +96,13 @@
   }}
 />
 
-<div class="fixed inset-0 z-50 flex flex-col bg-stone-900/60 p-6">
+<div
+  class={inlineTop === null
+    ? "fixed inset-0 z-50 flex flex-col bg-stone-900/60 p-6"
+    : "absolute inset-x-0 z-30 flex h-[32rem] flex-col"}
+  style={inlineTop === null ? "" : `top: ${inlineTop}px;`}
+  contenteditable="false"
+>
   <div
     class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-stone-200 bg-white dark:border-stone-700 dark:bg-stone-900"
   >
