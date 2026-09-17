@@ -53,6 +53,9 @@
   export let plantuml = false;
   export let plantumlSettings: PlantumlSettings = defaultPlantumlSettings;
   export let mermaid = false;
+  /** Pasted YouTube links become players. */
+  export let youtube = false;
+  let online = typeof navigator === "undefined" || navigator.onLine;
   export let mermaidSettings: MermaidSettings = defaultMermaidSettings;
   /** Identifies the kernels a note owns, so its variables survive between cells. */
   export let runSession = "";
@@ -99,7 +102,7 @@
     inlineEmbeds,
     quizzes, codeExecution,
     plantuml,
-    plantumlSettings, mermaid, mermaidSettings, runSession, runner, lsp,
+    plantumlSettings, mermaid, youtube, online, mermaidSettings, runSession, runner, lsp,
     lspSettings, editable, onInput, onAssets, onPickAssets, onGenerate,
     onWikilink, resolveWikilink, renderWikilinkEmbed, wikilinkKey, databaseRoot,
     databaseOptions, gitlabCards: databaseRoot ? $gitlabCards : [],
@@ -171,6 +174,8 @@
 
 <svelte:document onselectionchange={editor.markActiveBlock} />
 <svelte:window
+  ononline={() => (online = true)}
+  onoffline={() => (online = false)}
   onpointermove={editor.handleBlockDragMove}
   onpointerup={editor.handleBlockDragEnd}
   onscrollcapture={editor.trackMenu}
@@ -243,10 +248,12 @@
       editor.enterDatabaseIsland(event);
     }}
     onpointerdown={(event) => {
-      const link = (event.target as Element).closest?.("[data-gitlab-url]");
+      const link = (event.target as Element).closest?.(
+        "[data-gitlab-url], [data-external-url]",
+      ) as HTMLElement | null;
       if (link) {
         event.preventDefault();
-        openGitlabUrl((link as HTMLElement).dataset.gitlabUrl ?? "");
+        openGitlabUrl(link.dataset.gitlabUrl ?? link.dataset.externalUrl ?? "");
         return;
       }
 

@@ -6,6 +6,7 @@ pub mod pdf;
 pub mod plantuml;
 pub mod runner;
 pub mod utils;
+pub mod youtube;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -45,7 +46,9 @@ pub fn run() {
             lsp::reset_language_servers,
             lsp::detect_language_servers,
             plantuml::render_plantuml,
-            pdf::export_pdf
+            pdf::export_pdf,
+            youtube::youtube_port,
+            youtube::youtube_decodable
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

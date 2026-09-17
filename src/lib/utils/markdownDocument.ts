@@ -417,7 +417,13 @@ class DocumentRenderer {
     if (media && this.resolveAsset) {
       this.output.push(
         `<div dir="auto" class="md-block md-media-line">${renderLine(line, this.inlineOptions)}</div>`,
-        mediaPreview(line, media[2], media[3], this.resolveAsset),
+        mediaPreview(
+          line,
+          media[2],
+          media[3],
+          this.resolveAsset,
+          this.options.youtubeOnline,
+        ),
       );
       return index + 1;
     }

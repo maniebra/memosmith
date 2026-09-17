@@ -76,6 +76,7 @@ class EditorSubblocks {
       codeExecution: props.codeExecution,
       databaseEmbeds: Boolean(props.databaseRoot),
       resolveGitlab: gitlabResolver(props.gitlabCards),
+      youtubeOnline: props.youtube ? props.online : undefined,
       diagrams: props.diagrams,
       drawings: props.drawings,
       fancyTableEditor: props.fancyTableEditor,

@@ -93,6 +93,9 @@ export type EditorProps = {
   plantuml: boolean;
   plantumlSettings: PlantumlSettings;
   mermaid: boolean;
+  youtube: boolean;
+  /** Browser connectivity; YouTube players swap for a card when false. */
+  online: boolean;
   mermaidSettings: MermaidSettings;
   runSession: string;
   runner: RunnerSettings;

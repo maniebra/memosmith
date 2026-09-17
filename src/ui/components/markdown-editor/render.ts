@@ -46,6 +46,8 @@ class EditorRender {
       codeExecution: props.codeExecution,
       plantuml: props.plantuml,
       mermaid: props.mermaid,
+      youtube: props.youtube,
+      online: props.online,
     };
   }
 
@@ -78,6 +80,7 @@ class EditorRender {
       renderWikilinkEmbed: props.renderWikilinkEmbed,
       databaseEmbeds: Boolean(props.databaseRoot),
       resolveGitlab: gitlabResolver(props.gitlabCards),
+      youtubeOnline: props.youtube ? props.online : undefined,
       plantuml: props.plantuml,
       mermaid: props.mermaid,
     };

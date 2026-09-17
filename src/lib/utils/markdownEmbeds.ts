@@ -34,6 +34,8 @@ export type RenderDocumentOptions = {
   staticDiagramPreviews?: boolean;
   codeExecution?: boolean;
   databaseEmbeds?: boolean;
+  /** Unset: YouTube links render as images; otherwise whether we are online. */
+  youtubeOnline?: boolean;
   resolveGitlab?: (key: string) => GitlabCard | undefined;
   plantuml?: boolean;
   mermaid?: boolean;

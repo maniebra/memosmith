@@ -70,6 +70,7 @@ export const defaultFeatureSettings: FeatureSettings = {
   lsp: false,
   plantuml: false,
   mermaid: false,
+  youtube: true,
   windowControls: true,
 };
 export const defaultPlantumlSettings: PlantumlSettings = {

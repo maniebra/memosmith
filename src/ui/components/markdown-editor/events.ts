@@ -1,3 +1,4 @@
+import { youtubeMarkdown } from "../../../lib/utils/youtube";
 import {
   enterEdit,
   insideFence,
@@ -326,6 +327,16 @@ class EditorEvents {
     }
 
     event.preventDefault();
+    const video = e.props.youtube ? youtubeMarkdown(text) : null;
+
+    if (video) {
+      // The player needs a line of its own.
+      const before = e.value.slice(0, offset);
+      const lead = before === "" || before.endsWith("\n") ? "" : "\n";
+      e.replace(offset, offset, `${lead}${video}\n`);
+      return;
+    }
+
     e.replace(offset, offset, text);
   }
 

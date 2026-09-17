@@ -11,13 +11,13 @@
   import Button from "../../components/Button.svelte";
   import Input from "../../components/Input.svelte";
   import Switch from "../../components/Switch.svelte";
-  import { updateSettings } from "./settingsHelpers";
+  import { updateFeatures, updateSettings } from "./settingsHelpers";
 
   export let settings: AppSettings;
   export let onChange: (settings: AppSettings) => void;
   export let root: string | null = null;
   /** Null shows the list of integrations; picking one opens its page. */
-  let provider: IntegrationProvider | null = null;
+  let provider: IntegrationProvider | "youtube" | null = null;
 
   let status: Record<string, string> = {};
   let syncing: Record<string, boolean> = {};
@@ -148,6 +148,26 @@
         <ChevronRight class="size-4 shrink-0 text-stone-400" aria-hidden="true" />
       </button>
     {/each}
+    <button
+      type="button"
+      class="flex items-center gap-3 rounded-lg border border-stone-200 bg-surface px-4 py-3 text-left transition-colors hover:border-stone-300 hover:bg-stone-100/60 focus-visible:ring-2 focus-visible:ring-emerald-600/25 focus-visible:outline-none dark:border-stone-800 dark:bg-stone-900 dark:hover:border-stone-700 dark:hover:bg-stone-800/60"
+      onclick={() => (provider = "youtube")}
+    >
+      <span class="grid min-w-0 flex-1 gap-0.5">
+        <span class="text-sm font-medium text-stone-800 dark:text-stone-100">
+          YouTube
+        </span>
+        <span class="truncate text-xs text-stone-500">
+          {$i18n.t("youtube.summary")}
+        </span>
+      </span>
+      <span class="shrink-0 text-xs text-stone-500">
+        {settings.features.youtube
+          ? $i18n.t("integrations.on")
+          : $i18n.t("integrations.off")}
+      </span>
+      <ChevronRight class="size-4 shrink-0 text-stone-400" aria-hidden="true" />
+    </button>
   </div>
 {:else}
   <nav class="flex items-center gap-1.5 text-sm">
@@ -160,9 +180,23 @@
     </button>
     <ChevronRight class="size-3.5 text-stone-400" aria-hidden="true" />
     <span class="font-medium text-stone-800 dark:text-stone-100">
-      {provider === "github" ? "GitHub" : "GitLab"}
+      {provider === "github"
+        ? "GitHub"
+        : provider === "youtube"
+          ? "YouTube"
+          : "GitLab"}
     </span>
   </nav>
+  {#if provider === "youtube"}
+    <section class="grid gap-2">
+      <Switch
+        checked={settings.features.youtube}
+        label={$i18n.t("youtube.enable")}
+        onChange={(youtube) => updateFeatures(settings, onChange, { youtube })}
+      />
+      <span class="text-xs text-stone-500">{$i18n.t("youtube.help")}</span>
+    </section>
+  {/if}
 {#each providers.filter((item) => item.id === provider) as section (section.id)}
 <div class="grid gap-6">
   <section class="grid gap-2">

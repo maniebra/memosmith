@@ -1,5 +1,6 @@
 import { assetFolder } from "./assets";
 import { attribute } from "./markdownInline";
+import { youtubeMedia } from "./youtube";
 
 export const MEDIA_LINE = /^(\s*)!\[([^\]\n]*)\]\(([^)\n]+)\)\s*$/;
 
@@ -43,21 +44,28 @@ export function mediaPreview(
   alt: string,
   source: string,
   resolveAsset: (source: string) => string,
+  /** Unset: YouTube links stay plain images. Otherwise whether we are online. */
+  youtubeOnline?: boolean,
 ) {
   const url = attribute(resolveAsset(source));
   const folder = assetFolder(source);
   const { width, align } = mediaOptions(line);
   const size = width ? ` style="width:${width}px"` : "";
+  const youtube =
+    youtubeOnline === undefined
+      ? null
+      : youtubeMedia(source, alt.split("|")[0], size, youtubeOnline);
   const media =
-    folder === "videos"
+    youtube ??
+    (folder === "videos"
       ? `<video class="md-media" src="${url}"${size} controls></video>`
       : folder === "audio"
         ? `<audio class="md-media" src="${url}" controls></audio>`
-        : `<img class="md-media" src="${url}" alt="${attribute(alt.split("|")[0])}"${size}>`;
+        : `<img class="md-media" src="${url}" alt="${attribute(alt.split("|")[0])}"${size}>`);
 
   // The handle is a drag target only; the editor rewrites the source line on release.
   const handle =
-    folder === "audio"
+    folder === "audio" && !youtube
       ? ""
       : `<span class="md-resize" aria-hidden="true"></span>`;
 

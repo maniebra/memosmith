@@ -37,6 +37,7 @@
   export let plantuml: boolean;
   export let plantumlSettings: PlantumlSettings;
   export let mermaid: boolean;
+  export let youtube = false;
   export let mermaidSettings: MermaidSettings;
   export let runSession = "";
   export let runner: RunnerSettings;
@@ -134,6 +135,7 @@
       {plantuml}
       {plantumlSettings}
       {mermaid}
+      {youtube}
       {mermaidSettings}
       {runSession}
       {runner}

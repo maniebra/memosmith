@@ -21,6 +21,7 @@ export type FeatureSettings = {
   lsp: boolean;
   plantuml: boolean;
   mermaid: boolean;
+  youtube: boolean;
   windowControls: boolean;
 };
 

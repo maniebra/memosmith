@@ -208,6 +208,7 @@
           plantuml={settings.features.plantuml}
           plantumlSettings={settings.plantuml}
           mermaid={settings.features.mermaid}
+          youtube={settings.features.youtube}
           mermaidSettings={settings.mermaid}
           runSession={path ?? ""}
           runner={settings.runner}
