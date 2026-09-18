@@ -143,7 +143,7 @@ pub fn list_databases(root: String) -> Result<Vec<DatabaseSummary>, String> {
         databases.push(DatabaseSummary { id, name, tables });
     }
 
-    databases.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    databases.sort_by_key(|database| database.name.to_lowercase());
 
     Ok(databases)
 }

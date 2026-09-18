@@ -719,7 +719,9 @@ fn reset_session_blocking(session: String, language: String) -> Result<(), Strin
 
     // Waits out a cell already running in that slot, then kills the kernel it hands back.
     if let Some(slot) = removed {
-        slot.lock().map_err(|error| error.to_string())?.take().map(Session::stop);
+        if let Some(session) = slot.lock().map_err(|error| error.to_string())?.take() {
+            session.stop();
+        }
     }
 
     Ok(())
