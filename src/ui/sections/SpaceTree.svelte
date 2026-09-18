@@ -4,8 +4,6 @@
     ChevronRight,
     FileText,
     Folder,
-    FolderOpen,
-    FolderPlus,
     Pencil,
     Plus,
     Trash2,
@@ -20,9 +18,8 @@
     type TreeNode,
   } from "../../lib/utils/tree";
   import PageIcon from "../components/PageIcon.svelte";
-  import ContextMenu, {
-    type ContextMenuItem,
-  } from "../components/ContextMenu.svelte";
+  import ContextMenu from "../components/ContextMenu.svelte";
+  import { treeContextItems } from "./spaceTreeMenu";
   import Self from "./SpaceTree.svelte";
   import TreeNameInput from "./TreeNameInput.svelte";
 
@@ -174,60 +171,18 @@
     contextMenu = { x: event.clientX, y: event.clientY, node };
   }
 
-  function contextItems(node: TreeNode): ContextMenuItem[] {
-    const items: ContextMenuItem[] = [];
-
-    if (node.note) {
-      items.push({
-        label: "Select",
-        onSelect: () => onSelect(node.note!),
-      });
-    }
-
-    if (node.children) {
-      items.push({
-        label: collapsed[node.path] ? "Expand" : "Collapse",
-        icon: collapsed[node.path] ? ChevronRight : ChevronDown,
-        onSelect: () => toggle(node),
-      });
-      items.push({
-        label: $i18n.t("sidebar.scopeDirectory"),
-        icon: FolderOpen,
-        onSelect: () => onScopeDirectory(node.path),
-      });
-      items.push({ separator: true });
-      items.push({
-        label: "Add note",
-        icon: Plus,
-        onSelect: () => {
-          collapsed = { ...collapsed, [node.path]: false };
-          onStartCreate(node.path);
-        },
-      });
-      items.push({
-        label: "Add folder",
-        icon: FolderPlus,
-        onSelect: () => {
-          collapsed = { ...collapsed, [node.path]: false };
-          onStartCreate(node.path, true);
-        },
-      });
-    }
-
-    items.push({ separator: true });
-    items.push({
-      label: "Rename",
-      icon: Pencil,
-      onSelect: () => onStartRename(node.path),
+  function contextItems(node: TreeNode) {
+    return treeContextItems(node, {
+      collapsed,
+      scopeLabel: $i18n.t("sidebar.scopeDirectory"),
+      onSelect,
+      onToggle: toggle,
+      onScopeDirectory,
+      onStartCreate,
+      onExpand: (path) => (collapsed = { ...collapsed, [path]: false }),
+      onStartRename,
+      onDelete,
     });
-    items.push({
-      label: "Delete",
-      icon: Trash2,
-      danger: true,
-      onSelect: () => onDelete(node.path),
-    });
-
-    return items;
   }
 </script>
 

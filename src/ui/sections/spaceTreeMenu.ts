@@ -1,0 +1,81 @@
+import {
+  ChevronDown,
+  ChevronRight,
+  FolderOpen,
+  FolderPlus,
+  Pencil,
+  Plus,
+  Trash2,
+} from "@lucide/svelte";
+import type { TreeNode } from "../../lib/utils/tree";
+import type { ContextMenuItem } from "../components/ContextMenu.svelte";
+
+/** What the tree hands the menu so an entry can act on the row it came from. */
+export type TreeMenuDeps = {
+  collapsed: Record<string, boolean>;
+  scopeLabel: string;
+  onSelect: (relativePath: string) => void;
+  onToggle: (node: TreeNode) => void;
+  onScopeDirectory: (relativePath: string) => void;
+  onStartCreate: (parentPath: string, folder?: boolean) => void;
+  onExpand: (relativePath: string) => void;
+  onStartRename: (relativePath: string) => void;
+  onDelete: (relativePath: string) => void;
+};
+
+/** Folder-only entries: expanding, scoping, and adding children. */
+function folderItems(node: TreeNode, deps: TreeMenuDeps): ContextMenuItem[] {
+  return [
+    {
+      label: deps.collapsed[node.path] ? "Expand" : "Collapse",
+      icon: deps.collapsed[node.path] ? ChevronRight : ChevronDown,
+      onSelect: () => deps.onToggle(node),
+    },
+    {
+      label: deps.scopeLabel,
+      icon: FolderOpen,
+      onSelect: () => deps.onScopeDirectory(node.path),
+    },
+    { separator: true },
+    {
+      label: "Add note",
+      icon: Plus,
+      onSelect: () => {
+        deps.onExpand(node.path);
+        deps.onStartCreate(node.path);
+      },
+    },
+    {
+      label: "Add folder",
+      icon: FolderPlus,
+      onSelect: () => {
+        deps.onExpand(node.path);
+        deps.onStartCreate(node.path, true);
+      },
+    },
+  ];
+}
+
+export function treeContextItems(
+  node: TreeNode,
+  deps: TreeMenuDeps,
+): ContextMenuItem[] {
+  return [
+    ...(node.note
+      ? [{ label: "Select", onSelect: () => deps.onSelect(node.note!) }]
+      : []),
+    ...(node.children ? folderItems(node, deps) : []),
+    { separator: true },
+    {
+      label: "Rename",
+      icon: Pencil,
+      onSelect: () => deps.onStartRename(node.path),
+    },
+    {
+      label: "Delete",
+      icon: Trash2,
+      danger: true,
+      onSelect: () => deps.onDelete(node.path),
+    },
+  ];
+}

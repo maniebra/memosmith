@@ -91,8 +91,17 @@
     ]);
   }
 
-  $: instancesOf = (provider: IntegrationProvider) =>
-    settings.gitlab.filter((item) => item.provider === provider);
+  $: byProvider = settings.gitlab.reduce<
+    Partial<Record<IntegrationProvider, GitlabInstance[]>>
+  >((groups, item) => {
+    (groups[item.provider] ??= []).push(item);
+
+    return groups;
+  }, {});
+
+  function instancesOf(provider: IntegrationProvider) {
+    return byProvider[provider] ?? [];
+  }
 
   function remove(id: string) {
     setInstances(settings.gitlab.filter((item) => item.id !== id));
@@ -145,7 +154,10 @@
             ? $i18n.t("integrations.count", { active, count })
             : $i18n.t("integrations.none")}
         </span>
-        <ChevronRight class="size-4 shrink-0 text-stone-400" aria-hidden="true" />
+        <ChevronRight
+          class="size-4 shrink-0 text-stone-400"
+          aria-hidden="true"
+        />
       </button>
     {/each}
     <button

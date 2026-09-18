@@ -105,7 +105,12 @@
       <ul
         class="absolute inset-x-0 top-0"
         bind:clientHeight={heights[depth]}
-        in:fly={{ x: direction * 20, duration: 240, opacity: 0, easing: cubicOut }}
+        in:fly={{
+          x: direction * 20,
+          duration: 240,
+          opacity: 0,
+          easing: cubicOut,
+        }}
         out:fly={{
           x: direction * -20,
           duration: 240,
@@ -140,6 +145,8 @@
               class="inline-flex h-4 w-4 shrink-0 [&>svg]:h-4 [&>svg]:w-4"
               style={command.color ? `color: ${command.color};` : ""}
             >
+              <!-- Markup from a fixed icon table, never user input. -->
+              <!-- eslint-disable-next-line svelte/no-at-html-tags -->
               {@html calloutIconSvg(command.icon)}
             </span>
           {/if}

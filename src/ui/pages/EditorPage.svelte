@@ -4,17 +4,11 @@
   import { cubicOut } from "svelte/easing";
   import { explainIssue } from "../../lib/tauri/llm";
   import type { DatabaseSummary } from "../../lib/tauri/databases";
-  import { i18n, locale } from "../../lib/i18n";
-  import {
-    registerKeybindings,
-    setKeybindingOverrides,
-  } from "../../lib/utils/keybindings";
-  import { keybindingOverrides } from "../../lib/utils/keybindingModes";
-  import { setVimEnabled } from "../../lib/utils/vimMode";
+  import { i18n } from "../../lib/i18n";
+  import { registerKeybindings } from "../../lib/utils/keybindings";
   import { createEditorPageKeybindings } from "./editorPageKeybindings";
-  import { loadSettings, saveSettings } from "../../lib/storage/settings";
-  import { palette } from "../../lib/utils/optionColors";
-  import { journal, setJournalDir, traced } from "../../lib/utils/journal";
+  import { loadSettings } from "../../lib/storage/settings";
+  import { journal, traced } from "../../lib/utils/journal";
   import { loadSpaceRoot } from "../../lib/storage/space";
   import { loadTabs, saveTabs } from "../../lib/storage/tabs";
   import type { GrammarIssue, GrammarReport } from "../../lib/utils/grammar";
@@ -27,11 +21,10 @@
     normalizePath,
   } from "../../lib/utils/path";
   import { backlinksForNote } from "../../lib/utils/wikilinks";
-  import { applyAppearanceTheme } from "../../lib/utils/theme";
-  import { getCurrentWindow } from "@tauri-apps/api/window";
   import EditorPageView from "./EditorPageView.svelte";
   import { countWords, noteBreadcrumbs } from "./editorPageUtils";
   import { createTabActions } from "./editorPageTabActions";
+  import { applySettingsEffects } from "./editorPageSettingsEffects";
   import type {
     EditorPageActions,
     EditorPageContext,
@@ -143,33 +136,7 @@
     contents,
   );
   $: document.title = `${displayName} - ${appTitle}`;
-  $: setKeybindingOverrides(keybindingOverrides(settings.keybindings));
-  $: setVimEnabled(settings.keybindings.mode === "vim");
-  $: locale.set(settings.locale);
-  $: document.documentElement.lang = settings.locale;
-  $: document.documentElement.dir = $i18n.dir;
-  // Native buttons need the OS frame; every other choice draws its own.
-  $: setDecorations(
-    settings.features.windowControls &&
-      settings.appearance.windowButtons === "native",
-  );
-  function setDecorations(on: boolean) {
-    try {
-      getCurrentWindow().setDecorations(on).catch(() => {});
-    } catch {
-      // Throws synchronously outside Tauri (plain browser dev).
-    }
-  }
-  $: applyAppearanceTheme(
-    settings.theme,
-    settings.appearance,
-    prefersDark,
-    settings.features.badges,
-  );
-  // Database chips read the palette from a store, not from drilled props.
-  $: palette.set(settings.databasePalette);
-  $: saveSettings(settings);
-  $: setJournalDir(settings.logDir);
+  $: applySettingsEffects(settings, prefersDark);
   $: journal("state", {
     activeTab,
     path,
@@ -331,7 +298,11 @@
     }),
     (message) => (statusMessage = message),
   );
-  $: gitlabSync.refresh(settings.gitlab, settings.features.databases, spaceRoot);
+  $: gitlabSync.refresh(
+    settings.gitlab,
+    settings.features.databases,
+    spaceRoot,
+  );
   onDestroy(gitlabSync.stop);
 
   onMount(() =>

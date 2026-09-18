@@ -72,7 +72,9 @@
     <div class="min-h-0 flex-1 overflow-y-auto px-4 py-3">
       <div class="flex flex-col gap-1">
         {#each columns as column (column.id)}
-          <div class="flex flex-col gap-0.5 sm:flex-row sm:items-start sm:gap-3">
+          <div
+            class="flex flex-col gap-0.5 sm:flex-row sm:items-start sm:gap-3"
+          >
             <span
               class="shrink-0 truncate pt-2 text-xs text-stone-400 sm:w-32"
               title={column.name}>{column.name}</span

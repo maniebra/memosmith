@@ -178,7 +178,9 @@ class EntryActions {
   ) {
     const fromPath = this.spacePath(from);
     this.updateActiveTabPath(from, next);
-    if (next.folder && this.context.path === this.spacePath(dirNotePath(from))) {
+    const fromDirNote = this.spacePath(dirNotePath(from));
+
+    if (next.folder && this.context.path === fromDirNote) {
       this.context.path = this.spacePath(dirNotePath(next.path));
     } else if (this.context.path === fromPath) {
       this.context.path = this.spacePath(next.path);

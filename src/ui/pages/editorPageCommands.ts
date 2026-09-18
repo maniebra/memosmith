@@ -87,9 +87,54 @@ function entryItems(source: CommandSource): PaletteItem[] {
   return [...notes, ...databases];
 }
 
+type Command = Omit<PaletteItem, "kind">;
+
+/** Actions that need an open note, listed only when there is one. */
+function noteActions(source: CommandSource): Command[] {
+  const { actions, t } = source;
+
+  if (!source.hasNote) {
+    return [];
+  }
+
+  return [
+    {
+      id: "action:pdf",
+      label: t("command.exportPdf"),
+      run: source.exportPdf,
+    },
+    {
+      id: "action:save",
+      label: t("command.saveNote"),
+      run: () => void actions.runWithStatus(actions.flushNoteSave),
+    },
+    {
+      id: "action:saveAs",
+      label: t("command.saveNoteAs"),
+      run: () => void actions.runWithStatus(actions.saveNoteAs),
+    },
+    {
+      id: "action:grammarCheck",
+      label: t("command.runGrammarCheck"),
+      run: () => void actions.runWithStatus(actions.runGrammarCheck),
+    },
+    {
+      id: "action:cover",
+      label: t("command.pickCover"),
+      run: () => void actions.runWithStatus(actions.pickActiveCover),
+    },
+    {
+      id: "action:removeCover",
+      label: t("command.removeCover"),
+      run: () =>
+        void actions.runWithStatus(() => actions.updateActiveCover(null)),
+    },
+  ];
+}
+
 function actionItems(source: CommandSource): PaletteItem[] {
   const { actions, t } = source;
-  const commands: Omit<PaletteItem, "kind">[] = [
+  const commands: Command[] = [
     {
       id: "action:settings",
       label: t("command.openSettings"),
@@ -105,45 +150,7 @@ function actionItems(source: CommandSource): PaletteItem[] {
       label: t("command.toggleReadOnly"),
       run: source.toggleReadOnly,
     },
-    ...(source.hasNote
-      ? [
-          {
-            id: "action:pdf",
-            label: t("command.exportPdf"),
-            run: source.exportPdf,
-          },
-        ]
-      : []),
-    ...(source.hasNote
-      ? [
-          {
-            id: "action:save",
-            label: t("command.saveNote"),
-            run: () => void actions.runWithStatus(actions.flushNoteSave),
-          },
-          {
-            id: "action:saveAs",
-            label: t("command.saveNoteAs"),
-            run: () => void actions.runWithStatus(actions.saveNoteAs),
-          },
-          {
-            id: "action:grammarCheck",
-            label: t("command.runGrammarCheck"),
-            run: () => void actions.runWithStatus(actions.runGrammarCheck),
-          },
-          {
-            id: "action:cover",
-            label: t("command.pickCover"),
-            run: () => void actions.runWithStatus(actions.pickActiveCover),
-          },
-          {
-            id: "action:removeCover",
-            label: t("command.removeCover"),
-            run: () =>
-              void actions.runWithStatus(() => actions.updateActiveCover(null)),
-          },
-        ]
-      : []),
+    ...noteActions(source),
     {
       id: "action:grammar",
       label: t("command.toggleGrammar"),
@@ -160,6 +167,7 @@ function actionItems(source: CommandSource): PaletteItem[] {
       run: () => void actions.runWithStatus(actions.refreshSpace),
     },
   ];
+
   return commands.map((command) => ({
     ...command,
     kind: "action" as const,

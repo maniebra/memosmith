@@ -11,7 +11,11 @@ function block(height: number, top: number) {
 
   return {
     grow: (next: number) => (current = next),
-    getBoundingClientRect: () => ({ top, bottom: top + current, height: current }),
+    getBoundingClientRect: () => ({
+      top,
+      bottom: top + current,
+      height: current,
+    }),
   };
 }
 
@@ -49,7 +53,13 @@ function harness() {
   const blocks = createBlocks(editor);
   editor.syncTailAdd = blocks.syncTailAdd;
 
-  return { editor, blocks, tall, observed: () => observed, notify: () => notify() };
+  return {
+    editor,
+    blocks,
+    tall,
+    observed: () => observed,
+    notify: () => notify(),
+  };
 }
 
 const { editor, blocks, tall, observed, notify } = harness();

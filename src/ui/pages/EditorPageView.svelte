@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { scale, slide } from "svelte/transition";
+  import { slide } from "svelte/transition";
   import { i18n } from "../../lib/i18n";
   import BacklinksPanel from "../sections/BacklinksPanel.svelte";
   import DatabaseManager from "../sections/DatabaseManager.svelte";
@@ -12,6 +12,7 @@
   import CommandPalette from "../components/CommandPalette.svelte";
   import PdfExportModal from "../components/PdfExportModal.svelte";
   import SettingsPanel from "../sections/SettingsPanel.svelte";
+  import ModalOverlay from "../components/ModalOverlay.svelte";
   import SpaceSidebar from "../sections/SpaceSidebar.svelte";
   import WelcomeDashboard from "../sections/WelcomeDashboard.svelte";
   import type { EditorPageActions } from "./editorPageContext";
@@ -315,7 +316,10 @@
       {/if}
     {/if}
     {#if settings.features.grammarPolice && grammarOpen && !activeDatabaseTabId}
-      <div class="ms-island ms-island-gap flex min-h-0" transition:slide={paneSlide}>
+      <div
+        class="ms-island ms-island-gap flex min-h-0"
+        transition:slide={paneSlide}
+      >
         <GrammarPolice
           report={grammarReport}
           checking={grammarChecking}
@@ -335,17 +339,7 @@
       </div>
     {/if}
     {#if settings.features.databases && databasesOpen}
-      <div
-        class="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/40 backdrop-blur-sm"
-        role="presentation"
-        onclick={() => (databasesOpen = false)}
-      >
-        <div
-          class="relative z-50 overflow-hidden rounded-xl border border-stone-200/50 shadow-xl dark:border-stone-800/50"
-          role="presentation"
-          transition:scale={{ duration: 150, start: 0.95 }}
-          onclick={(event) => event.stopPropagation()}
-        >
+      <ModalOverlay onClose={() => (databasesOpen = false)}>
           <DatabaseManager
             {databases}
             activeDatabaseId={activeDatabaseTabId}
@@ -357,21 +351,10 @@
               actions.runWithStatus(() => actions.deleteSpaceDatabase(id))}
             onClose={() => (databasesOpen = false)}
           />
-        </div>
-      </div>
+      </ModalOverlay>
     {/if}
     {#if settingsOpen}
-      <div
-        class="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/40 backdrop-blur-sm"
-        role="presentation"
-        onclick={() => (settingsOpen = false)}
-      >
-        <div
-          class="relative z-50 overflow-hidden rounded-xl border border-stone-200/50 shadow-xl dark:border-stone-800/50"
-          role="presentation"
-          transition:scale={{ duration: 150, start: 0.95 }}
-          onclick={(e) => e.stopPropagation()}
-        >
+      <ModalOverlay onClose={() => (settingsOpen = false)}>
           <SettingsPanel
             {settings}
             root={settings.features.databases ? spaceRoot : null}
@@ -379,8 +362,7 @@
             onReset={actions.resetSettings}
             onChange={actions.updateSettings}
           />
-        </div>
-      </div>
+      </ModalOverlay>
     {/if}
   </div>
   <EditorStatusBar {statusMessage} {words} {characters} />

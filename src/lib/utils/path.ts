@@ -24,7 +24,10 @@ export function isAbsolutePath(filePath: string): boolean {
 }
 
 /** Returns `path` relative to `directory`, or null when it lies elsewhere. */
-export function relativePath(directory: string, filePath: string): string | null {
+export function relativePath(
+  directory: string,
+  filePath: string,
+): string | null {
   const base = normalizePath(directory).replace(/\/+$/, "");
   const path = normalizePath(filePath);
   const prefix = `${base}/`;

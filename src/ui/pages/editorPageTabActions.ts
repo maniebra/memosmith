@@ -58,24 +58,18 @@ async function closeTab(
   deps.clearActive();
 }
 
+function togglePinned(pinned: string[], id: string) {
+  return pinned.includes(id)
+    ? pinned.filter((tab) => tab !== id)
+    : [...pinned, id];
+}
+
 export function createTabActions(state: TabsState, deps: TabsDeps) {
   const closingTabs = new Set<string>();
   const openTab = (id: string) => {
     closingTabs.delete(id);
     return deps.runWithStatus(() => deps.select(id));
   };
-
-  function togglePinTab(id: string) {
-    state.pinnedTabs = state.pinnedTabs.includes(id)
-      ? state.pinnedTabs.filter((tab) => tab !== id)
-      : [...state.pinnedTabs, id];
-    return sync(
-      state.activeTab,
-      state.spaceNotes,
-      state.databases,
-      state.pinnedTabs,
-    );
-  }
 
   /** Recomputed whenever the active tab, the space, or pinning changes. */
   const sync = (
@@ -95,9 +89,18 @@ export function createTabActions(state: TabsState, deps: TabsDeps) {
 
   return {
     openTab,
+    togglePinTab: (id: string) => {
+      state.pinnedTabs = togglePinned(state.pinnedTabs, id);
+
+      return sync(
+        state.activeTab,
+        state.spaceNotes,
+        state.databases,
+        state.pinnedTabs,
+      );
+    },
     closeTab: (id: string) => closeTab(state, deps, closingTabs, id),
     sync,
-    togglePinTab,
     reorderTabs: (id: string, target: string) =>
       moveTab(state.openTabs, id, target, state.pinnedTabs),
     cycleTabs(step: number) {

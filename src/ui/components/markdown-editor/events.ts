@@ -1,5 +1,3 @@
-import { spotifyMarkdown } from "../../../lib/utils/spotify";
-import { youtubeMarkdown } from "../../../lib/utils/youtube";
 import {
   enterEdit,
   insideFence,
@@ -22,6 +20,7 @@ import {
 import { toggleTaskAt, toggleTaskKey } from "./taskToggle";
 import { journal } from "../../../lib/utils/journal";
 import { handleDragOver, handleDrop } from "./drop";
+import { handlePaste } from "./paste";
 import type { Editor, EventApi } from "./types";
 
 export function createEvents(e: Editor): EventApi {
@@ -32,7 +31,11 @@ export function createEvents(e: Editor): EventApi {
     handleCompositionEnd: service.handleCompositionEnd.bind(service),
     handleCompositionStart: service.handleCompositionStart.bind(service),
     handleKeydown: service.handleKeydown.bind(service),
-    handlePaste: service.handlePaste.bind(service),
+    handlePaste: (event) => {
+      if (!service.insideDatabaseEmbed(event)) {
+        handlePaste(e, event);
+      }
+    },
     handleDragOver: (event) => handleDragOver(e, event),
     handleDrop: (event) =>
       handleDrop(e, event, service.insideDatabaseEmbed(event)),
@@ -289,58 +292,6 @@ class EditorEvents {
     }
 
     this.handleMarkdownKeydown(event, surface);
-  }
-
-  handlePaste(event: ClipboardEvent) {
-    const e = this.e;
-
-    if (this.insideDatabaseEmbed(event)) {
-      return;
-    }
-
-    const files = Array.from(event.clipboardData?.files ?? []);
-
-    if (files.length) {
-      event.preventDefault();
-      void e.props.onAssets({ files }).then(e.insertAssets);
-      return;
-    }
-
-    const text = event.clipboardData?.getData("text/plain");
-    const subblockBody = e.subblockBodyForNode(event.target as Node | null);
-    if (subblockBody && text !== undefined) {
-      event.preventDefault();
-      e.replaceSubblockSelection(subblockBody, text);
-      return;
-    }
-
-    const offset = e.caretOffset();
-    const table = e.tableSelection();
-
-    if (table && text !== undefined) {
-      event.preventDefault();
-      e.replaceTableCellSelection(table.cell, text);
-      return;
-    }
-
-    if (offset === null || !text) {
-      return;
-    }
-
-    event.preventDefault();
-    const video =
-      (e.props.youtube ? youtubeMarkdown(text) : null) ??
-      (e.props.spotify ? spotifyMarkdown(text) : null);
-
-    if (video) {
-      // The player needs a line of its own.
-      const before = e.value.slice(0, offset);
-      const lead = before === "" || before.endsWith("\n") ? "" : "\n";
-      e.replace(offset, offset, `${lead}${video}\n`);
-      return;
-    }
-
-    e.replace(offset, offset, text);
   }
 
   private handleWikilinkPointer(event: PointerEvent, handle: HTMLElement) {
