@@ -26,6 +26,8 @@ export function createBlocks(e: Editor): BlockApi {
 /** Blocks as the user sees them: the hover toolbar, dragging, and their source. */
 class EditorBlocks {
   private blockToolbarHideTimer: ReturnType<typeof setTimeout> | undefined;
+  private blockResize: ResizeObserver | undefined;
+  private watchedBlocks: Element[] = [];
   private suppressBlockMenuClick = false;
 
   constructor(private e: Editor) {}
@@ -169,16 +171,31 @@ class EditorBlocks {
   private lastVisualBlockRect() {
     const nodes = this.e.element?.children ?? [];
     const children = Array.from(nodes) as HTMLElement[];
+    // The tallest bottom, not the last child: a block can render taller than
+    // the ones after it (a diagram, a wrapped table).
+    const bottoms = children
+      .map((child) => child.getBoundingClientRect())
+      .filter((rect) => rect.height > 0)
+      .map((rect) => rect.bottom);
 
-    for (let index = children.length - 1; index >= 0; index--) {
-      const rect = children[index].getBoundingClientRect();
+    return bottoms.length ? Math.max(...bottoms) : null;
+  }
 
-      if (rect.height > 0) {
-        return rect;
-      }
+  /** Blocks that grow after they render (diagrams, images) move the tail. */
+  private watchBlocks() {
+    const children = Array.from(this.e.element?.children ?? []);
+    const same =
+      children.length === this.watchedBlocks.length &&
+      children.every((child, index) => child === this.watchedBlocks[index]);
+
+    if (same) {
+      return;
     }
 
-    return null;
+    this.blockResize ??= new ResizeObserver(() => this.syncTailAdd());
+    this.blockResize.disconnect();
+    this.watchedBlocks = children;
+    children.forEach((child) => this.blockResize?.observe(child));
   }
 
   syncBlockToolbar() {
@@ -210,10 +227,12 @@ class EditorBlocks {
         return;
       }
 
-      const lastRect = this.lastVisualBlockRect();
+      this.watchBlocks();
+
+      const lastBottom = this.lastVisualBlockRect();
       const shellRect = e.shell.getBoundingClientRect();
       const fallback = e.element.getBoundingClientRect();
-      const bottom = lastRect?.bottom ?? fallback.top;
+      const bottom = lastBottom ?? fallback.top;
 
       e.ui.tailAddTop = Math.max(0, bottom - shellRect.top + 2);
     });
