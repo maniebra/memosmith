@@ -43,6 +43,14 @@ export function listTemplates(root: string, folder: string) {
   });
 }
 
+/** Every template in the space, with the folder its `.templates` sits in. */
+export function listAllTemplates(root: string) {
+  return invoke<{ folder: string; name: string; text: string }[]>(
+    "list_all_templates",
+    { root },
+  );
+}
+
 export function renamePath(from: string, to: string) {
   return invoke("rename_path", { from, to });
 }

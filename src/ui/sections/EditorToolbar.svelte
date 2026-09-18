@@ -1,5 +1,6 @@
 <script lang="ts">
   import {
+    FilePlus,
     Database,
     FileDown,
     Link2,
@@ -17,6 +18,13 @@
   import { i18n } from "../../lib/i18n";
   import { cn } from "../../lib/utils/cn";
   import Button from "../components/Button.svelte";
+  import ModalOverlay from "../components/ModalOverlay.svelte";
+  import TemplateManager from "./TemplateManager.svelte";
+  import {
+    fillTemplate,
+    type SpaceTemplate,
+  } from "../../lib/utils/templates";
+  import type { EditorPageActions } from "../pages/editorPageContext";
   import type { WindowButtons } from "../../lib/utils/theme";
 
   type ToolbarBreadcrumb = {
@@ -45,6 +53,28 @@
   export let onToggleDatabases: () => void;
   export let onToggleGrammar: () => void;
   export let onExportPdf: (() => void) | null = null;
+  export let spaceRoot: string | null = null;
+  export let spaceNotes: string[] = [];
+  export let actions: Pick<
+    EditorPageActions,
+    "runWithStatus" | "selectSpaceNote" | "createSpaceNote"
+  >;
+
+  function editTemplate(relativePath: string) {
+    templatesOpen = false;
+    void actions.runWithStatus(() => actions.selectSpaceNote(relativePath));
+  }
+
+  function useTemplate(template: SpaceTemplate) {
+    templatesOpen = false;
+    const title = $i18n.t("welcome.untitled");
+    const text = fillTemplate(template.text, title);
+    void actions.runWithStatus(() =>
+      actions.createSpaceNote(template.folder, title, false, text),
+    );
+  }
+
+  let templatesOpen = false;
 
   // Without the OS frame, the toolbar carries the window controls.
   const windowControls = [
@@ -207,6 +237,15 @@
         size="sm"
       />
     {/if}
+    {#if spaceRoot}
+      <Button
+        label={$i18n.t("template.title")}
+        icon={FilePlus}
+        onClick={() => void (templatesOpen = !templatesOpen)}
+        variant="ghost"
+        size="sm"
+      />
+    {/if}
     {#if databasesEnabled}
       <Button
         label={$i18n.t("toolbar.databases")}
@@ -246,3 +285,15 @@
     {/each}
   </div>
 </header>
+
+{#if templatesOpen && spaceRoot}
+  <ModalOverlay onClose={() => (templatesOpen = false)}>
+    <TemplateManager
+      root={spaceRoot}
+      notes={spaceNotes}
+      onEdit={editTemplate}
+      onUse={useTemplate}
+      onClose={() => (templatesOpen = false)}
+    />
+  </ModalOverlay>
+{/if}

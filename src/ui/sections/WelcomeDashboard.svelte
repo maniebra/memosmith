@@ -1,17 +1,31 @@
 <script lang="ts">
-  import { FileText, Folder, FolderOpen, Plus } from "@lucide/svelte";
+  import {
+    FilePlus,
+    FileText,
+    Folder,
+    FolderOpen,
+    Plus,
+  } from "@lucide/svelte";
   import { i18n } from "../../lib/i18n";
   import { displayNoteName, entryPathFromNote, isDirNotePath } from "../../lib/utils/path";
   import type { SpaceMeta } from "../../lib/utils/pageMeta";
+  import {
+    fillTemplate,
+    loadSpaceTemplates,
+    type SpaceTemplate,
+  } from "../../lib/utils/templates";
   import Button from "../components/Button.svelte";
   import PageIcon from "../components/PageIcon.svelte";
 
   export let root: string | null;
   export let notes: string[];
   export let meta: SpaceMeta = {};
-  export let onNewNote: () => void;
+  export let onNewNote: (text?: string, folder?: string) => void;
   export let onChooseSpace: () => void;
   export let onOpenNote: (relativePath: string) => void;
+
+  let templates: SpaceTemplate[] = [];
+  $: void loadSpaceTemplates(root).then((found) => (templates = found));
 
   // Folder notes live at <folder>/<folder>.dir.md, and the sidebar keys their
   // icon by the folder path, so both come from the entry path, not the file.
@@ -46,9 +60,25 @@
             showLabel
             variant="ghost"
             size="sm"
-            onClick={onNewNote}
+            onClick={() => onNewNote()}
             disabled={!root}
           />
+          {#each templates as template (template.name)}
+            <Button
+              label={$i18n.t("welcome.newFromTemplate", {
+                name: template.name,
+              })}
+              icon={FilePlus}
+              showLabel
+              variant="ghost"
+              size="sm"
+              onClick={() =>
+                onNewNote(
+                  fillTemplate(template.text, $i18n.t("welcome.untitled")),
+                  template.folder,
+                )}
+            />
+          {/each}
           <Button
             label={$i18n.t("welcome.openSpace")}
             icon={FolderOpen}

@@ -1,4 +1,4 @@
-import { listTemplates } from "../tauri/files";
+import { listAllTemplates, listTemplates } from "../tauri/files";
 import { dirname, stripNoteExtension } from "./path";
 
 export type NoteTemplate = { name: string; text: string };
@@ -42,4 +42,20 @@ export function fillTemplate(text: string, title: string, now = new Date()) {
   return text.replace(/\{\{\s*(\w+)\s*\}\}/g, (match, key: string) =>
     key in values ? values[key] : match,
   );
+}
+
+/** A template plus the folder a note made from it goes into. */
+export type SpaceTemplate = NoteTemplate & { folder: string; path: string };
+
+/** Every template in the space; labels read `Folder / name`. */
+export async function loadSpaceTemplates(
+  root: string | null,
+): Promise<SpaceTemplate[]> {
+  const found = root ? await listAllTemplates(root).catch(() => []) : [];
+  return found.map(({ folder, name, text }) => ({
+    folder,
+    name: [folder, stripNoteExtension(name)].filter(Boolean).join(" / "),
+    text,
+    path: `${folder ? `${folder}/` : ""}.templates/${name}`,
+  }));
 }

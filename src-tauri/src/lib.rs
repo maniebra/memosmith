@@ -25,6 +25,7 @@ pub fn run() {
             notes::append_log,
             notes::list_space,
             notes::list_templates,
+            notes::list_all_templates,
             notes::create_note,
             notes::rename_path,
             notes::delete_path,

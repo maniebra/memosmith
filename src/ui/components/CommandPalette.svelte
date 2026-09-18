@@ -23,6 +23,10 @@
   } from "../../lib/storage/commandHistory";
   import type { EditorPageActions } from "../pages/editorPageContext";
   import type { DatabaseSummary } from "../../lib/tauri/databases";
+  import {
+    loadSpaceTemplates,
+    type SpaceTemplate,
+  } from "../../lib/utils/templates";
 
   export let actions: EditorPageActions;
   export let databases: DatabaseSummary[];
@@ -34,6 +38,10 @@
   export let settingsOpen: boolean;
   export let pdfPreviewOpen: boolean;
   export let toggleReadOnly: () => void;
+  export let root: string | null;
+
+  let templates: SpaceTemplate[] = [];
+  $: void loadSpaceTemplates(root).then((found) => (templates = found));
 
   let open = false;
   let recent = loadCommandHistory();
@@ -53,6 +61,7 @@
     openSettings: () => (settingsOpen = true),
     toggleReadOnly,
     exportPdf: () => (pdfPreviewOpen = true),
+    templates,
   });
   $: placeholder = $i18n.t("command.placeholder");
   $: mode = palettePrefix(query);

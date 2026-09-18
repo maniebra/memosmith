@@ -1,4 +1,4 @@
-use memosmith_lib::notes::list_templates;
+use memosmith_lib::notes::{list_all_templates, list_space, list_templates};
 
 #[test]
 fn templates_inherit_from_parents_and_nearest_wins() {
@@ -18,5 +18,12 @@ fn templates_inherit_from_parents_and_nearest_wins() {
 
     let top = list_templates(root.to_string_lossy().into(), "".into()).unwrap();
     assert_eq!(top.len(), 2);
+
+    let space = list_space(root.to_string_lossy().into()).unwrap();
+    assert!(space.is_empty(), "templates stay out of the sidebar");
+    let all = list_all_templates(root.to_string_lossy().into()).unwrap();
+    let work: Vec<_> = all.iter().filter(|t| t.folder == "work").map(|t| t.name.as_str()).collect();
+    assert_eq!(work, ["daily.md"]);
+    assert_eq!(all.len(), 4);
     std::fs::remove_dir_all(&root).unwrap();
 }

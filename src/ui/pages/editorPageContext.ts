@@ -65,6 +65,7 @@ export type EditorPageActions = {
     parentPath: string,
     name: string,
     folder?: boolean,
+    text?: string,
   ) => Promise<void>;
   deleteSpaceDatabase: (id: string) => Promise<void>;
   deleteSpaceEntry: (relativePath: string) => Promise<void>;

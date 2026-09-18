@@ -252,6 +252,54 @@ pub fn list_templates(root: String, folder: String) -> Result<Vec<NoteTemplate>,
     Ok(found.into_iter().map(|(name, text)| NoteTemplate { name, text }).collect())
 }
 
+/// Every template in the space, tagged with the folder whose `.templates`
+/// holds it, so a new note from it can land in that folder.
+#[tauri::command]
+pub fn list_all_templates(root: String) -> Result<Vec<FolderTemplate>, String> {
+    let root = std::path::PathBuf::from(root);
+    let mut found = Vec::new();
+    collect_templates(&root, &root, &mut found).map_err(|error| error.to_string())?;
+    Ok(found)
+}
+
+#[derive(Serialize)]
+pub struct FolderTemplate {
+    pub folder: String,
+    pub name: String,
+    pub text: String,
+}
+
+fn collect_templates(
+    root: &std::path::Path,
+    dir: &std::path::Path,
+    found: &mut Vec<FolderTemplate>,
+) -> std::io::Result<()> {
+    let templates = dir.join(".templates");
+    if templates.is_dir() {
+        let folder = dir.strip_prefix(root).unwrap_or(dir).to_string_lossy().replace('\\', "/");
+        let mut names = Vec::new();
+        collect_notes(&templates, &templates, &mut names)?;
+        names.sort();
+        for name in names {
+            let text = std::fs::read_to_string(templates.join(&name))?;
+            found.push(FolderTemplate { folder: folder.clone(), name, text });
+        }
+    }
+
+    for entry in std::fs::read_dir(dir)? {
+        let entry = entry?;
+        let name = entry.file_name().to_string_lossy().to_string();
+        if name.starts_with('.') || name == "assets" || entry.file_type()?.is_symlink() {
+            continue;
+        }
+        if entry.path().is_dir() {
+            collect_templates(root, &entry.path(), found)?;
+        }
+    }
+
+    Ok(())
+}
+
 fn collect_notes(
     root: &std::path::Path,
     dir: &std::path::Path,

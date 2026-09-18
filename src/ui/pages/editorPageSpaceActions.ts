@@ -2,6 +2,7 @@ import {
   chooseSpaceRoot,
   confirmDelete,
   createNote,
+  writeNote,
   listSpace,
   loadSpaceMeta,
   readNote,
@@ -112,20 +113,29 @@ class SpaceActions {
     this.core.focusEditor();
   }
 
-  async createSpaceNote(parentPath: string, name: string, folder = false) {
+  /** `text` seeds the new note, e.g. from a template. */
+  async createSpaceNote(
+    parentPath: string,
+    name: string,
+    folder = false,
+    text = "",
+  ) {
     await this.core.flushNoteSave();
     const parent = parentPath ? `${parentPath}/` : "";
     const relativePath = folder
       ? dirNotePath(`${parent}${safeName(name)}`)
       : `${parent}${withNoteExtension(safeName(name))}`;
     await createNote(this.spacePath(relativePath));
+    if (text) {
+      await writeNote(this.spacePath(relativePath), text);
+    }
     await this.refreshSpace();
     this.context.activeTab = relativePath;
     this.context.activeDatabaseId = null;
-    this.core.setEditorText("", this.spacePath(relativePath));
+    this.core.setEditorText(text, this.spacePath(relativePath));
     this.context.noteContents = {
       ...this.context.noteContents,
-      [relativePath]: "",
+      [relativePath]: text,
     };
     this.context.statusMessage = this.context.t("app.created", {
       name: displayNotePath(relativePath),

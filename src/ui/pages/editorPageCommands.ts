@@ -1,3 +1,4 @@
+import { fillTemplate, type SpaceTemplate } from "../../lib/utils/templates";
 import type { DatabaseSummary } from "../../lib/tauri/databases";
 import type { I18nKey } from "../../lib/i18n";
 import type { EditorPageActions } from "./editorPageContext";
@@ -62,6 +63,8 @@ type CommandSource = {
   openSettings: () => void;
   toggleReadOnly: () => void;
   exportPdf: () => void;
+  /** Every space template, each a new note in its own folder. */
+  templates: SpaceTemplate[];
 };
 
 function entryItems(source: CommandSource): PaletteItem[] {
@@ -132,6 +135,20 @@ function noteActions(source: CommandSource): Command[] {
   ];
 }
 
+function templateActions(source: CommandSource): Command[] {
+  const { actions, t } = source;
+  return source.templates.map((template) => ({
+    id: `action:template:${template.name}`,
+    label: `${t("command.newFromTemplate")}: ${template.name}`,
+    run: () =>
+      void actions.runWithStatus(() => {
+        const title = t("welcome.untitled");
+        const text = fillTemplate(template.text, title);
+        return actions.createSpaceNote(template.folder, title, false, text);
+      }),
+  }));
+}
+
 function actionItems(source: CommandSource): PaletteItem[] {
   const { actions, t } = source;
   const commands: Command[] = [
@@ -151,6 +168,7 @@ function actionItems(source: CommandSource): PaletteItem[] {
       run: source.toggleReadOnly,
     },
     ...noteActions(source),
+    ...templateActions(source),
     {
       id: "action:grammar",
       label: t("command.toggleGrammar"),

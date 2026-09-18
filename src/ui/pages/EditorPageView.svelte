@@ -101,11 +101,11 @@
         backlinksPaneOpen: !settings.backlinksPaneOpen,
       })}
     onToggleSettings={() => (settingsOpen = !settingsOpen)}
-    onToggleDatabases={() => {
-      if (settings.features.databases) {
-        databasesOpen = !databasesOpen;
-      }
-    }}
+    onToggleDatabases={() =>
+      void (databasesOpen = settings.features.databases && !databasesOpen)}
+    {spaceRoot}
+    {spaceNotes}
+    {actions}
     onToggleGrammar={actions.toggleGrammar}
     onExportPdf={path ? () => (pdfPreviewOpen = true) : null}
   />
@@ -170,9 +170,9 @@
           root={spaceRoot}
           notes={spaceNotes}
           meta={spaceMeta}
-          onNewNote={() =>
+          onNewNote={(text, folder = "") =>
             actions.runWithStatus(() =>
-              actions.createSpaceNote("", $i18n.t("welcome.untitled")),
+              actions.createSpaceNote(folder, $i18n.t("welcome.untitled"), false, text),
             )}
           onChooseSpace={() => actions.runWithStatus(actions.chooseSpace)}
           onOpenNote={(relativePath) =>
@@ -384,6 +384,7 @@
   {path}
   {settings}
   {spaceNotes}
+  root={spaceRoot}
   bind:settingsOpen
   bind:pdfPreviewOpen
   toggleReadOnly={() => (readOnly = !readOnly)}

@@ -43,6 +43,7 @@ const source = {
   openSettings: () => {},
   toggleReadOnly: () => {},
   exportPdf: () => {},
+  templates: [{ folder: "", name: "daily", text: "# {{title}}" }],
 } as any;
 
 const items = commandPaletteItems(source);
@@ -54,6 +55,10 @@ assert(
 assert(
   !items.some((item) => item.id === "action:pdf"),
   "PDF export hidden without an open note",
+);
+assert(
+  items.some((item) => item.id === "action:template:daily"),
+  "each root template is a new-note command",
 );
 items[0].run();
 assert(opened === "Notes/Todo.md", "running a note item opens it");
