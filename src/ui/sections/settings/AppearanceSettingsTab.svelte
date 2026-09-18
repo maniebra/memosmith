@@ -85,12 +85,7 @@
   }));
   $: translatedCornerOptions = cornerOptions.map((corner) => ({
     ...corner,
-    label:
-      corner.value === "soft"
-        ? $i18n.t("options.soft")
-        : corner.value === "rounded"
-          ? $i18n.t("options.rounded")
-          : $i18n.t("options.square"),
+    label: $i18n.t(`options.${corner.value}`),
   }));
   $: translatedDensityOptions = densityOptions.map((density) => ({
     ...density,

@@ -1,7 +1,7 @@
 export type AccentColor = "emerald" | "sky" | "violet" | "rose" | "amber";
 export type ColorMode = "system" | "light" | "dark";
 export type FontChoice = "system" | "inter" | "serif" | "mono";
-export type CornerStyle = "soft" | "rounded" | "square";
+export type CornerStyle = "soft" | "rounded" | "square" | "slanted";
 export type Density = "comfortable" | "compact";
 export type EditorLineHeight = "compact" | "comfortable" | "loose";
 export type WindowButtons = "windows" | "macos" | "native";
@@ -155,6 +155,7 @@ export const cornerOptions: { label: string; value: CornerStyle }[] = [
   { label: "Soft", value: "soft" },
   { label: "Rounded", value: "rounded" },
   { label: "Square", value: "square" },
+  { label: "Slanted", value: "slanted" },
 ];
 
 export const densityOptions: { label: string; value: Density }[] = [
@@ -301,7 +302,7 @@ function fontFamilyFor(choice: FontChoice, stack: string) {
     : fontStacks[choice];
 }
 
-const cornerVariables: Record<CornerStyle, Record<string, string>> = {
+const cornerVariables: Partial<Record<CornerStyle, Record<string, string>>> = {
   soft: {
     "--radius-sm": "0.25rem",
     "--radius-md": "0.375rem",
@@ -374,7 +375,7 @@ export function applyAppearanceTheme(
   );
 
   for (const [name, value] of Object.entries(
-    cornerVariables[appearance.cornerStyle],
+    cornerVariables[appearance.cornerStyle] ?? {},
   )) {
     root.style.setProperty(name, value);
   }
