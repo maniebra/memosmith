@@ -65,6 +65,8 @@ export type SlashCommand = {
   color?: string;
   /** Second line under the label; replaces the hint badge. */
   detail?: string;
+  /** Inserted verbatim at the caret instead of rewriting the line. */
+  insert?: string;
 };
 
 export type BlockUnit = {
@@ -133,6 +135,8 @@ export type EditorProps = {
   wikilinkKey: string;
   databaseRoot: string;
   databaseOptions: DatabaseSummary[];
+  /** Templates from `.templates` folders above the note, offered by the slash menu. */
+  templates: { name: string; text: string }[];
   /** Synced GitLab items the slash menu offers and embeds show. */
   gitlabCards: GitlabCard[];
   onOpenDatabase: ((databaseId: string) => void) | null;

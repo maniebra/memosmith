@@ -258,6 +258,8 @@ export const en = {
   "editor.drawing": "Drawing",
   "editor.diagram": "Diagram",
   "editor.quiz": "Quiz",
+  "editor.template": "Template",
+  "editor.startFromTemplate": "Start from template:",
   "editor.quizChoice": "Multiple choice",
   "editor.quizBlank": "Fill in the blank",
   "editor.quizAnswer": "Written answer",

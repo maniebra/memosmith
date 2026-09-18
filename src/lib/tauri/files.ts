@@ -35,6 +35,14 @@ export function createNote(path: string) {
   return invoke("create_note", { path });
 }
 
+/** Templates visible from `folder`, nearest `.templates` first to win. */
+export function listTemplates(root: string, folder: string) {
+  return invoke<{ name: string; text: string }[]>("list_templates", {
+    root,
+    folder,
+  });
+}
+
 export function renamePath(from: string, to: string) {
   return invoke("rename_path", { from, to });
 }

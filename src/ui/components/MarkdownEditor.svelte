@@ -87,6 +87,7 @@
   export let databaseRoot = "";
   /** Databases offered by the slash menu and by relation columns. */
   export let databaseOptions: DatabaseSummary[] = [];
+  export let templates: { name: string; text: string }[] = [];
   export let onOpenDatabase: ((databaseId: string) => void) | null = null;
   export let onStatus: (message: string) => void = () => {};
   /** Source ranges to underline, drawn in an overlay so the editable DOM stays untouched. */
@@ -108,7 +109,7 @@
     runSession, runner, lsp,
     lspSettings, editable, onInput, onAssets, onPickAssets, onGenerate,
     onWikilink, resolveWikilink, renderWikilinkEmbed, wikilinkKey, databaseRoot,
-    databaseOptions, gitlabCards: databaseRoot ? $gitlabCards : [],
+    databaseOptions, templates, gitlabCards: databaseRoot ? $gitlabCards : [],
     onOpenDatabase, onStatus, decorations, resolveAsset,
   };
 

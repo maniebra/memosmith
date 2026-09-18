@@ -17,6 +17,7 @@ import {
 } from "../../../lib/utils/markdown";
 import { gitlabMenu } from "../../../lib/utils/gitlab";
 import { matchCommands } from "../../../lib/utils/slashMatching";
+import { templateMenu } from "../../../lib/utils/templates";
 import { editSurface, type EditSurface } from "./surface";
 import type { Editor, SlashApi, SlashCommand } from "./types";
 
@@ -87,6 +88,7 @@ class EditorSlash {
         : []),
       ...(props.quizzes ? [this.quizCommand()] : []),
       ...this.databaseCommands(databases),
+      ...templateMenu(props.templates, this.e.t("editor.template")),
       ...gitlabMenu(props.gitlabCards),
     ];
   }
@@ -227,6 +229,8 @@ class EditorSlash {
 
   /** A command with children opens its submenu; a leaf inserts. */
   pickCommand(command: SlashCommand) {
+    // Templates paste as-is instead of rewriting the line.
+    if (command.insert !== undefined) return this.insertText(command.insert);
     if (!command.children?.length) {
       this.runCommand(command.prefix);
       return;
@@ -348,6 +352,20 @@ class EditorSlash {
       end: lineEnd,
       text: nextLine,
       caret: start + nextLine.length - tail.length,
+    });
+  }
+
+  /** Replaces the typed `/query` with the text as-is. */
+  private insertText(insert: string) {
+    const surface = editSurface(this.e, null);
+    const start = this.e.ui.slashStart;
+    if (!surface || start === null) return;
+    this.closeMenu();
+    surface.apply({
+      start,
+      end: surface.caret,
+      text: insert,
+      caret: start + insert.length,
     });
   }
 

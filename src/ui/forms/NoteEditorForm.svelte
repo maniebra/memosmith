@@ -66,6 +66,7 @@
   export let wikilinkKey = "";
   export let databaseRoot = "";
   export let databaseOptions: DatabaseSummary[] = [];
+  export let templates: { name: string; text: string }[] = [];
   export let onOpenDatabase: ((databaseId: string) => void) | null = null;
   export let onStatus: (message: string) => void = () => {};
   export let decorations: {
@@ -154,6 +155,7 @@
       {wikilinkKey}
       {databaseRoot}
       {databaseOptions}
+      {templates}
       {onOpenDatabase}
       {onStatus}
       {decorations}

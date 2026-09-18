@@ -217,6 +217,41 @@ pub fn list_space(root: String) -> Result<Vec<String>, String> {
     Ok(notes)
 }
 
+#[derive(Serialize)]
+pub struct NoteTemplate {
+    pub name: String,
+    pub text: String,
+}
+
+/// Templates from `.templates` in `folder` and every folder above it up to
+/// `root`; a nearer template shadows a farther one of the same name.
+#[tauri::command]
+pub fn list_templates(root: String, folder: String) -> Result<Vec<NoteTemplate>, String> {
+    let root = std::path::PathBuf::from(root);
+    let mut dir = root.join(&folder);
+    let mut found = BTreeMap::new();
+
+    while dir.starts_with(&root) {
+        let templates = dir.join(".templates");
+        if templates.is_dir() {
+            let mut names = Vec::new();
+            collect_notes(&templates, &templates, &mut names).map_err(|error| error.to_string())?;
+            for name in names {
+                if !found.contains_key(&name) {
+                    let text = std::fs::read_to_string(templates.join(&name))
+                        .map_err(|error| error.to_string())?;
+                    found.insert(name, text);
+                }
+            }
+        }
+        if !dir.pop() {
+            break;
+        }
+    }
+
+    Ok(found.into_iter().map(|(name, text)| NoteTemplate { name, text }).collect())
+}
+
 fn collect_notes(
     root: &std::path::Path,
     dir: &std::path::Path,

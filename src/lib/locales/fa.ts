@@ -261,6 +261,8 @@ export const fa: Record<I18nKey, string> = {
   "editor.drawing": "طراحی",
   "editor.diagram": "نمودار",
   "editor.quiz": "آزمون",
+  "editor.template": "قالب",
+  "editor.startFromTemplate": "شروع با قالب:",
   "editor.quizChoice": "چند گزینه ای",
   "editor.quizBlank": "جای خالی",
   "editor.quizAnswer": "پاسخ تشریحی",

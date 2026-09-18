@@ -1,4 +1,5 @@
 <script lang="ts">
+  import TemplatePicker from "../sections/TemplatePicker.svelte";
   import { slide } from "svelte/transition";
   import { i18n } from "../../lib/i18n";
   import BacklinksPanel from "../sections/BacklinksPanel.svelte";
@@ -59,6 +60,7 @@
 
   /** Session-only: locks the open note against edits. */
   let readOnly = false;
+  let templates: { name: string; text: string }[] = [];
 
   $: activeDatabaseTabId =
     activeTab?.startsWith("db:") ? activeTab.slice(3) : null;
@@ -162,7 +164,7 @@
         onPin={onPinTab}
         onReorder={onReorderTabs}
       />
-      <div class="min-h-0 flex-1">
+      <div class="relative min-h-0 flex-1">
       {#if !activeTab}
         <WelcomeDashboard
           root={spaceRoot}
@@ -190,6 +192,12 @@
             ))}
         />
       {:else}
+        <TemplatePicker
+          root={spaceRoot} note={activeRelativePath} title={noteTitle}
+          bind:contents
+          bind:templates
+          onPick={actions.updateNote}
+        />
         <NoteEditorForm
           bind:contents
           bind:editor
@@ -258,6 +266,7 @@
           renderWikilinkEmbed={actions.renderActiveWikilinkEmbed}
           databaseRoot={settings.features.databases ? (spaceRoot ?? "") : ""}
           databaseOptions={databases}
+          {templates}
           onOpenDatabase={(id) =>
             actions.runWithStatus(() => actions.selectDatabase(id))}
           onStatus={(message) => (statusMessage = message)}
