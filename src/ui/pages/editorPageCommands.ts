@@ -1,4 +1,4 @@
-import { fillTemplate, type SpaceTemplate } from "../../lib/utils/templates";
+import { noteFromTemplate, type SpaceTemplate } from "../../lib/utils/templates";
 import type { DatabaseSummary } from "../../lib/tauri/databases";
 import type { I18nKey } from "../../lib/i18n";
 import type { EditorPageActions } from "./editorPageContext";
@@ -142,8 +142,10 @@ function templateActions(source: CommandSource): Command[] {
     label: `${t("command.newFromTemplate")}: ${template.name}`,
     run: () =>
       void actions.runWithStatus(() => {
-        const title = t("welcome.untitled");
-        const text = fillTemplate(template.text, title);
+        const { title, text } = noteFromTemplate(
+          template,
+          t("welcome.untitled"),
+        );
         return actions.createSpaceNote(template.folder, title, false, text);
       }),
   }));

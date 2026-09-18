@@ -10,7 +10,7 @@
   import { displayNoteName, entryPathFromNote, isDirNotePath } from "../../lib/utils/path";
   import type { SpaceMeta } from "../../lib/utils/pageMeta";
   import {
-    fillTemplate,
+    noteFromTemplate,
     loadSpaceTemplates,
     type SpaceTemplate,
   } from "../../lib/utils/templates";
@@ -20,7 +20,11 @@
   export let root: string | null;
   export let notes: string[];
   export let meta: SpaceMeta = {};
-  export let onNewNote: (text?: string, folder?: string) => void;
+  export let onNewNote: (
+    text?: string,
+    folder?: string,
+    title?: string,
+  ) => void;
   export let onChooseSpace: () => void;
   export let onOpenNote: (relativePath: string) => void;
 
@@ -72,11 +76,13 @@
               showLabel
               variant="ghost"
               size="sm"
-              onClick={() =>
-                onNewNote(
-                  fillTemplate(template.text, $i18n.t("welcome.untitled")),
-                  template.folder,
-                )}
+              onClick={() => {
+                const note = noteFromTemplate(
+                  template,
+                  $i18n.t("welcome.untitled"),
+                );
+                onNewNote(note.text, template.folder, note.title);
+              }}
             />
           {/each}
           <Button

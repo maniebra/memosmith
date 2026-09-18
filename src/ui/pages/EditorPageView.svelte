@@ -170,9 +170,9 @@
           root={spaceRoot}
           notes={spaceNotes}
           meta={spaceMeta}
-          onNewNote={(text, folder = "") =>
+          onNewNote={(text, folder = "", title = $i18n.t("welcome.untitled")) =>
             actions.runWithStatus(() =>
-              actions.createSpaceNote(folder, $i18n.t("welcome.untitled"), false, text),
+              actions.createSpaceNote(folder, title, false, text),
             )}
           onChooseSpace={() => actions.runWithStatus(actions.chooseSpace)}
           onOpenNote={(relativePath) =>

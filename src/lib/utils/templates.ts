@@ -59,3 +59,17 @@ export async function loadSpaceTemplates(
     path: `${folder ? `${folder}/` : ""}.templates/${name}`,
   }));
 }
+
+/**
+ * The note a template makes: a template file named with placeholders, like
+ * `Meeting {{date}}`, names the note too; otherwise it is `untitled`.
+ */
+export function noteFromTemplate(template: SpaceTemplate, untitled: string) {
+  const file = stripNoteExtension(template.path.split("/").pop() ?? "");
+  const named = /\{\{\s*\w+\s*\}\}/.test(file);
+  // `:` from {{time}} is not allowed in file names on Windows.
+  const title = named
+    ? fillTemplate(file, untitled).replace(/:/g, "-")
+    : untitled;
+  return { title, text: fillTemplate(template.text, title) };
+}

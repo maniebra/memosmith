@@ -21,7 +21,7 @@
   import ModalOverlay from "../components/ModalOverlay.svelte";
   import TemplateManager from "./TemplateManager.svelte";
   import {
-    fillTemplate,
+    noteFromTemplate,
     type SpaceTemplate,
   } from "../../lib/utils/templates";
   import type { EditorPageActions } from "../pages/editorPageContext";
@@ -67,8 +67,10 @@
 
   function useTemplate(template: SpaceTemplate) {
     templatesOpen = false;
-    const title = $i18n.t("welcome.untitled");
-    const text = fillTemplate(template.text, title);
+    const { title, text } = noteFromTemplate(
+      template,
+      $i18n.t("welcome.untitled"),
+    );
     void actions.runWithStatus(() =>
       actions.createSpaceNote(template.folder, title, false, text),
     );

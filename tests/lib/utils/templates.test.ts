@@ -15,3 +15,25 @@ assert(
   `fillTemplate: ${filled}`,
 );
 console.log("templates ok");
+
+import { noteFromTemplate } from "../../../src/lib/utils/templates";
+
+const dated = noteFromTemplate(
+  {
+    folder: "Work",
+    name: "Work / Meeting",
+    path: "Work/.templates/Meeting {{date}}.md",
+    text: "# {{title}}",
+  },
+  "Untitled",
+);
+assert(
+  /^Meeting \d{4}-\d\d-\d\d$/.test(dated.title),
+  `dated title: ${dated.title}`,
+);
+assert(dated.text === `# ${dated.title}`, "body title follows the note name");
+const plain = noteFromTemplate(
+  { folder: "", name: "daily", path: ".templates/daily.md", text: "x" },
+  "Untitled",
+);
+assert(plain.title === "Untitled", "plain template names stay untitled");
