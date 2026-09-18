@@ -99,7 +99,12 @@ function isFontChoice(value: unknown): value is FontChoice {
   );
 }
 function isCornerStyle(value: unknown): value is CornerStyle {
-  return value === "soft" || value === "rounded" || value === "square";
+  return (
+    value === "soft" ||
+    value === "rounded" ||
+    value === "square" ||
+    value === "slanted"
+  );
 }
 function isDensity(value: unknown): value is Density {
   return value === "comfortable" || value === "compact";

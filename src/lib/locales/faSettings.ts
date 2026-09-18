@@ -126,6 +126,7 @@ export const faSettings = {
   "options.soft": "نرم",
   "options.rounded": "گرد",
   "options.square": "چهارگوش",
+  "options.slanted": "اریب",
   "options.compact": "فشرده",
   "options.loose": "باز",
 } as const;

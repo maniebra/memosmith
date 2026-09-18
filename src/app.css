@@ -104,6 +104,130 @@ textarea,
   background: rgb(var(--ms-accent-rgb) / 0.22);
 }
 
+/* Slanted corners: cyberpunk-menu chamfers on the top-left and bottom-right.
+   Pills (rounded-full) stay round. clip-path cuts everything outside the shape,
+   so outer rings go inset and elements holding popovers keep square corners. */
+:root[data-corners="slanted"] {
+  --ms-cut: 0.5rem;
+  /* !important beats the inline radii left by the previous corner style. */
+  --radius-sm: 0 !important;
+  --radius-md: 0 !important;
+  --radius-lg: 0 !important;
+  --radius-xl: 0 !important;
+  --radius-2xl: 0 !important;
+}
+
+:root[data-corners="slanted"] :is(.rounded-sm, .rounded) {
+  --ms-cut: 0.25rem;
+}
+
+:root[data-corners="slanted"]
+  :is(.rounded-lg, .rounded-xl, .rounded-2xl, .ms-island) {
+  --ms-cut: 0.75rem;
+}
+
+:root[data-corners="slanted"]
+  :is(
+    .rounded-sm,
+    .rounded,
+    .rounded-md,
+    .rounded-lg,
+    .rounded-xl,
+    .rounded-2xl,
+    .ms-island
+  ):not(:has(.absolute, .fixed)) {
+  --tw-ring-inset: inset;
+  outline-offset: -2px;
+  clip-path: polygon(
+    var(--ms-cut) 0,
+    100% 0,
+    100% calc(100% - var(--ms-cut)),
+    calc(100% - var(--ms-cut)) 100%,
+    0 100%,
+    0 var(--ms-cut)
+  );
+}
+
+/* Redraw the border along each cut with pseudo-elements that inherit the element's own
+   border color (or ring color when it has no border), so transparent borders stay invisible. */
+:root[data-corners="slanted"]
+  :is(
+    .rounded-sm,
+    .rounded,
+    .rounded-md,
+    .rounded-lg,
+    .rounded-xl,
+    .rounded-2xl
+  ):is(.border, .ring-1, .ring):not(:has(.absolute, .fixed)):not(
+    .absolute,
+    .fixed,
+    .sticky
+  ) {
+  position: relative;
+}
+
+:root[data-corners="slanted"]
+  :is(
+    .rounded-sm,
+    .rounded,
+    .rounded-md,
+    .rounded-lg,
+    .rounded-xl,
+    .rounded-2xl
+  ):is(.border, .ring-1, .ring):not(:has(.absolute, .fixed))::before,
+:root[data-corners="slanted"]
+  :is(
+    .rounded-sm,
+    .rounded,
+    .rounded-md,
+    .rounded-lg,
+    .rounded-xl,
+    .rounded-2xl
+  ):is(.border, .ring-1, .ring):not(:has(.absolute, .fixed))::after {
+  content: "";
+  position: absolute;
+  width: calc(var(--ms-cut) * 1.4142);
+  height: 0;
+  border: 0 solid;
+  pointer-events: none;
+  transform: rotate(-45deg);
+}
+
+:root[data-corners="slanted"]
+  :is(
+    .rounded-sm,
+    .rounded,
+    .rounded-md,
+    .rounded-lg,
+    .rounded-xl,
+    .rounded-2xl
+  ):is(.border, .ring-1, .ring):not(:has(.absolute, .fixed))::before {
+  top: calc(var(--ms-cut) / 2 - 1px);
+  left: calc(var(--ms-cut) * -0.2071 - 1px);
+  border-top-width: 1px;
+  border-top-color: inherit;
+}
+
+:root[data-corners="slanted"]
+  :is(
+    .rounded-sm,
+    .rounded,
+    .rounded-md,
+    .rounded-lg,
+    .rounded-xl,
+    .rounded-2xl
+  ):is(.border, .ring-1, .ring):not(:has(.absolute, .fixed))::after {
+  right: calc(var(--ms-cut) * -0.2071 - 1px);
+  bottom: calc(var(--ms-cut) / 2 - 1px);
+  border-bottom-width: 1px;
+  border-bottom-color: inherit;
+}
+
+:root[data-corners="slanted"] :is(.ring-1, .ring):not(.border)::before,
+:root[data-corners="slanted"] :is(.ring-1, .ring):not(.border)::after {
+  border-color: var(--tw-ring-color);
+}
+
 /* IntelliJ-style islands: panes become rounded cards floating on a darker backdrop. */
 :root[data-islands] .ms-islands {
   background: var(--ms-backdrop);

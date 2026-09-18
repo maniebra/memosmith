@@ -126,6 +126,7 @@ export const enSettings = {
   "options.soft": "Soft",
   "options.rounded": "Rounded",
   "options.square": "Square",
+  "options.slanted": "Slanted",
   "options.compact": "Compact",
   "options.loose": "Loose",
 } as const;
