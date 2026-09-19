@@ -7,6 +7,7 @@ import type { DatabaseSummary } from "../../lib/tauri/databases";
 import type { GrammarMode, GrammarReport } from "../../lib/utils/grammar";
 import type { PageMeta, SpaceMeta } from "../../lib/utils/pageMeta";
 import type { I18nKey } from "../../lib/i18n";
+import type { DiagramPreview } from "../../lib/utils/diagramPreview";
 
 export type PaneName = "space" | "settings" | "backlinks";
 
@@ -18,6 +19,7 @@ export type EditorPageContext = {
   characters: number;
   contents: string;
   databases: DatabaseSummary[];
+  diagramPreviews: Record<string, DiagramPreview>;
   databasesOpen: boolean;
   editor: HTMLElement | undefined;
   readonly grammarAutoDiff: boolean;
@@ -37,6 +39,7 @@ export type EditorPageContext = {
   openTabs: string[];
   path: string | null;
   pinnedTabs: string[];
+  readonly previewTabs: string[];
   activeTab: string | null;
   resizing: { pane: PaneName; startX: number; startWidth: number } | null;
   settings: AppSettings;

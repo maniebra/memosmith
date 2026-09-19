@@ -20,6 +20,16 @@ assert(
   "active database opens as a tab",
 );
 assert(
+  syncTabs([], "preview:1", notes, databases, [], [], ["preview:1"]).join() ===
+    "preview:1",
+  "active diagram preview opens as a tab",
+);
+assert(
+  syncTabs(["preview:1"], "a.md", notes, databases, [], [], ["preview:1"])
+    .join() === "preview:1,a.md",
+  "an open diagram preview stays alongside a note tab",
+);
+assert(
   syncTabs(["a.md", "gone.md"], "a.md", notes, databases).join() === "a.md",
   "deleted note drops out",
 );
@@ -95,6 +105,7 @@ const tabState = {
   },
   spaceNotes: ["a.md"],
   databases,
+  previewTabs: [],
 };
 const tabActions = createTabActions(tabState, {
   clearActive: () => {

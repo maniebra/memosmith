@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Pin, PinOff, Table, X } from "@lucide/svelte";
+  import { Image, Pin, PinOff, Table, X } from "@lucide/svelte";
   import { i18n } from "../../lib/i18n";
   import PageIcon from "../components/PageIcon.svelte";
   import { displayNoteName, entryPathFromNote } from "../../lib/utils/path";
@@ -17,11 +17,15 @@
   let dragged: string | null = null;
 
   const isDatabase = (id: string) => id.startsWith("db:");
+  const isPreview = (id: string) => id.startsWith("preview:");
 
   function label(id: string) {
     if (isDatabase(id)) {
       const dbId = id.slice(3);
       return databases.find((entry) => entry.id === dbId)?.name ?? dbId;
+    }
+    if (isPreview(id)) {
+      return $i18n.t("editor.diagramPreview");
     }
     return displayNoteName(id);
   }
@@ -73,6 +77,8 @@
         >
           {#if isDatabase(id)}
             <Table class="size-3.5 shrink-0" />
+          {:else if isPreview(id)}
+            <Image class="size-3.5 shrink-0" />
           {:else}
             <PageIcon
               icon={meta[entryPathFromNote(id)]?.icon}

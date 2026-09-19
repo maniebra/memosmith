@@ -7,6 +7,7 @@ export type TabsState = {
   readonly activeTab: string | null;
   readonly spaceNotes: string[];
   readonly databases: { id: string }[];
+  readonly previewTabs: string[];
 };
 
 export type TabsDeps = {
@@ -21,7 +22,9 @@ export type TabsDeps = {
 function tabExists(state: TabsState, id: string) {
   return id.startsWith("db:")
     ? state.databases.some((entry) => `db:${entry.id}` === id)
-    : state.spaceNotes.includes(id);
+    : id.startsWith("preview:")
+      ? state.previewTabs.includes(id)
+      : state.spaceNotes.includes(id);
 }
 
 /** Closing the active tab falls through to its neighbour, or to no note. */
@@ -85,6 +88,7 @@ export function createTabActions(state: TabsState, deps: TabsDeps) {
       databases,
       pinned,
       [...closingTabs],
+      state.previewTabs,
     );
 
   return {

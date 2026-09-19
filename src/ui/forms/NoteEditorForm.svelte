@@ -15,6 +15,7 @@
   import type { PageIcon, PageMeta } from "../../lib/utils/pageMeta";
   import type { WikilinkEmbed } from "../../lib/utils/markdown";
   import type { WikilinkResolution } from "../../lib/utils/wikilinks";
+  import type { DiagramPreview } from "../../lib/utils/diagramPreview";
   import MarkdownEditor from "../components/MarkdownEditor.svelte";
   import PageIdentity from "../components/PageIdentity.svelte";
 
@@ -68,6 +69,8 @@
   export let databaseOptions: DatabaseSummary[] = [];
   export let templates: { name: string; text: string }[] = [];
   export let onOpenDatabase: ((databaseId: string) => void) | null = null;
+  export let onPreviewDiagram:
+    (preview: DiagramPreview) => void | Promise<void> = () => {};
   export let onStatus: (message: string) => void = () => {};
   export let decorations: {
     start: number;
@@ -157,6 +160,7 @@
       {databaseOptions}
       {templates}
       {onOpenDatabase}
+      {onPreviewDiagram}
       {onStatus}
       {decorations}
       {resolveAsset}

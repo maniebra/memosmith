@@ -17,6 +17,7 @@
   } from "../../lib/storage/settings";
   import { cn } from "../../lib/utils/cn";
   import { gitlabCards, openGitlabUrl } from "../../lib/tauri/gitlab";
+  import type { DiagramPreview } from "../../lib/utils/diagramPreview";
   import type { WikilinkEmbed, WikilinkResolver } from "../../lib/utils/markdown";
   import ContextMenu from "./ContextMenu.svelte";
   import DiagramModal from "./DiagramModal.svelte";
@@ -89,6 +90,8 @@
   export let databaseOptions: DatabaseSummary[] = [];
   export let templates: { name: string; text: string }[] = [];
   export let onOpenDatabase: ((databaseId: string) => void) | null = null;
+  export let onPreviewDiagram:
+    (preview: DiagramPreview) => void | Promise<void> = () => {};
   export let onStatus: (message: string) => void = () => {};
   /** Source ranges to underline, drawn in an overlay so the editable DOM stays untouched. */
   export let decorations: Decoration[] = [];
@@ -110,7 +113,7 @@
     lspSettings, editable, onInput, onAssets, onPickAssets, onGenerate,
     onWikilink, resolveWikilink, renderWikilinkEmbed, wikilinkKey, databaseRoot,
     databaseOptions, templates, gitlabCards: databaseRoot ? $gitlabCards : [],
-    onOpenDatabase, onStatus, decorations, resolveAsset,
+    onOpenDatabase, onPreviewDiagram, onStatus, decorations, resolveAsset,
   };
 
   const editor = createEditor(

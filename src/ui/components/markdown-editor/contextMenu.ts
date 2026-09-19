@@ -10,6 +10,7 @@ import type { ContextMenuItem } from "../ContextMenu.svelte";
 import { databaseAnchorFor, databaseMenuItems } from "./databaseMenu";
 import { EMBED_SELECTOR } from "./embedLayout";
 import { formatMenuItems } from "./formatMenu";
+import { diagramMenuItems } from "./diagramMenu";
 import { mediaMenuItems } from "./mediaMenu";
 import { playerSlotFor } from "./players";
 import type { ContextMenuApi, Editor } from "./types";
@@ -324,6 +325,10 @@ class EditorContextMenu {
 
     if (e.ui.contextMenu?.mediaPreview) {
       return mediaMenuItems(e, e.ui.contextMenu.mediaPreview);
+    }
+
+    if (e.ui.contextMenu?.embedPreview) {
+      return diagramMenuItems(e, e.ui.contextMenu.embedPreview);
     }
 
     const hasSelection = Boolean(e.ui.contextMenu?.hasSelection);

@@ -1,4 +1,5 @@
 <script lang="ts">
+  /* eslint-disable max-lines */
   import TemplatePicker from "../sections/TemplatePicker.svelte";
   import { slide } from "svelte/transition";
   import { i18n } from "../../lib/i18n";
@@ -11,14 +12,19 @@
   import GrammarPolice from "../sections/GrammarPolice.svelte";
   import NoteEditorForm from "../forms/NoteEditorForm.svelte";
   import CommandPalette from "../components/CommandPalette.svelte";
+  import DiagramPreview from "../components/DiagramPreview.svelte";
   import PdfExportModal from "../components/PdfExportModal.svelte";
   import SettingsPanel from "../sections/SettingsPanel.svelte";
   import ModalOverlay from "../components/ModalOverlay.svelte";
   import SpaceSidebar from "../sections/SpaceSidebar.svelte";
   import WelcomeDashboard from "../sections/WelcomeDashboard.svelte";
   import type { EditorPageActions } from "./editorPageContext";
+  import type {
+    DiagramPreview as DiagramPreviewData,
+  } from "../../lib/utils/diagramPreview";
 
   export let activePageMeta: any;
+  export let activeDiagramPreview: DiagramPreviewData | null;
   export let activeRelativePath: string | null;
   export let appTitle: string;
   export let backlinks: any[];
@@ -55,6 +61,8 @@
   export let onCloseTab: (id: string) => void;
   export let onPinTab: (id: string) => void;
   export let onReorderTabs: (id: string, target: string) => void;
+  export let onPreviewDiagram:
+    (preview: DiagramPreviewData) => void | Promise<void>;
   export let explainGrammarIssue: (issue: any) => Promise<string>;
   export let actions: EditorPageActions;
 
@@ -84,7 +92,8 @@
     spacePaneOpen={settings.spacePaneOpen}
     grammarEnabled={settings.features.grammarPolice}
     databasesEnabled={settings.features.databases}
-    backlinksAvailable={Boolean(backlinks.length) && !activeDatabaseTabId}
+    backlinksAvailable={Boolean(backlinks.length) && !activeDatabaseTabId &&
+      !activeDiagramPreview}
     backlinksOpen={settings.backlinksPaneOpen}
     backlinksCount={backlinks.length}
     {readOnly}
@@ -107,7 +116,9 @@
     {spaceNotes}
     {actions}
     onToggleGrammar={actions.toggleGrammar}
-    onExportPdf={path ? () => (pdfPreviewOpen = true) : null}
+    onExportPdf={path && !activeDiagramPreview
+      ? () => (pdfPreviewOpen = true)
+      : null}
   />
   <div class="ms-islands-row flex min-h-0 min-w-0">
     {#if settings.spacePaneOpen}
@@ -180,6 +191,8 @@
               actions.selectSpaceNote(relativePath),
             )}
         />
+      {:else if activeDiagramPreview}
+        <DiagramPreview preview={activeDiagramPreview} />
       {:else if settings.features.databases && activeDatabaseTabId && spaceRoot}
         <DatabaseView
           root={spaceRoot}
@@ -269,6 +282,7 @@
           {templates}
           onOpenDatabase={(id) =>
             actions.runWithStatus(() => actions.selectDatabase(id))}
+          {onPreviewDiagram}
           onStatus={(message) => (statusMessage = message)}
           {wikilinkKey}
           decorations={settings.features.grammarPolice && grammarOpen
@@ -279,7 +293,7 @@
       {/if}
       </div>
     </div>
-    {#if backlinks.length && !activeDatabaseTabId}
+    {#if backlinks.length && !activeDatabaseTabId && !activeDiagramPreview}
       {#if settings.backlinksPaneOpen}
         <div class="flex min-h-0 shrink-0" transition:slide={paneSlide}>
           <button
@@ -324,7 +338,8 @@
         </button>
       {/if}
     {/if}
-    {#if settings.features.grammarPolice && grammarOpen && !activeDatabaseTabId}
+    {#if settings.features.grammarPolice && grammarOpen &&
+      !activeDatabaseTabId && !activeDiagramPreview}
       <div
         class="ms-island ms-island-gap flex min-h-0"
         transition:slide={paneSlide}

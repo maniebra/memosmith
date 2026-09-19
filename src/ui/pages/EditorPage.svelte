@@ -1,4 +1,5 @@
 <script lang="ts">
+  /* eslint-disable max-lines */
   import { onDestroy, onMount } from "svelte";
   import { scheduleGitlabSync } from "../../lib/tauri/gitlab";
   import { cubicOut } from "svelte/easing";
@@ -12,6 +13,7 @@
   import { loadSpaceRoot } from "../../lib/storage/space";
   import { loadTabs, saveTabs } from "../../lib/storage/tabs";
   import type { GrammarIssue, GrammarReport } from "../../lib/utils/grammar";
+  import type { DiagramPreview } from "../../lib/utils/diagramPreview";
   import type { SpaceMeta } from "../../lib/utils/pageMeta";
   import {
     displayNoteName,
@@ -22,7 +24,11 @@
   } from "../../lib/utils/path";
   import { backlinksForNote } from "../../lib/utils/wikilinks";
   import EditorPageView from "./EditorPageView.svelte";
-  import { countWords, noteBreadcrumbs } from "./editorPageUtils";
+  import {
+    countWords,
+    isDiagramPreviewTab,
+    noteBreadcrumbs,
+  } from "./editorPageUtils";
   import { createTabActions } from "./editorPageTabActions";
   import { applySettingsEffects } from "./editorPageSettingsEffects";
   import type {
@@ -43,6 +49,7 @@
   import { createAssetActions } from "./editorPageAssetActions";
   import { createGrammarActions } from "./editorPageGrammarActions";
   import { createWikilinkActions } from "./editorPageWikilinkActions";
+  import { createDiagramPreviewTabs } from "./editorPageDiagramPreview";
 
   const appTitle = "MemoSmith";
   const paneSlide = {
@@ -91,6 +98,7 @@
   let openTabs = storedTabs.open;
   let pinnedTabs = storedTabs.pinned;
   let activeTab: string | null = null;
+  let diagramPreviews: Record<string, DiagramPreview> = {};
 
   $: noteDir = path ? dirname(path) : null;
   $: spacePrefix = spaceRoot ? `${spaceRoot}/` : null;
@@ -101,10 +109,15 @@
   $: activeEntryPath = activeRelativePath
     ? entryPathFromNote(activeRelativePath)
     : null;
+  $: activeDiagramPreview = activeTab
+    ? (diagramPreviews[activeTab] ?? null)
+    : null;
   $: activePageMeta = activeEntryPath
     ? (spaceMeta[activeEntryPath] ?? {})
     : {};
-  $: fileLabel = activeRelativePath
+  $: fileLabel = activeDiagramPreview
+    ? $i18n.t("editor.diagramPreview")
+    : activeRelativePath
     ? displayNotePath(activeRelativePath)
     : spaceRoot
       ? $i18n.t("app.noNoteSelected")
@@ -118,9 +131,11 @@
   });
   $: openTabs = tabs.sync(activeTab, spaceNotes, databases, pinnedTabs);
   $: saveTabs({
-    open: openTabs,
-    pinned: pinnedTabs.filter((tab) => openTabs.includes(tab)),
-    active: activeTab,
+    open: openTabs.filter((tab) => !isDiagramPreviewTab(tab)),
+    pinned: pinnedTabs.filter(
+      (tab) => openTabs.includes(tab) && !isDiagramPreviewTab(tab),
+    ),
+    active: isDiagramPreviewTab(activeTab ?? "") ? null : activeTab,
   });
   $: dirtyMarker = isDirty ? " *" : "";
   $: displayName = `${fileLabel}${dirtyMarker}`;
@@ -167,6 +182,8 @@
     set contents(value) { contents = value; },
     get databases() { return databases; },
     set databases(value) { databases = value; },
+    get diagramPreviews() { return diagramPreviews; },
+    set diagramPreviews(value) { diagramPreviews = value; },
     get databasesOpen() { return databasesOpen; },
     set databasesOpen(value) { databasesOpen = value; },
     get editor() { return editor; },
@@ -196,6 +213,7 @@
     set openTabs(value) { openTabs = value; },
     get pinnedTabs() { return pinnedTabs; },
     set pinnedTabs(value) { pinnedTabs = value; },
+    get previewTabs() { return Object.keys(diagramPreviews); },
     get activeTab() { return activeTab; },
     set activeTab(value) { activeTab = value; },
     get noteSaveTimer() { return noteSaveTimer; },
@@ -248,8 +266,11 @@
     select: (id) =>
       id.startsWith("db:")
         ? databasesApi.selectDatabase(id.slice(3))
+        : isDiagramPreviewTab(id)
+          ? diagramTabs.select(id)
         : space.selectSpaceNote(id),
   }));
+  const diagramTabs = createDiagramPreviewTabs(context, core.flushNoteSave);
 
   const actions: EditorPageActions = {
     ...core,
@@ -271,6 +292,14 @@
     } catch (error) {
       statusMessage = error instanceof Error ? error.message : String(error);
     }
+  }
+
+  function closeTab(id: string) {
+    if (isDiagramPreviewTab(id)) {
+      diagramTabs.close(id);
+    }
+
+    void tabs.closeTab(id);
   }
 
   function updateNote() {
@@ -341,6 +370,7 @@
 </script>
 
 <EditorPageView
+  {activeDiagramPreview}
   {activePageMeta}
   {activeRelativePath}
   {actions}
@@ -365,7 +395,7 @@
   {pinnedTabs}
   {activeTab}
   onSelectTab={tabs.openTab}
-  onCloseTab={tabs.closeTab}
+  onCloseTab={closeTab}
   onPinTab={(id) => (openTabs = tabs.togglePinTab(id))}
   onReorderTabs={(id, target) => (openTabs = tabs.reorderTabs(id, target))}
   {paneSlide}
@@ -379,6 +409,7 @@
   bind:statusMessage
   {wikilinkKey}
   {words}
+  onPreviewDiagram={diagramTabs.open}
   explainGrammarIssue={(issue: GrammarIssue) =>
     explainIssue(settings.llm, issue, grammarProfile)}
 />

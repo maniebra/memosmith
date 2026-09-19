@@ -1,4 +1,5 @@
 import type { GitlabCard } from "../../../lib/utils/gitlab";
+import type { DiagramPreview } from "../../../lib/utils/diagramPreview";
 import type { I18nKey } from "../../../lib/i18n";
 import type { DatabaseSummary } from "../../../lib/tauri/databases";
 import type {
@@ -140,6 +141,7 @@ export type EditorProps = {
   /** Synced GitLab items the slash menu offers and embeds show. */
   gitlabCards: GitlabCard[];
   onOpenDatabase: ((databaseId: string) => void) | null;
+  onPreviewDiagram: (preview: DiagramPreview) => void | Promise<void>;
   onStatus: (message: string) => void;
   decorations: Decoration[];
   resolveAsset: ((source: string) => string) | null;

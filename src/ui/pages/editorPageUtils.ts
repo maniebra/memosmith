@@ -26,6 +26,7 @@ export function syncTabs(
   databases: { id: string }[],
   pinned: string[] = [],
   closing: string[] = [],
+  previews: string[] = [],
 ): string[] {
   const closingTabs = new Set(closing);
   const exists = (tab: string) =>
@@ -33,12 +34,18 @@ export function syncTabs(
     (tab === activeTab ||
       (tab.startsWith("db:")
         ? databases.some((entry) => `db:${entry.id}` === tab)
-        : notes.includes(tab)));
+        : isDiagramPreviewTab(tab)
+          ? previews.includes(tab)
+          : notes.includes(tab)));
   const kept = tabs.filter(exists);
   if (activeTab && !closingTabs.has(activeTab) && !kept.includes(activeTab)) {
     return orderTabs([...kept, activeTab], pinned);
   }
   return orderTabs(kept.length === tabs.length ? tabs : kept, pinned);
+}
+
+export function isDiagramPreviewTab(id: string) {
+  return id.startsWith("preview:");
 }
 
 /** Pinned tabs always sit first, keeping their relative order on both sides. */
