@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
+  import { Minus, Plus, RotateCcw } from "@lucide/svelte";
   import { i18n } from "../../lib/i18n";
   import type {
     DiagramPreview as DiagramPreviewData,
@@ -8,9 +9,103 @@
 
   export let preview: DiagramPreviewData;
 
+  const MIN_ZOOM = 25;
+  const MAX_ZOOM = 400;
+  const ZOOM_STEP = 25;
+
   let zoom = 100;
   let svgUrl = "";
   let renderedPreview: DiagramPreviewData | null = null;
+  let viewport: HTMLElement;
+  let panning: {
+    pointerId: number;
+    x: number;
+    y: number;
+    left: number;
+    top: number;
+  } | null = null;
+
+  function setZoom(value: number) {
+    zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, value));
+  }
+
+  function adjustZoom(direction: -1 | 1) {
+    setZoom(zoom + direction * ZOOM_STEP);
+  }
+
+  function resetView() {
+    zoom = 100;
+    requestAnimationFrame(() => viewport?.scrollTo({ left: 0, top: 0 }));
+  }
+
+  function zoomAtPointer(event: WheelEvent) {
+    if (!event.ctrlKey && !event.metaKey) {
+      return;
+    }
+
+    event.preventDefault();
+
+    const next = Math.max(
+      MIN_ZOOM,
+      Math.min(MAX_ZOOM, zoom + (event.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP)),
+    );
+
+    if (next === zoom || !viewport) {
+      return;
+    }
+
+    const bounds = viewport.getBoundingClientRect();
+    const x = event.clientX - bounds.left;
+    const y = event.clientY - bounds.top;
+    const { scrollLeft, scrollTop } = viewport;
+    const scale = next / zoom;
+
+    zoom = next;
+    requestAnimationFrame(() =>
+      viewport.scrollTo({
+        left: (scrollLeft + x) * scale - x,
+        top: (scrollTop + y) * scale - y,
+      }),
+    );
+  }
+
+  function startPan(event: PointerEvent) {
+    if (event.button !== 0 || !viewport) {
+      return;
+    }
+
+    event.preventDefault();
+    viewport.setPointerCapture(event.pointerId);
+    panning = {
+      pointerId: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      left: viewport.scrollLeft,
+      top: viewport.scrollTop,
+    };
+  }
+
+  function pan(event: PointerEvent) {
+    if (!panning || event.pointerId !== panning.pointerId) {
+      return;
+    }
+
+    viewport.scrollTo({
+      left: panning.left - (event.clientX - panning.x),
+      top: panning.top - (event.clientY - panning.y),
+    });
+  }
+
+  function stopPan(event: PointerEvent) {
+    if (!panning || event.pointerId !== panning.pointerId) {
+      return;
+    }
+
+    if (viewport.hasPointerCapture(event.pointerId)) {
+      viewport.releasePointerCapture(event.pointerId);
+    }
+    panning = null;
+  }
 
   $: if (preview !== renderedPreview) {
     if (svgUrl) {
@@ -39,20 +134,80 @@
   aria-label={$i18n.t("editor.diagramPreview")}
 >
   <div
-    class="shrink-0 border-b border-stone-200 bg-sidebar px-5 py-3 dark:border-stone-800"
+    class="flex shrink-0 items-center justify-between gap-4 border-b border-stone-200 bg-sidebar px-4 py-2.5 dark:border-stone-800 sm:px-5"
   >
-    <div class="max-w-56">
+    <div class="min-w-0">
+      <h2 class="truncate text-sm font-medium text-stone-800 dark:text-stone-100">
+        {$i18n.t("editor.diagramPreview")}
+      </h2>
+      <p class="hidden text-xs text-stone-500 dark:text-stone-400 sm:block">
+        {$i18n.t("editor.previewInteractionHint")}
+      </p>
+    </div>
+    <div
+      class="flex shrink-0 items-center gap-1.5"
+      role="toolbar"
+      aria-label={$i18n.t("editor.previewControls")}
+    >
+      <button
+        type="button"
+        class="rounded-md p-1.5 text-stone-600 transition-colors hover:bg-stone-200/70 disabled:opacity-40 dark:text-stone-300 dark:hover:bg-stone-800"
+        aria-label={$i18n.t("editor.zoomOut")}
+        title={$i18n.t("editor.zoomOut")}
+        disabled={zoom <= MIN_ZOOM}
+        onclick={() => adjustZoom(-1)}
+      >
+        <Minus class="size-4" strokeWidth={1.8} />
+      </button>
+      <output
+        class="w-12 text-center text-sm tabular-nums text-stone-600 dark:text-stone-300"
+        aria-live="polite"
+      >{zoom}%</output>
+      <button
+        type="button"
+        class="rounded-md p-1.5 text-stone-600 transition-colors hover:bg-stone-200/70 disabled:opacity-40 dark:text-stone-300 dark:hover:bg-stone-800"
+        aria-label={$i18n.t("editor.zoomIn")}
+        title={$i18n.t("editor.zoomIn")}
+        disabled={zoom >= MAX_ZOOM}
+        onclick={() => adjustZoom(1)}
+      >
+        <Plus class="size-4" strokeWidth={1.8} />
+      </button>
+      <span class="mx-0.5 h-4 w-px bg-stone-200 dark:bg-stone-700"></span>
+      <button
+        type="button"
+        class="rounded-md p-1.5 text-stone-600 transition-colors hover:bg-stone-200/70 dark:text-stone-300 dark:hover:bg-stone-800"
+        aria-label={$i18n.t("editor.resetPreview")}
+        title={$i18n.t("editor.resetPreview")}
+        onclick={resetView}
+      >
+        <RotateCcw class="size-4" strokeWidth={1.8} />
+      </button>
+      <div class="ml-1 hidden w-28 sm:block">
       <Slider
-        label={$i18n.t("editor.zoom")}
+        label=""
         value={zoom}
-        min={25}
-        max={400}
-        step={25}
-        onChange={(value) => (zoom = value)}
+        min={MIN_ZOOM}
+        max={MAX_ZOOM}
+        step={ZOOM_STEP}
+        onChange={setZoom}
       />
+      </div>
     </div>
   </div>
-  <div class="min-h-0 flex-1 overflow-auto p-6">
+  <div
+    bind:this={viewport}
+    role="region"
+    aria-label={$i18n.t("editor.diagramPreview")}
+    class="min-h-0 flex-1 overflow-auto p-6 select-none"
+    class:cursor-grab={!panning}
+    class:cursor-grabbing={Boolean(panning)}
+    onwheel={zoomAtPointer}
+    onpointerdown={startPan}
+    onpointermove={pan}
+    onpointerup={stopPan}
+    onpointercancel={stopPan}
+  >
     <div class="w-max" style={`zoom: ${zoom / 100};`}>
       {#if preview.kind === "text"}
         <pre
