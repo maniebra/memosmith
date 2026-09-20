@@ -26,6 +26,8 @@
   export let path: string;
   export let zoom = 1;
   export let rotation = 0;
+  /** Dark-mode reading: the drawn page is inverted, the highlights are not. */
+  export let invert = false;
   export let annotations: Annotation[] = [];
   export let onOutline: (items: OutlineItem[]) => void = () => {};
   export let onReady: () => void = () => {};
@@ -265,6 +267,7 @@
   role="document"
   class="min-h-0 min-w-0 flex-1 overflow-auto bg-stone-100 p-2 dark:bg-stone-900"
   class:cursor-grabbing={panning}
+  class:ms-readable-invert={invert}
 ></div>
 
 <style>
@@ -273,6 +276,15 @@
     margin: 0 auto 0.75rem;
     background: white;
     box-shadow: 0 1px 6px rgb(0 0 0 / 0.18);
+  }
+
+  /* Only the canvas turns: inverting the page would turn the marks too. */
+  :global(.ms-readable-invert canvas) {
+    filter: invert(1) hue-rotate(180deg);
+  }
+
+  :global(.ms-readable-invert .ms-readable-page) {
+    background: #111;
   }
 
   :global(::highlight(ms-readable-marks)) {

@@ -93,6 +93,7 @@ export const en = {
   "readables.zoomIn": "Zoom in",
   "readables.zoomOut": "Zoom out",
   "readables.rotate": "Rotate 90°",
+  "readables.invert": "Invert colours",
   "readables.contents": "Table of contents",
   "readables.noContents": "This file has no table of contents",
   "readables.search": "Search the text",

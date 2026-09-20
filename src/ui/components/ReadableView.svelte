@@ -3,6 +3,7 @@
     BookOpenText,
     ChevronLeft,
     ChevronRight,
+    Contrast,
     Highlighter,
     List,
     RotateCw,
@@ -28,12 +29,14 @@
   export let name = "";
 
   const ZOOM_KEY = "memosmith:readableZoom";
+  const INVERT_KEY = "memosmith:readableInvert";
   const button =
     "rounded p-1 text-stone-500 hover:bg-stone-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 dark:text-stone-400";
 
   let reader: any;
   let zoom = Number(localStorage.getItem(ZOOM_KEY)) || 1;
   let rotation = 0;
+  let invert = localStorage.getItem(INVERT_KEY) === "1";
   let loading = true;
   let error = "";
   let outline: OutlineItem[] = [];
@@ -53,6 +56,11 @@
   function setZoom(next: number) {
     zoom = Math.min(4, Math.max(0.4, Number(next.toFixed(2))));
     localStorage.setItem(ZOOM_KEY, String(zoom));
+  }
+
+  function toggleInvert() {
+    invert = !invert;
+    localStorage.setItem(INVERT_KEY, invert ? "1" : "0");
   }
 
   function onKeydown(event: KeyboardEvent) {
@@ -177,6 +185,17 @@
       >
         <RotateCw class="size-4" />
       </button>
+      <button
+        type="button"
+        class={button}
+        class:text-emerald-600={invert}
+        aria-label={$i18n.t("readables.invert")}
+        title={$i18n.t("readables.invert")}
+        aria-pressed={invert}
+        onclick={toggleInvert}
+      >
+        <Contrast class="size-4" />
+      </button>
     {/if}
     <button
       type="button"
@@ -233,6 +252,7 @@
           {path}
           {zoom}
           {rotation}
+          {invert}
           {annotations}
           onOutline={(items) => (outline = items)}
           onReady={() => (loading = false)}
