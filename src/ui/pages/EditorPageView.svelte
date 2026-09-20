@@ -67,6 +67,7 @@
   export let onReorderTabs: (id: string, target: string) => void;
   export let tiles: TileNode;
   export let splitTabs: string[] = [];
+  export let diagramPreviews: Record<string, DiagramPreviewData> = {};
   export let noteText: (note: string) => string = () => "";
   export let onSplitTab: (id: string) => void = () => {};
   export let onSplitInput: (note: string, text: string) => void = () => {};
@@ -423,6 +424,25 @@
 {#snippet pane(id: string | null)}
   {#if id === null}
     {@render mainPane()}
+  {:else if diagramPreviews[id]}
+    <div class="relative min-h-0 min-w-0 flex-1">
+      <DiagramPreview preview={diagramPreviews[id]} />
+    </div>
+  {:else if id.startsWith("db:")}
+    <div class="relative min-h-0 min-w-0 flex-1">
+      {#if settings.features.databases && spaceRoot}
+        <DatabaseView
+          root={spaceRoot}
+          databaseId={id.slice(3)}
+          databaseOptions={databases}
+          onStatus={(message) => (statusMessage = message)}
+          onRenamed={(name) =>
+            (databases = databases.map((entry) =>
+              entry.id === id.slice(3) ? { ...entry, name } : entry,
+            ))}
+        />
+      {/if}
+    </div>
   {:else}
     <SplitNotePane
       note={id}

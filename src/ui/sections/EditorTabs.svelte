@@ -98,7 +98,7 @@
             <span class="truncate">{label(id)}</span>
           {/if}
         </button>
-        {#if !isDatabase(id) && !isPreview(id) && id !== activeTab}
+        {#if id !== activeTab}
           <button
             type="button"
             class="shrink-0 rounded p-0.5 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-stone-200/70 focus-visible:opacity-100 focus-visible:outline-none dark:hover:bg-stone-700/60"

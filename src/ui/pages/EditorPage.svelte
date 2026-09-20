@@ -156,7 +156,7 @@
     previousNote = lastNote;
     lastNote = activeRelativePath;
   }
-  $: tiles = pruneTiles(tiles, openTabs, activeRelativePath);
+  $: tiles = pruneTiles(tiles, openTabs, activeTab);
   $: splitTabs = leafIds(tiles);
   $: dirtyMarker = isDirty ? " *" : "";
   $: displayName = `${fileLabel}${dirtyMarker}`;
@@ -323,20 +323,15 @@
     void tabs.closeTab(id);
   }
 
-  /** The note that takes over the main pane when the active one is split off. */
+  /** The tab that takes over the main pane when the active one is split off. */
   function handoverNote(id: string) {
     const candidates = openTabs.filter(
-      (tab) =>
-        tab !== id && !tab.startsWith("db:") && !isDiagramPreviewTab(tab),
+      (tab) => tab !== id && !splitTabs.includes(tab),
     );
     return previousNote && candidates.includes(previousNote)
       ? previousNote
       : (candidates[0] ?? null);
   }
-
-  /** Only notes can take a pane; databases and previews stay in the main one. */
-  const splittable = (id: string) =>
-    !id.startsWith("db:") && !isDiagramPreviewTab(id);
 
   /**
    * A tab dropped on a pane: on an edge it splits that pane, in the middle it
@@ -350,7 +345,7 @@
     if (target === id) {
       return;
     }
-    if (!splittable(id) || (!zone && target === null)) {
+    if (!zone && target === null) {
       void tabs.openTab(id);
       return;
     }
@@ -358,16 +353,18 @@
       // Dropped from the tree: it needs a tab before it can hold a pane.
       openTabs = [...openTabs, id];
     }
-    if (id === activeRelativePath) {
-      // The active note moves into a pane, so another note takes the main one;
-      // the main pane cannot hold the note a tile already shows.
+    if (id === activeTab) {
+      // The active tab moves into a pane, so another one takes the main pane;
+      // the main pane cannot hold what a tile already shows.
       const other = handoverNote(id);
       if (!other) {
         return;
       }
       const text = contents;
       void tabs.openTab(other).then(() => {
-        noteContents = { ...noteContents, [id]: text };
+        if (!id.startsWith("db:") && !isDiagramPreviewTab(id)) {
+          noteContents = { ...noteContents, [id]: text };
+        }
         tiles = zone
           ? splitLeaf(tiles, target, zone.axis, zone.side, id)
           : replaceLeaf(tiles, target, id);
@@ -508,6 +505,7 @@
   onReorderTabs={(id, target) => (openTabs = tabs.reorderTabs(id, target))}
   bind:tiles
   {splitTabs}
+  {diagramPreviews}
   noteText={(note) => noteContents[note] ?? ""}
   onSplitInput={updateSplitNote}
   onSplitTab={toggleSplitTab}
