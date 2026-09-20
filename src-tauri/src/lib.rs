@@ -11,6 +11,10 @@ pub mod youtube;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // WebKitGTK's JSC rejects the relaxed-SIMD wasm that pdf.js uses to decode
+    // JPEG 2000 images unless this is switched on.
+    std::env::set_var("JSC_useWasmRelaxedSIMD", "1");
+
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_http::init())
@@ -21,6 +25,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             notes::read_note,
+            notes::read_binary,
             notes::write_note,
             notes::append_log,
             notes::list_space,

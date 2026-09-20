@@ -1,3 +1,4 @@
+import { isReadableTab } from "../../lib/storage/readables";
 import { cycleTab, moveTab, syncTabs } from "./editorPageUtils";
 
 /** A tab id is a note's relative path, or `db:<id>` for a database. */
@@ -8,6 +9,7 @@ export type TabsState = {
   readonly spaceNotes: string[];
   readonly databases: { id: string }[];
   readonly previewTabs: string[];
+  readonly readables: { path: string }[];
 };
 
 export type TabsDeps = {
@@ -20,7 +22,9 @@ export type TabsDeps = {
 };
 
 function tabExists(state: TabsState, id: string) {
-  return id.startsWith("db:")
+  return isReadableTab(id)
+    ? state.readables.some((entry) => `read:${entry.path}` === id)
+    : id.startsWith("db:")
     ? state.databases.some((entry) => `db:${entry.id}` === id)
     : id.startsWith("preview:")
       ? state.previewTabs.includes(id)

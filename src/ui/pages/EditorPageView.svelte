@@ -19,6 +19,12 @@
   import SpaceSidebar from "../sections/SpaceSidebar.svelte";
   import WelcomeDashboard from "../sections/WelcomeDashboard.svelte";
   import SplitNotePane from "../sections/SplitNotePane.svelte";
+  import ReadableView from "../components/ReadableView.svelte";
+  import {
+    isReadableTab,
+    readableTabPath,
+    type Readable,
+  } from "../../lib/storage/readables";
   import TilePane from "../sections/TilePane.svelte";
   import { setRatio } from "../../lib/utils/tiling";
   import type { TileNode, TileSplit } from "../../lib/utils/tiling";
@@ -76,6 +82,11 @@
     zone: { axis: "row" | "column"; side: "start" | "end" } | null,
     id: string,
   ) => void = () => {};
+  export let readables: Readable[] = [];
+  export let activeReadablePath: string | null = null;
+  export let onAddReadables: () => void = () => {};
+  export let onOpenReadable: (path: string) => void = () => {};
+  export let onRemoveReadable: (path: string) => void = () => {};
   export let onPreviewDiagram:
     (preview: DiagramPreviewData) => void | Promise<void>;
   export let explainGrammarIssue: (issue: any) => Promise<string>;
@@ -86,6 +97,8 @@
   let templates: { name: string; text: string }[] = [];
 
 
+  $: activeReadable =
+    readables.find((entry) => entry.path === activeReadablePath) ?? null;
   $: activeDatabaseTabId =
     activeTab?.startsWith("db:") ? activeTab.slice(3) : null;
 
@@ -146,6 +159,11 @@
           meta={spaceMeta}
           activePath={activeRelativePath}
           openPaths={openTabs}
+          readables={settings.features.readables ? readables : null}
+          activeReadablePath={activeReadablePath}
+          onAddReadables={onAddReadables}
+          onOpenReadable={onOpenReadable}
+          onRemoveReadable={onRemoveReadable}
           onChooseSpace={() => actions.runWithStatus(actions.chooseSpace)}
           onRefresh={() => actions.runWithStatus(actions.refreshSpace)}
           onSelect={(relativePath) =>
@@ -319,6 +337,12 @@
           />
         {:else if activeDiagramPreview}
           <DiagramPreview preview={activeDiagramPreview} />
+        {:else if settings.features.readables && activeReadable}
+          <ReadableView
+            path={activeReadable.path}
+            kind={activeReadable.kind}
+            name={activeReadable.name}
+          />
         {:else if settings.features.databases && activeDatabaseTabId &&
           spaceRoot}
           <DatabaseView
@@ -427,6 +451,21 @@
   {:else if diagramPreviews[id]}
     <div class="relative min-h-0 min-w-0 flex-1">
       <DiagramPreview preview={diagramPreviews[id]} />
+    </div>
+  {:else if isReadableTab(id)}
+    <div class="relative flex min-h-0 min-w-0 flex-1">
+      {#if settings.features.readables}
+        {@const readable = readables.find(
+          (entry) => entry.path === readableTabPath(id),
+        )}
+        {#if readable}
+          <ReadableView
+            path={readable.path}
+            kind={readable.kind}
+            name={readable.name}
+          />
+        {/if}
+      {/if}
     </div>
   {:else if id.startsWith("db:")}
     <div class="relative min-h-0 min-w-0 flex-1">

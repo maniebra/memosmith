@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { Columns2, Image, Pin, PinOff, Table, X } from "@lucide/svelte";
+  import { BookOpen, Columns2, Image, Pin, PinOff, Table, X } from "@lucide/svelte";
   import { i18n } from "../../lib/i18n";
   import PageIcon from "../components/PageIcon.svelte";
-  import { displayNoteName, entryPathFromNote } from "../../lib/utils/path";
+  import { displayNoteName, entryPathFromNote, basename } from "../../lib/utils/path";
+  import { isReadableTab, readableTabPath } from "../../lib/storage/readables";
 
   export let tabs: string[];
   export let pinned: string[] = [];
@@ -28,6 +29,9 @@
     }
     if (isPreview(id)) {
       return $i18n.t("editor.diagramPreview");
+    }
+    if (isReadableTab(id)) {
+      return basename(readableTabPath(id));
     }
     return displayNoteName(id);
   }
@@ -88,6 +92,8 @@
             <Table class="size-3.5 shrink-0" />
           {:else if isPreview(id)}
             <Image class="size-3.5 shrink-0" />
+          {:else if isReadableTab(id)}
+            <BookOpen class="size-3.5 shrink-0" />
           {:else}
             <PageIcon
               icon={meta[entryPathFromNote(id)]?.icon}

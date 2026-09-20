@@ -106,6 +106,7 @@ const tabState = {
   spaceNotes: ["a.md"],
   databases,
   previewTabs: [],
+  readables: [],
 };
 const tabActions = createTabActions(tabState, {
   clearActive: () => {

@@ -22,6 +22,8 @@
     type ContextMenuItem,
   } from "../components/ContextMenu.svelte";
   import SpaceTree from "./SpaceTree.svelte";
+  import ReadablesPanel from "./ReadablesPanel.svelte";
+  import type { Readable } from "../../lib/storage/readables";
   import TreeNameInput from "./TreeNameInput.svelte";
 
   export let root: string | null;
@@ -45,6 +47,12 @@
     siblingOrder?: string[],
   ) => void;
   export let width = 240;
+  /** null hides the section: the Readables feature is switched off. */
+  export let readables: Readable[] | null = null;
+  export let activeReadablePath: string | null = null;
+  export let onAddReadables: () => void = () => {};
+  export let onOpenReadable: (path: string) => void = () => {};
+  export let onRemoveReadable: (path: string) => void = () => {};
 
   let renaming: string | null = null;
   let creating: string | null = null;
@@ -369,6 +377,16 @@
       />
     {/if}
   </div>
+
+  {#if readables}
+    <ReadablesPanel
+      {readables}
+      activePath={activeReadablePath}
+      onAdd={onAddReadables}
+      onOpen={onOpenReadable}
+      onRemove={onRemoveReadable}
+    />
+  {/if}
 
   {#if contextMenu}
     <ContextMenu

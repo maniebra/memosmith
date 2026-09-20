@@ -1,2 +1,5 @@
 allowBuilds:
+  # Both only print a postinstall banner.
+  core-js: false
+  es5-ext: false
   esbuild: true

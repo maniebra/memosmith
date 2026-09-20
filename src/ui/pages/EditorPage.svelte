@@ -12,6 +12,18 @@
   import { journal, traced } from "../../lib/utils/journal";
   import { loadSpaceRoot } from "../../lib/storage/space";
   import { loadTabs, saveTabs } from "../../lib/storage/tabs";
+  import {
+    addReadable,
+    isReadableTab,
+    loadReadables,
+    readableKind,
+    readableTabId,
+    readableTabPath,
+    removeReadable,
+    saveReadables,
+    type Readable,
+  } from "../../lib/storage/readables";
+  import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
   import type { GrammarIssue, GrammarReport } from "../../lib/utils/grammar";
   import type { DiagramPreview } from "../../lib/utils/diagramPreview";
   import type { SpaceMeta } from "../../lib/utils/pageMeta";
@@ -107,6 +119,7 @@
   let pinnedTabs = storedTabs.pinned;
   let activeTab: string | null = null;
   let diagramPreviews: Record<string, DiagramPreview> = {};
+  let readables: Readable[] = loadReadables();
   /** Session-only: how the panes are tiled. The null leaf is the active tab. */
   let tiles: TileNode = storedTabs.tiles;
   /** Tabs and panes only sync once the space listing is in. */
@@ -128,11 +141,17 @@
   $: activeDiagramPreview = activeTab
     ? (diagramPreviews[activeTab] ?? null)
     : null;
+  $: activeReadablePath =
+    activeTab && isReadableTab(activeTab) ? readableTabPath(activeTab) : null;
+  $: activeReadable =
+    readables.find((entry) => entry.path === activeReadablePath) ?? null;
   $: activePageMeta = activeEntryPath
     ? (spaceMeta[activeEntryPath] ?? {})
     : {};
   $: fileLabel = activeDiagramPreview
     ? $i18n.t("editor.diagramPreview")
+    : activeReadable
+    ? activeReadable.name
     : activeRelativePath
     ? displayNotePath(activeRelativePath)
     : spaceRoot
@@ -197,6 +216,16 @@
   $: if (!settings.features.grammarPolice && grammarOpen) {
     grammarOpen = false;
   }
+  // Turning the feature off leaves no way to close the readers, so close them.
+  $: if (!settings.features.readables && openTabs.some(isReadableTab)) {
+    for (const tab of openTabs.filter(isReadableTab)) {
+      tiles = removeLeaf(tiles, tab);
+    }
+    if (activeTab && isReadableTab(activeTab)) {
+      activeTab = activeRelativePath;
+    }
+    openTabs = openTabs.filter((tab) => !isReadableTab(tab));
+  }
   $: if (!settings.features.databases && (databasesOpen || activeDatabaseId)) {
     databasesOpen = false;
     activeDatabaseId = null;
@@ -249,6 +278,8 @@
     get pinnedTabs() { return pinnedTabs; },
     set pinnedTabs(value) { pinnedTabs = value; },
     get previewTabs() { return Object.keys(diagramPreviews); },
+    get readables() { return readables; },
+    set readables(value) { readables = value; },
     get activeTab() { return activeTab; },
     set activeTab(value) { activeTab = value; },
     get noteSaveTimer() { return noteSaveTimer; },
@@ -299,7 +330,9 @@
     flushNoteSave: core.flushNoteSave,
     runWithStatus,
     select: (id) =>
-      id.startsWith("db:")
+      isReadableTab(id)
+        ? openReadableTab(id)
+        : id.startsWith("db:")
         ? databasesApi.selectDatabase(id.slice(3))
         : isDiagramPreviewTab(id)
           ? diagramTabs.select(id)
@@ -320,6 +353,38 @@
     runWithStatus,
     updateNote,
   };
+
+  /** A readable takes over the main pane the way a diagram preview does. */
+  async function openReadableTab(id: string) {
+    await core.flushNoteSave();
+    activeTab = id;
+    activeDatabaseId = null;
+  }
+
+  async function addReadables() {
+    const picked = await openFileDialog({
+      multiple: true,
+      filters: [{ name: "Readables", extensions: ["pdf", "epub"] }],
+    });
+    const paths = (Array.isArray(picked) ? picked : picked ? [picked] : [])
+      .filter((entry): entry is string => typeof entry === "string");
+    const rejected = paths.filter((entry) => !readableKind(entry));
+
+    readables = paths.reduce(addReadable, readables);
+    saveReadables(readables);
+    if (rejected.length) {
+      statusMessage = $i18n.t("readables.unsupported");
+    }
+  }
+
+  function removeReadableShortcut(path: string) {
+    readables = removeReadable(readables, path);
+    saveReadables(readables);
+    tiles = removeLeaf(tiles, readableTabId(path));
+    if (openTabs.includes(readableTabId(path))) {
+      void tabs.closeTab(readableTabId(path));
+    }
+  }
 
   async function runWithStatus(action: () => Promise<void>) {
     try {
@@ -376,7 +441,11 @@
       }
       const text = contents;
       void tabs.openTab(other).then(() => {
-        if (!id.startsWith("db:") && !isDiagramPreviewTab(id)) {
+        if (
+          !id.startsWith("db:") &&
+          !isDiagramPreviewTab(id) &&
+          !isReadableTab(id)
+        ) {
           noteContents = { ...noteContents, [id]: text };
         }
         tiles = zone
@@ -521,6 +590,11 @@
   bind:tiles
   {splitTabs}
   {diagramPreviews}
+  {readables}
+  {activeReadablePath}
+  onAddReadables={() => runWithStatus(addReadables)}
+  onOpenReadable={(readablePath) => tabs.openTab(readableTabId(readablePath))}
+  onRemoveReadable={removeReadableShortcut}
   noteText={(note) => noteContents[note] ?? ""}
   onSplitInput={updateSplitNote}
   onSplitTab={toggleSplitTab}

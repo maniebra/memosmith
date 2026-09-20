@@ -23,6 +23,7 @@ export type FeatureSettings = {
   mermaid: boolean;
   youtube: boolean;
   spotify: boolean;
+  readables: boolean;
   windowControls: boolean;
 };
 
