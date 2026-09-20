@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
-  import { Minus, Plus, RotateCcw } from "@lucide/svelte";
+  import { Image, Minus, Plus, RotateCcw } from "@lucide/svelte";
   import { i18n } from "../../lib/i18n";
   import type {
     DiagramPreview as DiagramPreviewData,
@@ -134,65 +134,79 @@
   aria-label={$i18n.t("editor.diagramPreview")}
 >
   <div
-    class="flex shrink-0 items-center justify-between gap-4 border-b border-stone-200 bg-sidebar px-4 py-2.5 dark:border-stone-800 sm:px-5"
+    class="flex shrink-0 flex-wrap items-center justify-between gap-x-5 gap-y-2 border-b border-stone-200 bg-sidebar px-4 py-2.5 dark:border-stone-800 sm:px-5"
   >
-    <div class="min-w-0">
-      <h2 class="truncate text-sm font-medium text-stone-800 dark:text-stone-100">
-        {$i18n.t("editor.diagramPreview")}
-      </h2>
-      <p class="hidden text-xs text-stone-500 dark:text-stone-400 sm:block">
-        {$i18n.t("editor.previewInteractionHint")}
-      </p>
+    <div class="flex min-w-0 items-center gap-3">
+      <span
+        class="flex size-8 shrink-0 items-center justify-center rounded-lg border border-stone-200 bg-surface text-emerald-700 shadow-sm dark:border-stone-700 dark:bg-stone-900 dark:text-emerald-400"
+        aria-hidden="true"
+      >
+        <Image class="size-4" strokeWidth={1.8} />
+      </span>
+      <div class="min-w-0">
+        <h2
+          class="truncate text-sm font-semibold text-stone-800 dark:text-stone-100"
+        >
+          {$i18n.t("editor.diagramPreview")}
+        </h2>
+        <p class="hidden text-xs text-stone-500 dark:text-stone-400 sm:block">
+          {$i18n.t("editor.previewInteractionHint")}
+        </p>
+      </div>
     </div>
     <div
-      class="flex shrink-0 items-center gap-1.5"
+      class="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-end"
       role="toolbar"
       aria-label={$i18n.t("editor.previewControls")}
     >
-      <button
-        type="button"
-        class="rounded-md p-1.5 text-stone-600 transition-colors hover:bg-stone-200/70 disabled:opacity-40 dark:text-stone-300 dark:hover:bg-stone-800"
-        aria-label={$i18n.t("editor.zoomOut")}
-        title={$i18n.t("editor.zoomOut")}
-        disabled={zoom <= MIN_ZOOM}
-        onclick={() => adjustZoom(-1)}
+      <div class="hidden w-36 md:block">
+        <Slider
+          label=""
+          value={zoom}
+          min={MIN_ZOOM}
+          max={MAX_ZOOM}
+          step={ZOOM_STEP}
+          onChange={setZoom}
+        />
+      </div>
+      <div
+        class="flex items-center rounded-lg border border-stone-200 bg-surface p-0.5 shadow-sm dark:border-stone-700 dark:bg-stone-900"
       >
-        <Minus class="size-4" strokeWidth={1.8} />
-      </button>
-      <output
-        class="w-12 text-center text-sm tabular-nums text-stone-600 dark:text-stone-300"
-        aria-live="polite"
-      >{zoom}%</output>
+        <button
+          type="button"
+          class="rounded-md p-1.5 text-stone-600 transition-colors hover:bg-stone-100 disabled:opacity-40 dark:text-stone-300 dark:hover:bg-stone-800"
+          aria-label={$i18n.t("editor.zoomOut")}
+          title={$i18n.t("editor.zoomOut")}
+          disabled={zoom <= MIN_ZOOM}
+          onclick={() => adjustZoom(-1)}
+        >
+          <Minus class="size-4" strokeWidth={1.8} />
+        </button>
+        <output
+          class="min-w-14 px-1 text-center text-sm font-medium tabular-nums text-stone-700 dark:text-stone-200"
+          aria-live="polite"
+        >{zoom}%</output>
+        <button
+          type="button"
+          class="rounded-md p-1.5 text-stone-600 transition-colors hover:bg-stone-100 disabled:opacity-40 dark:text-stone-300 dark:hover:bg-stone-800"
+          aria-label={$i18n.t("editor.zoomIn")}
+          title={$i18n.t("editor.zoomIn")}
+          disabled={zoom >= MAX_ZOOM}
+          onclick={() => adjustZoom(1)}
+        >
+          <Plus class="size-4" strokeWidth={1.8} />
+        </button>
+      </div>
       <button
         type="button"
-        class="rounded-md p-1.5 text-stone-600 transition-colors hover:bg-stone-200/70 disabled:opacity-40 dark:text-stone-300 dark:hover:bg-stone-800"
-        aria-label={$i18n.t("editor.zoomIn")}
-        title={$i18n.t("editor.zoomIn")}
-        disabled={zoom >= MAX_ZOOM}
-        onclick={() => adjustZoom(1)}
-      >
-        <Plus class="size-4" strokeWidth={1.8} />
-      </button>
-      <span class="mx-0.5 h-4 w-px bg-stone-200 dark:bg-stone-700"></span>
-      <button
-        type="button"
-        class="rounded-md p-1.5 text-stone-600 transition-colors hover:bg-stone-200/70 dark:text-stone-300 dark:hover:bg-stone-800"
+        class="flex items-center gap-1.5 rounded-lg border border-transparent px-2 py-1.5 text-sm text-stone-600 transition-colors hover:border-stone-200 hover:bg-surface hover:shadow-sm dark:text-stone-300 dark:hover:border-stone-700 dark:hover:bg-stone-900"
         aria-label={$i18n.t("editor.resetPreview")}
         title={$i18n.t("editor.resetPreview")}
         onclick={resetView}
       >
         <RotateCcw class="size-4" strokeWidth={1.8} />
+        <span class="hidden lg:inline">{$i18n.t("editor.resetPreview")}</span>
       </button>
-      <div class="ml-1 hidden w-28 sm:block">
-      <Slider
-        label=""
-        value={zoom}
-        min={MIN_ZOOM}
-        max={MAX_ZOOM}
-        step={ZOOM_STEP}
-        onChange={setZoom}
-      />
-      </div>
     </div>
   </div>
   <div
