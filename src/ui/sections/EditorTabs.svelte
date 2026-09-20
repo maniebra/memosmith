@@ -13,7 +13,7 @@
   export let onClose: (id: string) => void;
   export let onPin: (id: string) => void;
   export let onReorder: (id: string, target: string) => void;
-  export let splitTab: string | null = null;
+  export let splitTabs: string[] = [];
   export let onSplit: (id: string) => void = () => {};
 
   let dragged: string | null = null;
@@ -102,11 +102,11 @@
           <button
             type="button"
             class="shrink-0 rounded p-0.5 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-stone-200/70 focus-visible:opacity-100 focus-visible:outline-none dark:hover:bg-stone-700/60"
-            class:opacity-100={id === splitTab}
-            aria-label={id === splitTab
+            class:opacity-100={splitTabs.includes(id)}
+            aria-label={splitTabs.includes(id)
               ? $i18n.t("tabs.unsplit")
               : $i18n.t("tabs.split")}
-            title={id === splitTab
+            title={splitTabs.includes(id)
               ? $i18n.t("tabs.unsplit")
               : $i18n.t("tabs.split")}
             onclick={() => onSplit(id)}

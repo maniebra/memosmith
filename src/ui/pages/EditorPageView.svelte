@@ -3,7 +3,6 @@
   import TemplatePicker from "../sections/TemplatePicker.svelte";
   import { slide } from "svelte/transition";
   import { i18n } from "../../lib/i18n";
-  import { displayNoteName, entryPathFromNote } from "../../lib/utils/path";
   import BacklinksPanel from "../sections/BacklinksPanel.svelte";
   import DatabaseManager from "../sections/DatabaseManager.svelte";
   import DatabaseView from "../sections/DatabaseView.svelte";
@@ -19,6 +18,10 @@
   import ModalOverlay from "../components/ModalOverlay.svelte";
   import SpaceSidebar from "../sections/SpaceSidebar.svelte";
   import WelcomeDashboard from "../sections/WelcomeDashboard.svelte";
+  import SplitNotePane from "../sections/SplitNotePane.svelte";
+  import TilePane from "../sections/TilePane.svelte";
+  import { setRatio } from "../../lib/utils/tiling";
+  import type { TileNode, TileSplit } from "../../lib/utils/tiling";
   import type { EditorPageActions } from "./editorPageContext";
   import type {
     DiagramPreview as DiagramPreviewData,
@@ -62,11 +65,16 @@
   export let onCloseTab: (id: string) => void;
   export let onPinTab: (id: string) => void;
   export let onReorderTabs: (id: string, target: string) => void;
-  export let splitTab: string | null = null;
-  export let splitContents = "";
+  export let tiles: TileNode;
+  export let splitTabs: string[] = [];
+  export let noteText: (note: string) => string = () => "";
   export let onSplitTab: (id: string) => void = () => {};
-  export let onSplitInput: () => void = () => {};
-  export let onSplitOpen: (id: string) => void = () => {};
+  export let onSplitInput: (note: string, text: string) => void = () => {};
+  export let onTileDrop: (
+    target: string | null,
+    zone: { axis: "row" | "column"; side: "start" | "end" } | null,
+    id: string,
+  ) => void = () => {};
   export let onPreviewDiagram:
     (preview: DiagramPreviewData) => void | Promise<void>;
   export let explainGrammarIssue: (issue: any) => Promise<string>;
@@ -76,127 +84,6 @@
   let readOnly = false;
   let templates: { name: string; text: string }[] = [];
 
-  /** Tab dropped on an edge of the editor row: snap it into that side. */
-  const tabDragType = "application/x-memosmith-tab";
-  let dropZone: { axis: "row" | "column"; side: "start" | "end" } | null =
-    null;
-
-  const draggedTabId = (event: DragEvent) =>
-    event.dataTransfer?.types.includes(tabDragType)
-      ? (event.dataTransfer.getData(tabDragType) || null)
-      : null;
-
-  /** Only notes can take a pane; databases and previews stay single. */
-  const splittable = (id: string) =>
-    !id.startsWith("db:") && !id.startsWith("preview:");
-
-  /** The edge the pointer is nearest wins: sides split across, top and
-   * bottom split down. */
-  function dropZoneAt(event: DragEvent) {
-    if (!splitRow || !event.dataTransfer?.types.includes(tabDragType)) {
-      return null;
-    }
-    const rect = splitRow.getBoundingClientRect();
-    const across =
-      $i18n.dir === "rtl"
-        ? (rect.right - event.clientX) / rect.width
-        : (event.clientX - rect.left) / rect.width;
-    const down = (event.clientY - rect.top) / rect.height;
-    const edges = [
-      { axis: "row" as const, side: "start" as const, distance: across },
-      { axis: "row" as const, side: "end" as const, distance: 1 - across },
-      { axis: "column" as const, side: "start" as const, distance: down },
-      { axis: "column" as const, side: "end" as const, distance: 1 - down },
-    ].sort((a, b) => a.distance - b.distance);
-    const nearest = edges[0];
-    return nearest.distance < 0.25
-      ? { axis: nearest.axis, side: nearest.side }
-      : null;
-  }
-
-  function dropTab(event: DragEvent) {
-    const zone = dropZone;
-    dropZone = null;
-    const id = draggedTabId(event);
-    if (!id || !zone) {
-      return;
-    }
-    event.preventDefault();
-    if (zone.side === "start") {
-      onSelectTab(id);
-      return;
-    }
-    if (splittable(id)) {
-      splitAxis = zone.axis;
-      onSplitOpen(id);
-    }
-  }
-
-  /** Session-only: how the panes sit, and the share the active one keeps. */
-  let splitAxis: "row" | "column" = "row";
-  let splitRatio = 0.5;
-  let splitRow: HTMLElement | undefined;
-  let draggingSplit = false;
-
-  function splitPointerOffset(event: PointerEvent) {
-    if (!splitRow) {
-      return splitRatio;
-    }
-    const rect = splitRow.getBoundingClientRect();
-    if (splitAxis === "column") {
-      return (event.clientY - rect.top) / rect.height;
-    }
-    const x =
-      $i18n.dir === "rtl"
-        ? rect.right - event.clientX
-        : event.clientX - rect.left;
-    return x / rect.width;
-  }
-
-  const clampSplit = (ratio: number) => Math.min(0.8, Math.max(0.2, ratio));
-
-  /** Drag snaps to these once it is within 3% of one. */
-  const splitStops = [0.25, 1 / 3, 0.5, 2 / 3, 0.75];
-
-  const snapSplit = (ratio: number) =>
-    splitStops.find((stop) => Math.abs(stop - ratio) < 0.03) ?? ratio;
-
-  function moveSplit(event: PointerEvent) {
-    if (!draggingSplit) {
-      return;
-    }
-    event.preventDefault();
-    splitRatio = snapSplit(clampSplit(splitPointerOffset(event)));
-  }
-
-  /** Shift + arrow jumps to the neighbouring snap stop. */
-  function nextStop(direction: number) {
-    const found = splitStops.findIndex((stop) => stop >= splitRatio - 0.001);
-    const current = found === -1 ? splitStops.length : found;
-    const index = Math.min(
-      splitStops.length - 1,
-      Math.max(0, current + (direction > 0 ? 1 : -1)),
-    );
-    return splitStops[index];
-  }
-
-  function splitKeyResize(event: KeyboardEvent) {
-    const forward = splitAxis === "column" ? "ArrowDown" : "ArrowRight";
-    const back = splitAxis === "column" ? "ArrowUp" : "ArrowLeft";
-    if (event.key !== forward && event.key !== back) {
-      return;
-    }
-    event.preventDefault();
-    const direction =
-      (event.key === forward ? 1 : -1) *
-      (splitAxis === "row" && $i18n.dir === "rtl" ? -1 : 1);
-    splitRatio = event.shiftKey
-      ? nextStop(direction)
-      : clampSplit(splitRatio + direction * 0.02);
-  }
-
-  $: splitEntryPath = splitTab ? entryPathFromNote(splitTab) : null;
-  $: splitTitle = splitTab ? displayNoteName(splitTab) : "";
 
   $: activeDatabaseTabId =
     activeTab?.startsWith("db:") ? activeTab.slice(3) : null;
@@ -205,14 +92,8 @@
 
 <svelte:window
   onbeforeunload={() => void actions.flushNoteSave()}
-  onpointermove={(event) => {
-    actions.handleResize(event);
-    moveSplit(event);
-  }}
-  onpointerup={() => {
-    actions.stopResize();
-    draggingSplit = false;
-  }}
+  onpointermove={(event) => actions.handleResize(event)}
+  onpointerup={() => actions.stopResize()}
 />
 <main
   class="ms-islands grid h-screen overflow-hidden bg-canvas text-stone-900 dark:bg-canvas dark:text-stone-100"
@@ -308,227 +189,16 @@
         onClose={onCloseTab}
         onPin={onPinTab}
         onReorder={onReorderTabs}
-        {splitTab}
+        {splitTabs}
         onSplit={onSplitTab}
       />
-      <div
-        class="relative flex min-h-0 min-w-0 flex-1"
-        class:flex-col={splitTab && splitAxis === "column"}
-        bind:this={splitRow}
-        role="presentation"
-        ondragover={(event) => {
-          dropZone = dropZoneAt(event);
-          if (dropZone) {
-            event.preventDefault();
-          }
-        }}
-        ondragleave={(event) => {
-          if (!splitRow?.contains(event.relatedTarget as Node | null)) {
-            dropZone = null;
-          }
-        }}
-        ondrop={dropTab}
-      >
-        {#if dropZone}
-          <div
-            class="pointer-events-none absolute z-20 bg-emerald-500/20 ring-2 ring-emerald-500/50 ring-inset"
-            style={dropZone.axis === "row"
-              ? `inset-block: 0; inset-inline-${dropZone.side}: 0; width: 25%`
-              : `inset-inline: 0; ${
-                  dropZone.side === "start" ? "top" : "bottom"
-                }: 0; height: 25%`}
-          ></div>
-        {/if}
-      <div
-        class="relative min-h-0 min-w-0 flex-1"
-        style={splitTab ? `flex: ${splitRatio} 1 0%` : undefined}
-      >
-      {#if !activeTab}
-        <WelcomeDashboard
-          root={spaceRoot}
-          notes={spaceNotes}
-          meta={spaceMeta}
-          onNewNote={(text, folder = "", title = $i18n.t("welcome.untitled")) =>
-            actions.runWithStatus(() =>
-              actions.createSpaceNote(folder, title, false, text),
-            )}
-          onChooseSpace={() => actions.runWithStatus(actions.chooseSpace)}
-          onOpenNote={(relativePath) =>
-            actions.runWithStatus(() =>
-              actions.selectSpaceNote(relativePath),
-            )}
-        />
-      {:else if activeDiagramPreview}
-        <DiagramPreview preview={activeDiagramPreview} />
-      {:else if settings.features.databases && activeDatabaseTabId && spaceRoot}
-        <DatabaseView
-          root={spaceRoot}
-          databaseId={activeDatabaseTabId}
-          databaseOptions={databases}
-          onStatus={(message) => (statusMessage = message)}
-          onRenamed={(name) =>
-            (databases = databases.map((entry) =>
-              entry.id === activeDatabaseTabId ? { ...entry, name } : entry,
-            ))}
-        />
-      {:else}
-        <TemplatePicker
-          root={spaceRoot} note={activeRelativePath} title={noteTitle}
-          bind:contents
-          bind:templates
-          onPick={actions.updateNote}
-        />
-        <NoteEditorForm
-          bind:contents
-          bind:editor
-          editorWidth={settings.editorWidth}
-          textSize={settings.textSize}
-          spellcheck={settings.spellcheck}
-          slashCommands={settings.slashCommands}
-          fancyTableEditor={settings.features.fancyTableEditor}
-          callouts={settings.features.callouts}
-          calloutDefinitions={settings.callouts}
-          highlightColors={settings.highlightPalette}
-          drawings={settings.features.drawings}
-          diagrams={settings.features.diagrams}
-          inlineEmbeds={settings.appearance.embedEditing === "inline"}
-          quizzes={settings.features.quizzes}
-          codeExecution={settings.features.codeExecution}
-          plantuml={settings.features.plantuml}
-          plantumlSettings={settings.plantuml}
-          mermaid={settings.features.mermaid}
-          youtube={settings.features.youtube}
-          spotify={settings.features.spotify}
-          mermaidSettings={settings.mermaid}
-          runSession={path ?? ""}
-          runner={settings.runner}
-          lsp={settings.features.lsp}
-          lspSettings={settings.lsp}
-          editable={Boolean(path) && !readOnly}
-          {noteTitle}
-          pageMeta={activePageMeta}
-          showPageTitle={settings.showPageTitle}
-          placeholder={spaceRoot
-            ? $i18n.t("app.selectOrCreateNote")
-            : $i18n.t("app.chooseSpaceFromSidebar")}
-          onInput={actions.updateNote}
-          onIconChange={(icon) =>
-            actions.runWithStatus(() => actions.updateActiveIcon(icon))}
-          onCoverChange={(cover) =>
-            actions.runWithStatus(() => actions.updateActiveCover(cover))}
-          onCoverPositionChange={(position) =>
-            actions.runWithStatus(() =>
-              actions.updateActiveCoverPosition(position),
-            )}
-          onPickCover={() => actions.runWithStatus(actions.pickActiveCover)}
-          onTitleChange={activeRelativePath && !readOnly
-            ? (name) =>
-                actions.runWithStatus(() =>
-                  actions.renameSpaceEntry(activeRelativePath, name),
-                )
-            : null}
-          onAssets={(source) =>
-            actions.storeAssets(source).catch((error) => {
-              statusMessage =
-                error instanceof Error ? error.message : String(error);
-              return "";
-            })}
-          onPickAssets={() =>
-            actions.pickAssets().catch((error) => {
-              statusMessage =
-                error instanceof Error ? error.message : String(error);
-              return "";
-            })}
-          onGenerate={actions.generateFromPrompt}
-          onWikilink={(target) =>
-            actions.runWithStatus(() => actions.openWikilink(target))}
-          resolveWikilink={actions.resolveActiveWikilink}
-          renderWikilinkEmbed={actions.renderActiveWikilinkEmbed}
-          databaseRoot={settings.features.databases ? (spaceRoot ?? "") : ""}
-          databaseOptions={databases}
-          {templates}
-          onOpenDatabase={(id) =>
-            actions.runWithStatus(() => actions.selectDatabase(id))}
-          {onPreviewDiagram}
-          onStatus={(message) => (statusMessage = message)}
-          {wikilinkKey}
-          decorations={settings.features.grammarPolice && grammarOpen
-            ? grammarDecorations
-            : []}
-          resolveAsset={actions.resolveAsset}
-        />
-      {/if}
-      </div>
-      {#if splitTab}
-        <button
-          type="button"
-          class="z-10 shrink-0 border-0 bg-transparent p-0 transition-colors hover:bg-emerald-600/20 focus-visible:bg-emerald-600/20 focus-visible:outline-none"
-          class:w-1.5={splitAxis === "row"}
-          class:cursor-col-resize={splitAxis === "row"}
-          class:h-1.5={splitAxis === "column"}
-          class:cursor-row-resize={splitAxis === "column"}
-          aria-label={$i18n.t("tabs.splitResize")}
-          title={$i18n.t("tabs.splitResize")}
-          onpointerdown={(event) => {
-            event.preventDefault();
-            draggingSplit = true;
-          }}
-          onkeydown={splitKeyResize}
-          ondblclick={() => (splitRatio = 0.5)}
-        ></button>
-        <div
-          class="relative min-h-0 min-w-0 flex-1 overflow-y-auto border-stone-200/70 dark:border-stone-800"
-          class:border-s={splitAxis === "row"}
-          class:border-t={splitAxis === "column"}
-          style={`flex: ${1 - splitRatio} 1 0%`}
-        >
-          <NoteEditorForm
-            bind:contents={splitContents}
-            editorWidth={settings.editorWidth}
-            textSize={settings.textSize}
-            spellcheck={settings.spellcheck}
-            slashCommands={settings.slashCommands}
-            fancyTableEditor={settings.features.fancyTableEditor}
-            callouts={settings.features.callouts}
-            calloutDefinitions={settings.callouts}
-            highlightColors={settings.highlightPalette}
-            drawings={settings.features.drawings}
-            diagrams={settings.features.diagrams}
-            inlineEmbeds={settings.appearance.embedEditing === "inline"}
-            quizzes={settings.features.quizzes}
-            codeExecution={settings.features.codeExecution}
-            plantuml={settings.features.plantuml}
-            plantumlSettings={settings.plantuml}
-            mermaid={settings.features.mermaid}
-            mermaidSettings={settings.mermaid}
-            youtube={settings.features.youtube}
-            spotify={settings.features.spotify}
-            runner={settings.runner}
-            lsp={false}
-            lspSettings={settings.lsp}
-            editable={Boolean(spaceRoot) && !readOnly}
-            noteTitle={splitTitle}
-            pageMeta={spaceMeta[splitEntryPath ?? ""] ?? {}}
-            showPageTitle={settings.showPageTitle}
-            onInput={onSplitInput}
-            onIconChange={() => {}}
-            onCoverChange={() => {}}
-            onCoverPositionChange={() => {}}
-            onPickCover={() => {}}
-            onAssets={async () => ""}
-            onPickAssets={async () => ""}
-            onWikilink={(target) =>
-              actions.runWithStatus(() => actions.openWikilink(target))}
-            resolveWikilink={actions.resolveActiveWikilink}
-            renderWikilinkEmbed={actions.renderActiveWikilinkEmbed}
-            databaseRoot={settings.features.databases ? (spaceRoot ?? "") : ""}
-            databaseOptions={databases}
-            onStatus={(message) => (statusMessage = message)}
-            resolveAsset={actions.resolveAsset}
-          />
-        </div>
-      {/if}
-      </div>
+      <TilePane
+        node={tiles}
+        {pane}
+        onRatio={(split: TileSplit, ratio: number) =>
+          (tiles = setRatio(tiles, split, ratio))}
+        onDrop={onTileDrop}
+      />
     </div>
     {#if backlinks.length && !activeDatabaseTabId && !activeDiagramPreview}
       {#if settings.backlinksPaneOpen}
@@ -628,6 +298,147 @@
   </div>
   <EditorStatusBar {statusMessage} {words} {characters} />
 </main>
+
+{#snippet mainPane()}
+  <div class="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        {#if !activeTab}
+          <WelcomeDashboard
+            root={spaceRoot}
+            notes={spaceNotes}
+            meta={spaceMeta}
+            onNewNote={(text, folder = "", title = $i18n.t("welcome.untitled")) =>
+              actions.runWithStatus(() =>
+                actions.createSpaceNote(folder, title, false, text),
+              )}
+            onChooseSpace={() => actions.runWithStatus(actions.chooseSpace)}
+            onOpenNote={(relativePath) =>
+              actions.runWithStatus(() =>
+                actions.selectSpaceNote(relativePath),
+              )}
+          />
+        {:else if activeDiagramPreview}
+          <DiagramPreview preview={activeDiagramPreview} />
+        {:else if settings.features.databases && activeDatabaseTabId &&
+          spaceRoot}
+          <DatabaseView
+            root={spaceRoot}
+            databaseId={activeDatabaseTabId}
+            databaseOptions={databases}
+            onStatus={(message) => (statusMessage = message)}
+            onRenamed={(name) =>
+              (databases = databases.map((entry) =>
+                entry.id === activeDatabaseTabId ? { ...entry, name } : entry,
+              ))}
+          />
+        {:else}
+          <TemplatePicker
+            root={spaceRoot} note={activeRelativePath} title={noteTitle}
+            bind:contents
+            bind:templates
+            onPick={actions.updateNote}
+          />
+          <NoteEditorForm
+            bind:contents
+            bind:editor
+            editorWidth={settings.editorWidth}
+            textSize={settings.textSize}
+            spellcheck={settings.spellcheck}
+            slashCommands={settings.slashCommands}
+            fancyTableEditor={settings.features.fancyTableEditor}
+            callouts={settings.features.callouts}
+            calloutDefinitions={settings.callouts}
+            highlightColors={settings.highlightPalette}
+            drawings={settings.features.drawings}
+            diagrams={settings.features.diagrams}
+            inlineEmbeds={settings.appearance.embedEditing === "inline"}
+            quizzes={settings.features.quizzes}
+            codeExecution={settings.features.codeExecution}
+            plantuml={settings.features.plantuml}
+            plantumlSettings={settings.plantuml}
+            mermaid={settings.features.mermaid}
+            youtube={settings.features.youtube}
+            spotify={settings.features.spotify}
+            mermaidSettings={settings.mermaid}
+            runSession={path ?? ""}
+            runner={settings.runner}
+            lsp={settings.features.lsp}
+            lspSettings={settings.lsp}
+            editable={Boolean(path) && !readOnly}
+            {noteTitle}
+            pageMeta={activePageMeta}
+            showPageTitle={settings.showPageTitle}
+            placeholder={spaceRoot
+              ? $i18n.t("app.selectOrCreateNote")
+              : $i18n.t("app.chooseSpaceFromSidebar")}
+            onInput={actions.updateNote}
+            onIconChange={(icon) =>
+              actions.runWithStatus(() => actions.updateActiveIcon(icon))}
+            onCoverChange={(cover) =>
+              actions.runWithStatus(() => actions.updateActiveCover(cover))}
+            onCoverPositionChange={(position) =>
+              actions.runWithStatus(() =>
+                actions.updateActiveCoverPosition(position),
+              )}
+            onPickCover={() => actions.runWithStatus(actions.pickActiveCover)}
+            onTitleChange={activeRelativePath && !readOnly
+              ? (name) =>
+                  actions.runWithStatus(() =>
+                    actions.renameSpaceEntry(activeRelativePath ?? "", name),
+                  )
+              : null}
+            onAssets={(source) =>
+              actions.storeAssets(source).catch((error) => {
+                statusMessage =
+                  error instanceof Error ? error.message : String(error);
+                return "";
+              })}
+            onPickAssets={() =>
+              actions.pickAssets().catch((error) => {
+                statusMessage =
+                  error instanceof Error ? error.message : String(error);
+                return "";
+              })}
+            onGenerate={actions.generateFromPrompt}
+            onWikilink={(target) =>
+              actions.runWithStatus(() => actions.openWikilink(target))}
+            resolveWikilink={actions.resolveActiveWikilink}
+            renderWikilinkEmbed={actions.renderActiveWikilinkEmbed}
+            databaseRoot={settings.features.databases ? (spaceRoot ?? "") : ""}
+            databaseOptions={databases}
+            {templates}
+            onOpenDatabase={(id) =>
+              actions.runWithStatus(() => actions.selectDatabase(id))}
+            {onPreviewDiagram}
+            onStatus={(message) => (statusMessage = message)}
+            {wikilinkKey}
+            decorations={settings.features.grammarPolice && grammarOpen
+              ? grammarDecorations
+              : []}
+            resolveAsset={actions.resolveAsset}
+          />
+        {/if}
+  </div>
+{/snippet}
+
+{#snippet pane(id: string | null)}
+  {#if id === null}
+    {@render mainPane()}
+  {:else}
+    <SplitNotePane
+      note={id}
+      text={noteText(id)}
+      {settings}
+      {spaceMeta}
+      {spaceRoot}
+      {databases}
+      {readOnly}
+      {actions}
+      onInput={onSplitInput}
+      onStatus={(message) => (statusMessage = message)}
+    />
+  {/if}
+{/snippet}
+
 <CommandPalette
   {actions}
   {contents}

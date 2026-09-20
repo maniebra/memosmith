@@ -23,6 +23,15 @@
     normalizePath,
   } from "../../lib/utils/path";
   import { backlinksForNote } from "../../lib/utils/wikilinks";
+  import {
+    leaf,
+    leafIds,
+    pruneTiles,
+    removeLeaf,
+    replaceLeaf,
+    splitLeaf,
+  } from "../../lib/utils/tiling";
+  import type { TileNode } from "../../lib/utils/tiling";
   import EditorPageView from "./EditorPageView.svelte";
   import {
     countWords,
@@ -99,10 +108,9 @@
   let pinnedTabs = storedTabs.pinned;
   let activeTab: string | null = null;
   let diagramPreviews: Record<string, DiagramPreview> = {};
-  /** Session-only: the note shown beside the active tab. */
-  let splitTab: string | null = null;
-  let splitSaveTimer: ReturnType<typeof setTimeout> | undefined;
-  let splitContents = "";
+  /** Session-only: how the panes are tiled. The null leaf is the active tab. */
+  let tiles: TileNode = leaf(null);
+  let splitSaveTimers: Record<string, ReturnType<typeof setTimeout>> = {};
   /** The note that was active before the current one, for split hand-off. */
   let lastNote: string | null = null;
   let previousNote: string | null = null;
@@ -148,12 +156,8 @@
     previousNote = lastNote;
     lastNote = activeRelativePath;
   }
-  $: if (
-    splitTab &&
-    (!openTabs.includes(splitTab) || splitTab === activeRelativePath)
-  ) {
-    splitTab = null;
-  }
+  $: tiles = pruneTiles(tiles, openTabs, activeRelativePath);
+  $: splitTabs = leafIds(tiles);
   $: dirtyMarker = isDirty ? " *" : "";
   $: displayName = `${fileLabel}${dirtyMarker}`;
   $: grammarProfile = settings.grammarProfiles[settings.grammarMode];
@@ -330,9 +334,24 @@
       : (candidates[0] ?? null);
   }
 
-  /** A tab dropped on the trailing edge of the editor opens there. */
-  function openSplitTab(id: string) {
-    if (splitTab === id) {
+  /** Only notes can take a pane; databases and previews stay in the main one. */
+  const splittable = (id: string) =>
+    !id.startsWith("db:") && !isDiagramPreviewTab(id);
+
+  /**
+   * A tab dropped on a pane: on an edge it splits that pane, in the middle it
+   * takes the pane over.
+   */
+  function handleTileDrop(
+    target: string | null,
+    zone: { axis: "row" | "column"; side: "start" | "end" } | null,
+    id: string,
+  ) {
+    if (target === id) {
+      return;
+    }
+    if (!splittable(id) || (!zone && target === null)) {
+      void tabs.openTab(id);
       return;
     }
     if (!openTabs.includes(id)) {
@@ -340,49 +359,49 @@
       openTabs = [...openTabs, id];
     }
     if (id === activeRelativePath) {
-      // The active note moves into the split pane, so another one takes the
-      // main pane; the split cannot hold the active note.
+      // The active note moves into a pane, so another note takes the main one;
+      // the main pane cannot hold the note a tile already shows.
       const other = handoverNote(id);
       if (!other) {
         return;
       }
       const text = contents;
       void tabs.openTab(other).then(() => {
-        splitTab = id;
-        splitContents = text;
+        noteContents = { ...noteContents, [id]: text };
+        tiles = zone
+          ? splitLeaf(tiles, target, zone.axis, zone.side, id)
+          : replaceLeaf(tiles, target, id);
       });
       return;
     }
-    splitTab = id;
-    splitContents = noteContents[id] ?? "";
+    const without = removeLeaf(tiles, id);
+    tiles = zone
+      ? splitLeaf(without, target, zone.axis, zone.side, id)
+      : replaceLeaf(without, target, id);
   }
 
-  /** The split pane always holds a different note than the active tab. */
+  /** The tab strip button: give the note a pane, or take its pane away. */
   function toggleSplitTab(id: string) {
-    splitTab = splitTab === id || id === activeRelativePath ? null : id;
-    splitContents = splitTab ? (noteContents[splitTab] ?? "") : "";
+    if (splitTabs.includes(id)) {
+      tiles = removeLeaf(tiles, id);
+      return;
+    }
+    handleTileDrop(null, { axis: "row", side: "end" }, id);
   }
 
   /**
-   * The split note is saved on its own debounce: `path` and the note save
+   * Each pane's note is saved on its own debounce: `path` and the note save
    * timer both belong to the active tab.
    */
-  function updateSplitNote() {
-    if (!splitTab) {
-      return;
-    }
-    const note = splitTab;
-    const text = splitContents;
+  function updateSplitNote(note: string, text: string) {
     noteContents = { ...noteContents, [note]: text };
     if (!spaceRoot) {
       return;
     }
     const notePath = `${spaceRoot}/${note}`;
-    if (splitSaveTimer) {
-      clearTimeout(splitSaveTimer);
-    }
-    splitSaveTimer = setTimeout(() => {
-      splitSaveTimer = undefined;
+    clearTimeout(splitSaveTimers[note]);
+    splitSaveTimers[note] = setTimeout(() => {
+      delete splitSaveTimers[note];
       void runWithStatus(() => core.saveActiveNote(notePath, text));
     }, 450);
     statusMessage = $i18n.t("app.saving");
@@ -442,8 +461,8 @@
   });
 
   onDestroy(() => {
-    if (splitSaveTimer) {
-      clearTimeout(splitSaveTimer);
+    for (const timer of Object.values(splitSaveTimers)) {
+      clearTimeout(timer);
     }
     if (noteSaveTimer) {
       clearTimeout(noteSaveTimer);
@@ -487,11 +506,12 @@
   onCloseTab={closeTab}
   onPinTab={(id) => (openTabs = tabs.togglePinTab(id))}
   onReorderTabs={(id, target) => (openTabs = tabs.reorderTabs(id, target))}
-  {splitTab}
-  bind:splitContents
+  bind:tiles
+  {splitTabs}
+  noteText={(note) => noteContents[note] ?? ""}
   onSplitInput={updateSplitNote}
   onSplitTab={toggleSplitTab}
-  onSplitOpen={openSplitTab}
+  onTileDrop={handleTileDrop}
   {paneSlide}
   {path}
   bind:pdfPreviewOpen
