@@ -2,6 +2,9 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
   addReadable,
   isReadableTab,
+  loadAnnotations,
+  newAnnotation,
+  saveAnnotations,
   loadPositions,
   loadReadables,
   readableKind,
@@ -67,5 +70,22 @@ describe("readables", () => {
     expect(isReadableTab(id)).toBe(true);
     expect(isReadableTab("a.md")).toBe(false);
     expect(readableTabPath(id)).toBe("/books/a.pdf");
+  });
+});
+
+describe("annotations", () => {
+  beforeEach(() => localStorage.clear());
+
+  it("keeps highlights per file and drops malformed ones", () => {
+    const highlight = newAnnotation("12", "  a quote  ");
+    expect(highlight.text).toBe("a quote");
+
+    saveAnnotations("/books/a.pdf", [highlight, { id: 1 } as never]);
+    expect(loadAnnotations("/books/a.pdf")).toEqual([highlight]);
+    expect(loadAnnotations("/books/b.epub")).toEqual([]);
+  });
+
+  it("gives every highlight its own id", () => {
+    expect(newAnnotation("12", "a").id).not.toBe(newAnnotation("12", "a").id);
   });
 });

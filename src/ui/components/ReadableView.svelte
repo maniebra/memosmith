@@ -1,207 +1,194 @@
 <script lang="ts">
-  import { onDestroy, onMount } from "svelte";
   import { convertFileSrc } from "@tauri-apps/api/core";
-  import pdfWorker from "pdfjs-dist/build/pdf.worker.mjs?url";
-  import { ChevronLeft, ChevronRight } from "@lucide/svelte";
+  import {
+    BookOpenText,
+    ChevronLeft,
+    ChevronRight,
+    Highlighter,
+    List,
+    RotateCw,
+    Search,
+    ZoomIn,
+    ZoomOut,
+  } from "@lucide/svelte";
   import { i18n } from "../../lib/i18n";
   import {
-    loadPositions,
-    savePosition,
+    loadAnnotations,
+    newAnnotation,
+    saveAnnotations,
+    type Annotation,
     type ReadableKind,
   } from "../../lib/storage/readables";
+  import type { OutlineItem, SearchHit } from "../../lib/utils/reader";
+  import ReadableEpub from "./ReadableEpub.svelte";
+  import ReadablePdf from "./ReadablePdf.svelte";
+  import ReadableSidebar from "./ReadableSidebar.svelte";
 
   export let path: string;
   export let kind: ReadableKind;
   export let name = "";
 
-  let container: HTMLDivElement | undefined;
-  let error = "";
+  const ZOOM_KEY = "memosmith:readableZoom";
+  const button =
+    "rounded p-1 text-stone-500 hover:bg-stone-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 dark:text-stone-400";
+
+  let reader: any;
+  let zoom = Number(localStorage.getItem(ZOOM_KEY)) || 1;
+  let rotation = 0;
   let loading = true;
-  /** Set by whichever reader is live, so the switch below can tear it down. */
-  let teardown: () => void = () => {};
-  let epubPage = { label: "", prev: () => {}, next: () => {} };
+  let error = "";
+  let outline: OutlineItem[] = [];
+  let hits: SearchHit[] = [];
+  let query = "";
+  let searching = false;
+  let searchTimer: ReturnType<typeof setTimeout> | undefined;
+  let sidebar: "toc" | "search" | "annotations" | null = null;
+  let epubPage = "";
+  let annotations: Annotation[] = loadAnnotations(path);
 
-  onMount(() => {
-    void open();
-    return () => teardown();
-  });
+  $: url = convertFileSrc(path);
+  $: percent = `${Math.round(zoom * 100)}%`;
 
-  onDestroy(() => teardown());
-
-  async function open() {
-    try {
-      loading = true;
-      error = "";
-      if (kind === "pdf") {
-        await openPdf();
-      } else {
-        await openEpub();
-      }
-    } catch (cause) {
-      error = cause instanceof Error ? cause.message : String(cause);
-    } finally {
-      loading = false;
-    }
+  function setZoom(next: number) {
+    zoom = Math.min(4, Math.max(0.4, Number(next.toFixed(2))));
+    localStorage.setItem(ZOOM_KEY, String(zoom));
   }
 
-  /** Draws every page into its own canvas, sized to the pane width. */
-  async function renderPdfPages(host: HTMLElement, document_: any) {
-    host.replaceChildren();
-    const canvases: HTMLCanvasElement[] = [];
-
-    for (let number = 1; number <= document_.numPages; number++) {
-      const page = await document_.getPage(number);
-      const canvas = document.createElement("canvas");
-      const context = canvas.getContext("2d");
-
-      canvas.className = "mx-auto my-3 max-w-full shadow-sm";
-      host.append(canvas);
-      canvases.push(canvas);
-
-      if (!context) {
-        continue;
-      }
-
-      const unscaled = page.getViewport({ scale: 1 });
-      const scale = Math.max(0.2, (host.clientWidth - 32) / unscaled.width);
-      const viewport = page.getViewport({ scale });
-
-      canvas.width = Math.floor(viewport.width);
-      canvas.height = Math.floor(viewport.height);
-      await page.render({ canvas, canvasContext: context, viewport }).promise;
-    }
-
-    return canvases;
+  function toggle(panel: "toc" | "search" | "annotations") {
+    sidebar = sidebar === panel ? null : panel;
   }
 
-  /** The page in view is the last one whose top has scrolled past the pane. */
-  function trackPdfPage(host: HTMLElement, canvases: HTMLCanvasElement[]) {
-    const remember = () => {
-      let page = 1;
-
-      for (const [index, canvas] of canvases.entries()) {
-        if (canvas.offsetTop - host.offsetTop <= host.scrollTop + 8) {
-          page = index + 1;
-        }
-      }
-
-      savePosition(path, String(page));
-    };
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const onScroll = () => {
-      clearTimeout(timer);
-      timer = setTimeout(remember, 400);
-    };
-
-    host.addEventListener("scroll", onScroll);
-
-    return () => {
-      clearTimeout(timer);
-      host.removeEventListener("scroll", onScroll);
-    };
+  function runSearch(value: string) {
+    query = value;
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(async () => {
+      searching = Boolean(value.trim());
+      hits = value.trim() ? await reader.search(value) : [];
+      searching = false;
+      reader.markSearch(value.trim());
+    }, 300);
   }
 
-  async function openPdf() {
-    const pdfjs = await import("pdfjs-dist");
+  function addHighlight() {
+    const picked = reader?.selection?.();
 
-    pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker;
-
-    const document_ = await pdfjs.getDocument({
-      url: convertFileSrc(path),
-    }).promise;
-    const host = container;
-
-    if (!host) {
+    if (!picked) {
       return;
     }
 
-    const canvases = await renderPdfPages(host, document_);
-    const saved = Number(loadPositions()[path]);
-
-    if (Number.isFinite(saved) && saved > 1) {
-      canvases[Math.min(saved, canvases.length) - 1]?.scrollIntoView();
-    }
-
-    const stopTracking = trackPdfPage(host, canvases);
-
-    teardown = () => {
-      stopTracking();
-      void document_.cleanup();
-    };
+    annotations = [...annotations, newAnnotation(picked.location, picked.text)];
+    saveAnnotations(path, annotations);
+    sidebar = "annotations";
   }
 
-  /** epub.js needs the bytes: the asset URL carries no `.epub` for it to sniff. */
-  async function openEpub() {
-    const { default: ePub } = await import("epubjs");
-    const response = await fetch(convertFileSrc(path));
-    const book = ePub(await response.arrayBuffer());
-    const host = container;
+  function removeHighlight(id: string) {
+    annotations = annotations.filter((entry) => entry.id !== id);
+    saveAnnotations(path, annotations);
+  }
 
-    if (!host) {
-      return;
-    }
-
-    host.replaceChildren();
-    const rendition = book.renderTo(host, {
-      width: "100%",
-      height: "100%",
-      flow: "scrolled-doc",
-      spread: "none",
-    });
-
-    await rendition.display(loadPositions()[path] || undefined);
-
-    rendition.on("relocated", (location: any) => {
-      epubPage = {
-        label: location?.start?.displayed
-          ? `${location.start.displayed.page} / ${location.start.displayed.total}`
-          : "",
-        prev: () => void rendition.prev(),
-        next: () => void rendition.next(),
-      };
-      if (location?.start?.cfi) {
-        savePosition(path, location.start.cfi);
-      }
-    });
-
-    const observer = new ResizeObserver(() =>
-      rendition.resize(host.clientWidth, host.clientHeight),
+  function noteHighlight(id: string, note: string) {
+    annotations = annotations.map((entry) =>
+      entry.id === id ? { ...entry, note } : entry,
     );
-
-    observer.observe(host);
-    teardown = () => {
-      observer.disconnect();
-      book.destroy();
-    };
+    saveAnnotations(path, annotations);
   }
 </script>
 
 <div class="flex min-h-0 min-w-0 flex-1 flex-col">
   <div
-    class="flex h-9 shrink-0 items-center gap-2 border-b border-stone-200/70 px-3 text-xs text-stone-500 dark:border-stone-800 dark:text-stone-400"
+    class="flex h-9 shrink-0 items-center gap-1 border-b border-stone-200/70 px-2 text-xs text-stone-500 dark:border-stone-800 dark:text-stone-400"
   >
     <span class="min-w-0 flex-1 truncate" title={path}>{name || path}</span>
     {#if kind === "epub"}
       <button
         type="button"
-        class="rounded p-1 hover:bg-stone-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25"
+        class={button}
         aria-label={$i18n.t("readables.previous")}
         title={$i18n.t("readables.previous")}
-        onclick={() => epubPage.prev()}
+        onclick={() => reader?.previous()}
       >
         <ChevronLeft class="size-4" />
       </button>
-      <span class="tabular-nums">{epubPage.label}</span>
+      <span class="tabular-nums">{epubPage}</span>
       <button
         type="button"
-        class="rounded p-1 hover:bg-stone-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25"
+        class={button}
         aria-label={$i18n.t("readables.next")}
         title={$i18n.t("readables.next")}
-        onclick={() => epubPage.next()}
+        onclick={() => reader?.next()}
       >
         <ChevronRight class="size-4" />
       </button>
     {/if}
+    <button
+      type="button"
+      class={button}
+      aria-label={$i18n.t("readables.zoomOut")}
+      title={$i18n.t("readables.zoomOut")}
+      onclick={() => setZoom(zoom - 0.2)}
+    >
+      <ZoomOut class="size-4" />
+    </button>
+    <span class="tabular-nums">{percent}</span>
+    <button
+      type="button"
+      class={button}
+      aria-label={$i18n.t("readables.zoomIn")}
+      title={$i18n.t("readables.zoomIn")}
+      onclick={() => setZoom(zoom + 0.2)}
+    >
+      <ZoomIn class="size-4" />
+    </button>
+    {#if kind === "pdf"}
+      <button
+        type="button"
+        class={button}
+        aria-label={$i18n.t("readables.rotate")}
+        title={$i18n.t("readables.rotate")}
+        onclick={() => (rotation = (rotation + 90) % 360)}
+      >
+        <RotateCw class="size-4" />
+      </button>
+    {/if}
+    <button
+      type="button"
+      class={button}
+      class:text-emerald-600={sidebar === "toc"}
+      aria-label={$i18n.t("readables.contents")}
+      title={$i18n.t("readables.contents")}
+      onclick={() => toggle("toc")}
+    >
+      <List class="size-4" />
+    </button>
+    <button
+      type="button"
+      class={button}
+      class:text-emerald-600={sidebar === "search"}
+      aria-label={$i18n.t("readables.search")}
+      title={$i18n.t("readables.search")}
+      onclick={() => toggle("search")}
+    >
+      <Search class="size-4" />
+    </button>
+    <button
+      type="button"
+      class={button}
+      aria-label={$i18n.t("readables.highlight")}
+      title={$i18n.t("readables.highlight")}
+      onclick={addHighlight}
+    >
+      <Highlighter class="size-4" />
+    </button>
+    <button
+      type="button"
+      class={button}
+      class:text-emerald-600={sidebar === "annotations"}
+      aria-label={$i18n.t("readables.highlights")}
+      title={$i18n.t("readables.highlights")}
+      onclick={() => toggle("annotations")}
+    >
+      <BookOpenText class="size-4" />
+    </button>
   </div>
   {#if loading}
     <p class="px-4 py-6 text-center text-xs text-stone-400">
@@ -210,8 +197,47 @@
   {:else if error}
     <p class="px-4 py-6 text-center text-xs text-rose-500">{error}</p>
   {/if}
-  <div
-    bind:this={container}
-    class="min-h-0 min-w-0 flex-1 overflow-auto bg-stone-100 dark:bg-stone-900"
-  ></div>
+  <div class="flex min-h-0 min-w-0 flex-1">
+    {#key path}
+      {#if kind === "pdf"}
+        <ReadablePdf
+          bind:this={reader}
+          {path}
+          {url}
+          {zoom}
+          {rotation}
+          {annotations}
+          onOutline={(items) => (outline = items)}
+          onReady={() => (loading = false)}
+          onError={(message) => ((error = message), (loading = false))}
+        />
+      {:else}
+        <ReadableEpub
+          bind:this={reader}
+          {path}
+          {url}
+          {zoom}
+          {annotations}
+          onOutline={(items) => (outline = items)}
+          onPage={(label) => (epubPage = label)}
+          onReady={() => (loading = false)}
+          onError={(message) => ((error = message), (loading = false))}
+        />
+      {/if}
+    {/key}
+    {#if sidebar}
+      <ReadableSidebar
+        mode={sidebar}
+        {outline}
+        {hits}
+        {annotations}
+        {query}
+        {searching}
+        onQuery={runSearch}
+        onGo={(location) => reader?.goTo(location)}
+        onRemove={removeHighlight}
+        onNote={noteHighlight}
+      />
+    {/if}
+  </div>
 </div>

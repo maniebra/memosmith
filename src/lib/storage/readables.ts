@@ -99,3 +99,59 @@ export function savePosition(path: string, position: string) {
     // Losing the last position only costs the reader a scroll.
   }
 }
+
+/** A highlight the reader made: where it sits, what it says, and any note. */
+export type Annotation = {
+  id: string;
+  /** A page number for PDFs, an EPUB CFI for EPUBs. */
+  location: string;
+  text: string;
+  note: string;
+  created: number;
+};
+
+const ANNOTATIONS_KEY = "memosmith:readableAnnotations";
+
+function allAnnotations(): Record<string, Annotation[]> {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(ANNOTATIONS_KEY) ?? "{}");
+
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+export function loadAnnotations(path: string): Annotation[] {
+  const stored = allAnnotations()[path];
+
+  return Array.isArray(stored)
+    ? stored.filter(
+        (entry) =>
+          typeof entry?.id === "string" &&
+          typeof entry?.location === "string" &&
+          typeof entry?.text === "string",
+      )
+    : [];
+}
+
+export function saveAnnotations(path: string, annotations: Annotation[]) {
+  try {
+    localStorage.setItem(
+      ANNOTATIONS_KEY,
+      JSON.stringify({ ...allAnnotations(), [path]: annotations }),
+    );
+  } catch {
+    // Highlights are worth keeping, but not worth crashing the reader over.
+  }
+}
+
+export function newAnnotation(location: string, text: string): Annotation {
+  return {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    location,
+    text: text.trim(),
+    note: "",
+    created: Date.now(),
+  };
+}
