@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Image, Pin, PinOff, Table, X } from "@lucide/svelte";
+  import { Columns2, Image, Pin, PinOff, Table, X } from "@lucide/svelte";
   import { i18n } from "../../lib/i18n";
   import PageIcon from "../components/PageIcon.svelte";
   import { displayNoteName, entryPathFromNote } from "../../lib/utils/path";
@@ -13,6 +13,8 @@
   export let onClose: (id: string) => void;
   export let onPin: (id: string) => void;
   export let onReorder: (id: string, target: string) => void;
+  export let splitTabs: string[] = [];
+  export let onSplit: (id: string) => void = () => {};
 
   let dragged: string | null = null;
 
@@ -49,7 +51,14 @@
         class:opacity-50={id === dragged}
         draggable="true"
         role="presentation"
-        ondragstart={() => (dragged = id)}
+        ondragstart={(event) => {
+          dragged = id;
+          event.dataTransfer?.setData("application/x-memosmith-tab", id);
+          event.dataTransfer?.setData("text/plain", id);
+          if (event.dataTransfer) {
+            event.dataTransfer.effectAllowed = "move";
+          }
+        }}
         ondragend={() => (dragged = null)}
         ondragover={(event) => event.preventDefault()}
         ondrop={(event) => {
@@ -89,6 +98,22 @@
             <span class="truncate">{label(id)}</span>
           {/if}
         </button>
+        {#if id !== activeTab}
+          <button
+            type="button"
+            class="shrink-0 rounded p-0.5 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-stone-200/70 focus-visible:opacity-100 focus-visible:outline-none dark:hover:bg-stone-700/60"
+            class:opacity-100={splitTabs.includes(id)}
+            aria-label={splitTabs.includes(id)
+              ? $i18n.t("tabs.unsplit")
+              : $i18n.t("tabs.split")}
+            title={splitTabs.includes(id)
+              ? $i18n.t("tabs.unsplit")
+              : $i18n.t("tabs.split")}
+            onclick={() => onSplit(id)}
+          >
+            <Columns2 class="size-3" />
+          </button>
+        {/if}
         <button
           type="button"
           class="shrink-0 rounded p-0.5 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-stone-200/70 focus-visible:opacity-100 focus-visible:outline-none dark:hover:bg-stone-700/60"

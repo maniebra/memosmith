@@ -18,6 +18,10 @@
   import ModalOverlay from "../components/ModalOverlay.svelte";
   import SpaceSidebar from "../sections/SpaceSidebar.svelte";
   import WelcomeDashboard from "../sections/WelcomeDashboard.svelte";
+  import SplitNotePane from "../sections/SplitNotePane.svelte";
+  import TilePane from "../sections/TilePane.svelte";
+  import { setRatio } from "../../lib/utils/tiling";
+  import type { TileNode, TileSplit } from "../../lib/utils/tiling";
   import type { EditorPageActions } from "./editorPageContext";
   import type {
     DiagramPreview as DiagramPreviewData,
@@ -61,6 +65,17 @@
   export let onCloseTab: (id: string) => void;
   export let onPinTab: (id: string) => void;
   export let onReorderTabs: (id: string, target: string) => void;
+  export let tiles: TileNode;
+  export let splitTabs: string[] = [];
+  export let diagramPreviews: Record<string, DiagramPreviewData> = {};
+  export let noteText: (note: string) => string = () => "";
+  export let onSplitTab: (id: string) => void = () => {};
+  export let onSplitInput: (note: string, text: string) => void = () => {};
+  export let onTileDrop: (
+    target: string | null,
+    zone: { axis: "row" | "column"; side: "start" | "end" } | null,
+    id: string,
+  ) => void = () => {};
   export let onPreviewDiagram:
     (preview: DiagramPreviewData) => void | Promise<void>;
   export let explainGrammarIssue: (issue: any) => Promise<string>;
@@ -70,6 +85,7 @@
   let readOnly = false;
   let templates: { name: string; text: string }[] = [];
 
+
   $: activeDatabaseTabId =
     activeTab?.startsWith("db:") ? activeTab.slice(3) : null;
 
@@ -77,8 +93,8 @@
 
 <svelte:window
   onbeforeunload={() => void actions.flushNoteSave()}
-  onpointermove={actions.handleResize}
-  onpointerup={actions.stopResize}
+  onpointermove={(event) => actions.handleResize(event)}
+  onpointerup={() => actions.stopResize()}
 />
 <main
   class="ms-islands grid h-screen overflow-hidden bg-canvas text-stone-900 dark:bg-canvas dark:text-stone-100"
@@ -174,124 +190,16 @@
         onClose={onCloseTab}
         onPin={onPinTab}
         onReorder={onReorderTabs}
+        {splitTabs}
+        onSplit={onSplitTab}
       />
-      <div class="relative min-h-0 flex-1">
-      {#if !activeTab}
-        <WelcomeDashboard
-          root={spaceRoot}
-          notes={spaceNotes}
-          meta={spaceMeta}
-          onNewNote={(text, folder = "", title = $i18n.t("welcome.untitled")) =>
-            actions.runWithStatus(() =>
-              actions.createSpaceNote(folder, title, false, text),
-            )}
-          onChooseSpace={() => actions.runWithStatus(actions.chooseSpace)}
-          onOpenNote={(relativePath) =>
-            actions.runWithStatus(() =>
-              actions.selectSpaceNote(relativePath),
-            )}
-        />
-      {:else if activeDiagramPreview}
-        <DiagramPreview preview={activeDiagramPreview} />
-      {:else if settings.features.databases && activeDatabaseTabId && spaceRoot}
-        <DatabaseView
-          root={spaceRoot}
-          databaseId={activeDatabaseTabId}
-          databaseOptions={databases}
-          onStatus={(message) => (statusMessage = message)}
-          onRenamed={(name) =>
-            (databases = databases.map((entry) =>
-              entry.id === activeDatabaseTabId ? { ...entry, name } : entry,
-            ))}
-        />
-      {:else}
-        <TemplatePicker
-          root={spaceRoot} note={activeRelativePath} title={noteTitle}
-          bind:contents
-          bind:templates
-          onPick={actions.updateNote}
-        />
-        <NoteEditorForm
-          bind:contents
-          bind:editor
-          editorWidth={settings.editorWidth}
-          textSize={settings.textSize}
-          spellcheck={settings.spellcheck}
-          slashCommands={settings.slashCommands}
-          fancyTableEditor={settings.features.fancyTableEditor}
-          callouts={settings.features.callouts}
-          calloutDefinitions={settings.callouts}
-          highlightColors={settings.highlightPalette}
-          drawings={settings.features.drawings}
-          diagrams={settings.features.diagrams}
-          inlineEmbeds={settings.appearance.embedEditing === "inline"}
-          quizzes={settings.features.quizzes}
-          codeExecution={settings.features.codeExecution}
-          plantuml={settings.features.plantuml}
-          plantumlSettings={settings.plantuml}
-          mermaid={settings.features.mermaid}
-          youtube={settings.features.youtube}
-          spotify={settings.features.spotify}
-          mermaidSettings={settings.mermaid}
-          runSession={path ?? ""}
-          runner={settings.runner}
-          lsp={settings.features.lsp}
-          lspSettings={settings.lsp}
-          editable={Boolean(path) && !readOnly}
-          {noteTitle}
-          pageMeta={activePageMeta}
-          showPageTitle={settings.showPageTitle}
-          placeholder={spaceRoot
-            ? $i18n.t("app.selectOrCreateNote")
-            : $i18n.t("app.chooseSpaceFromSidebar")}
-          onInput={actions.updateNote}
-          onIconChange={(icon) =>
-            actions.runWithStatus(() => actions.updateActiveIcon(icon))}
-          onCoverChange={(cover) =>
-            actions.runWithStatus(() => actions.updateActiveCover(cover))}
-          onCoverPositionChange={(position) =>
-            actions.runWithStatus(() =>
-              actions.updateActiveCoverPosition(position),
-            )}
-          onPickCover={() => actions.runWithStatus(actions.pickActiveCover)}
-          onTitleChange={activeRelativePath && !readOnly
-            ? (name) =>
-                actions.runWithStatus(() =>
-                  actions.renameSpaceEntry(activeRelativePath, name),
-                )
-            : null}
-          onAssets={(source) =>
-            actions.storeAssets(source).catch((error) => {
-              statusMessage =
-                error instanceof Error ? error.message : String(error);
-              return "";
-            })}
-          onPickAssets={() =>
-            actions.pickAssets().catch((error) => {
-              statusMessage =
-                error instanceof Error ? error.message : String(error);
-              return "";
-            })}
-          onGenerate={actions.generateFromPrompt}
-          onWikilink={(target) =>
-            actions.runWithStatus(() => actions.openWikilink(target))}
-          resolveWikilink={actions.resolveActiveWikilink}
-          renderWikilinkEmbed={actions.renderActiveWikilinkEmbed}
-          databaseRoot={settings.features.databases ? (spaceRoot ?? "") : ""}
-          databaseOptions={databases}
-          {templates}
-          onOpenDatabase={(id) =>
-            actions.runWithStatus(() => actions.selectDatabase(id))}
-          {onPreviewDiagram}
-          onStatus={(message) => (statusMessage = message)}
-          {wikilinkKey}
-          decorations={settings.features.grammarPolice && grammarOpen
-            ? grammarDecorations
-            : []}
-          resolveAsset={actions.resolveAsset}
-        />
-      {/if}
-      </div>
+      <TilePane
+        node={tiles}
+        {pane}
+        onRatio={(split: TileSplit, ratio: number) =>
+          (tiles = setRatio(tiles, split, ratio))}
+        onDrop={onTileDrop}
+      />
     </div>
     {#if backlinks.length && !activeDatabaseTabId && !activeDiagramPreview}
       {#if settings.backlinksPaneOpen}
@@ -391,6 +299,166 @@
   </div>
   <EditorStatusBar {statusMessage} {words} {characters} />
 </main>
+
+{#snippet mainPane()}
+  <div class="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        {#if !activeTab}
+          <WelcomeDashboard
+            root={spaceRoot}
+            notes={spaceNotes}
+            meta={spaceMeta}
+            onNewNote={(text, folder = "", title = $i18n.t("welcome.untitled")) =>
+              actions.runWithStatus(() =>
+                actions.createSpaceNote(folder, title, false, text),
+              )}
+            onChooseSpace={() => actions.runWithStatus(actions.chooseSpace)}
+            onOpenNote={(relativePath) =>
+              actions.runWithStatus(() =>
+                actions.selectSpaceNote(relativePath),
+              )}
+          />
+        {:else if activeDiagramPreview}
+          <DiagramPreview preview={activeDiagramPreview} />
+        {:else if settings.features.databases && activeDatabaseTabId &&
+          spaceRoot}
+          <DatabaseView
+            root={spaceRoot}
+            databaseId={activeDatabaseTabId}
+            databaseOptions={databases}
+            onStatus={(message) => (statusMessage = message)}
+            onRenamed={(name) =>
+              (databases = databases.map((entry) =>
+                entry.id === activeDatabaseTabId ? { ...entry, name } : entry,
+              ))}
+          />
+        {:else}
+          <TemplatePicker
+            root={spaceRoot} note={activeRelativePath} title={noteTitle}
+            bind:contents
+            bind:templates
+            onPick={actions.updateNote}
+          />
+          <NoteEditorForm
+            bind:contents
+            bind:editor
+            editorWidth={settings.editorWidth}
+            textSize={settings.textSize}
+            spellcheck={settings.spellcheck}
+            slashCommands={settings.slashCommands}
+            fancyTableEditor={settings.features.fancyTableEditor}
+            callouts={settings.features.callouts}
+            calloutDefinitions={settings.callouts}
+            highlightColors={settings.highlightPalette}
+            drawings={settings.features.drawings}
+            diagrams={settings.features.diagrams}
+            inlineEmbeds={settings.appearance.embedEditing === "inline"}
+            quizzes={settings.features.quizzes}
+            codeExecution={settings.features.codeExecution}
+            plantuml={settings.features.plantuml}
+            plantumlSettings={settings.plantuml}
+            mermaid={settings.features.mermaid}
+            youtube={settings.features.youtube}
+            spotify={settings.features.spotify}
+            mermaidSettings={settings.mermaid}
+            runSession={path ?? ""}
+            runner={settings.runner}
+            lsp={settings.features.lsp}
+            lspSettings={settings.lsp}
+            editable={Boolean(path) && !readOnly}
+            {noteTitle}
+            pageMeta={activePageMeta}
+            showPageTitle={settings.showPageTitle}
+            placeholder={spaceRoot
+              ? $i18n.t("app.selectOrCreateNote")
+              : $i18n.t("app.chooseSpaceFromSidebar")}
+            onInput={actions.updateNote}
+            onIconChange={(icon) =>
+              actions.runWithStatus(() => actions.updateActiveIcon(icon))}
+            onCoverChange={(cover) =>
+              actions.runWithStatus(() => actions.updateActiveCover(cover))}
+            onCoverPositionChange={(position) =>
+              actions.runWithStatus(() =>
+                actions.updateActiveCoverPosition(position),
+              )}
+            onPickCover={() => actions.runWithStatus(actions.pickActiveCover)}
+            onTitleChange={activeRelativePath && !readOnly
+              ? (name) =>
+                  actions.runWithStatus(() =>
+                    actions.renameSpaceEntry(activeRelativePath ?? "", name),
+                  )
+              : null}
+            onAssets={(source) =>
+              actions.storeAssets(source).catch((error) => {
+                statusMessage =
+                  error instanceof Error ? error.message : String(error);
+                return "";
+              })}
+            onPickAssets={() =>
+              actions.pickAssets().catch((error) => {
+                statusMessage =
+                  error instanceof Error ? error.message : String(error);
+                return "";
+              })}
+            onGenerate={actions.generateFromPrompt}
+            onWikilink={(target) =>
+              actions.runWithStatus(() => actions.openWikilink(target))}
+            resolveWikilink={actions.resolveActiveWikilink}
+            renderWikilinkEmbed={actions.renderActiveWikilinkEmbed}
+            databaseRoot={settings.features.databases ? (spaceRoot ?? "") : ""}
+            databaseOptions={databases}
+            {templates}
+            onOpenDatabase={(id) =>
+              actions.runWithStatus(() => actions.selectDatabase(id))}
+            {onPreviewDiagram}
+            onStatus={(message) => (statusMessage = message)}
+            {wikilinkKey}
+            decorations={settings.features.grammarPolice && grammarOpen
+              ? grammarDecorations
+              : []}
+            resolveAsset={actions.resolveAsset}
+          />
+        {/if}
+  </div>
+{/snippet}
+
+{#snippet pane(id: string | null)}
+  {#if id === null}
+    {@render mainPane()}
+  {:else if diagramPreviews[id]}
+    <div class="relative min-h-0 min-w-0 flex-1">
+      <DiagramPreview preview={diagramPreviews[id]} />
+    </div>
+  {:else if id.startsWith("db:")}
+    <div class="relative min-h-0 min-w-0 flex-1">
+      {#if settings.features.databases && spaceRoot}
+        <DatabaseView
+          root={spaceRoot}
+          databaseId={id.slice(3)}
+          databaseOptions={databases}
+          onStatus={(message) => (statusMessage = message)}
+          onRenamed={(name) =>
+            (databases = databases.map((entry) =>
+              entry.id === id.slice(3) ? { ...entry, name } : entry,
+            ))}
+        />
+      {/if}
+    </div>
+  {:else}
+    <SplitNotePane
+      note={id}
+      text={noteText(id)}
+      {settings}
+      {spaceMeta}
+      {spaceRoot}
+      {databases}
+      {readOnly}
+      {actions}
+      onInput={onSplitInput}
+      onStatus={(message) => (statusMessage = message)}
+    />
+  {/if}
+{/snippet}
+
 <CommandPalette
   {actions}
   {contents}

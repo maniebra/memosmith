@@ -217,6 +217,13 @@
           ondragstart={(event) => {
             dragging = node.path;
             event.dataTransfer?.setData("text/memosmith-path", node.path);
+            if (!node.children) {
+              // Lets the editor panes take the note as a tab drop.
+              event.dataTransfer?.setData(
+                "application/x-memosmith-tab",
+                node.path,
+              );
+            }
             if (event.dataTransfer) {
               event.dataTransfer.effectAllowed = "move";
             }
