@@ -31,6 +31,7 @@
   export let onReady: () => void = () => {};
   export let onError: (message: string) => void = () => {};
   export let onZoom: (zoom: number) => void = () => {};
+  export let onPage: (label: string) => void = () => {};
 
   let host: HTMLDivElement | undefined;
   let document_: PdfDocument | null = null;
@@ -55,6 +56,10 @@
   onMount(() => void start());
   onDestroy(() => {
     clearTimeout(scrollTimer);
+    // The debounce may still be pending when the tab closes.
+    if (pages.length) {
+      savePosition(path, position());
+    }
     paintRanges("ms-readable-marks", []);
     paintRanges("ms-readable-search", []);
     void document_?.cleanup();
@@ -67,7 +72,7 @@
       applied = `${zoom}/${rotation}`;
       pages = await buildPages(document_, host as HTMLElement, options);
       offsets = measurePages(host as HTMLElement, pages);
-      restorePosition();
+      goTo(loadPositions()[path] ?? "1");
       await fill();
       onReady();
       onOutline(await pdfOutline(document_));
@@ -100,38 +105,57 @@
       return;
     }
 
-    const current = currentPage();
+    const spot = position();
 
     await resetPages(document_, pages, options);
     offsets = measurePages(host, pages);
-    goTo(String(current));
+    goTo(spot);
     await fill();
   }
 
-  function restorePosition() {
-    const saved = Number(loadPositions()[path]);
+  /** Height of the page at `index`, falling back to the pane's own height. */
+  function heightOf(index: number) {
+    return pages[index]?.wrapper.offsetHeight || host?.clientHeight || 1;
+  }
 
-    if (Number.isFinite(saved) && saved > 1) {
-      goTo(String(saved));
+  function pageIndex(location: string) {
+    const number = Number(location.split(":")[0]);
+    const clamped = Number.isFinite(number) ? number : 1;
+
+    return Math.min(Math.max(1, clamped), Math.max(1, pages.length)) - 1;
+  }
+
+  /**
+   * Where the reader is, as `page:fraction` — the fraction is how far into
+   * that page the pane has scrolled, so reopening lands on the same line
+   * rather than the top of the page. A bare page number still reads fine.
+   */
+  export function position() {
+    if (!host || !offsets.length) {
+      return "1";
     }
-  }
 
-  function pageOf(location: string) {
-    const number = Number(location);
+    const index = pageIndexAt(offsets, host.scrollTop + 8);
+    const into = (host.scrollTop - offsets[index]) / heightOf(index);
 
-    return pages[Math.min(Math.max(1, number), pages.length) - 1];
-  }
-
-  /** The page in view is the last one whose top has scrolled past the pane. */
-  function currentPage() {
-    return host && offsets.length
-      ? pageIndexAt(offsets, host.scrollTop + 8) + 1
-      : 1;
+    return `${index + 1}:${Math.min(1, Math.max(0, into)).toFixed(3)}`;
   }
 
   export function goTo(location: string) {
-    pageOf(location)?.wrapper.scrollIntoView();
+    const index = pageIndex(location);
+    const into = Number(location.split(":")[1]);
+
+    if (host) {
+      host.scrollTop =
+        offsets[index] + (Number.isFinite(into) ? into * heightOf(index) : 0);
+    }
+
+    report();
     void fill();
+  }
+
+  function report() {
+    onPage(`${pageIndex(position()) + 1} / ${pages.length}`);
   }
 
   export function search(query: string): Promise<SearchHit[]> {
@@ -166,7 +190,7 @@
     paintRanges(
       "ms-readable-marks",
       entries.flatMap((entry) => {
-        const page = pageOf(entry.location);
+        const page = pages[pageIndex(entry.location)];
 
         return page ? quoteRanges(page.textLayer, entry.text) : [];
       }),
@@ -178,7 +202,8 @@
   function onScroll() {
     clearTimeout(scrollTimer);
     scrollTimer = setTimeout(() => {
-      savePosition(path, String(currentPage()));
+      savePosition(path, position());
+      report();
       void fill();
     }, 150);
   }

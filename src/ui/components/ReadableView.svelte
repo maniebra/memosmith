@@ -42,7 +42,7 @@
   let searching = false;
   let searchTimer: ReturnType<typeof setTimeout> | undefined;
   let sidebar: "toc" | "search" | "annotations" | null = null;
-  let epubPage = "";
+  let pageLabel = "";
   let annotations: Annotation[] = loadAnnotations(path);
   let frame: HTMLElement | undefined;
   /** Ctrl+= and friends act on the reader the pointer is over. */
@@ -125,7 +125,9 @@
     class="flex h-9 shrink-0 items-center gap-1 border-b border-stone-200/70 px-2 text-xs text-stone-500 dark:border-stone-800 dark:text-stone-400"
   >
     <span class="min-w-0 flex-1 truncate" title={path}>{name || path}</span>
-    {#if kind === "epub"}
+    {#if kind === "pdf"}
+      <span class="tabular-nums">{pageLabel}</span>
+    {:else}
       <button
         type="button"
         class={button}
@@ -135,7 +137,7 @@
       >
         <ChevronLeft class="size-4" />
       </button>
-      <span class="tabular-nums">{epubPage}</span>
+      <span class="tabular-nums">{pageLabel}</span>
       <button
         type="button"
         class={button}
@@ -236,6 +238,7 @@
           onReady={() => (loading = false)}
           onError={(message) => ((error = message), (loading = false))}
           onZoom={setZoom}
+          onPage={(label) => (pageLabel = label)}
         />
       {:else}
         <ReadableEpub
@@ -244,7 +247,7 @@
           {zoom}
           {annotations}
           onOutline={(items) => (outline = items)}
-          onPage={(label) => (epubPage = label)}
+          onPage={(label) => (pageLabel = label)}
           onReady={() => (loading = false)}
           onError={(message) => ((error = message), (loading = false))}
         />
