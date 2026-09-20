@@ -92,6 +92,8 @@ export const fa: Record<I18nKey, string> = {
   "readables.loading": "در حال باز کردن...",
   "readables.unsupported": "تنها فایل‌های PDF و EPUB در برنامه خوانده می‌شوند.",
   "readables.zoomIn": "بزرگ‌نمایی",
+  "readables.page": "صفحه",
+  "readables.resetZoom": "بازنشانی بزرگ‌نمایی",
   "readables.zoomOut": "کوچک‌نمایی",
   "readables.rotate": "چرخش ۹۰ درجه",
   "readables.invert": "وارونه‌سازی رنگ‌ها",

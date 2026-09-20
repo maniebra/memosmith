@@ -31,7 +31,12 @@
   const ZOOM_KEY = "memosmith:readableZoom";
   const INVERT_KEY = "memosmith:readableInvert";
   const button =
-    "rounded p-1 text-stone-500 hover:bg-stone-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 dark:text-stone-400";
+    "rounded-md p-1.5 text-stone-500 hover:bg-stone-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 dark:text-stone-400";
+  /** A pressed tool reads as a held-down key, not as coloured text. */
+  const active = `${button} bg-emerald-600/10 text-emerald-600 dark:text-emerald-400`;
+  const divider = "mx-1 h-4 w-px shrink-0 bg-stone-200 dark:bg-stone-800";
+  const field =
+    "h-5 w-9 rounded border border-transparent bg-stone-500/10 text-center tabular-nums focus:border-emerald-600/40 focus:outline-none";
 
   let reader: any;
   let zoom = Number(localStorage.getItem(ZOOM_KEY)) || 1;
@@ -52,6 +57,18 @@
   let hot = false;
 
   $: percent = `${Math.round(zoom * 100)}%`;
+  $: [pageNow = "", pageTotal = ""] = pageLabel.split("/").map((part) =>
+    part.trim(),
+  );
+
+  /** Typing a page number and pressing Enter is how every viewer does it. */
+  function goToPage(value: string) {
+    const number = Number(value);
+
+    if (Number.isFinite(number) && number > 0) {
+      reader?.goTo(String(Math.floor(number)));
+    }
+  }
 
   function setZoom(next: number) {
     zoom = Math.min(4, Math.max(0.4, Number(next.toFixed(2))));
@@ -130,11 +147,32 @@
   class="flex min-h-0 min-w-0 flex-1 flex-col"
 >
   <div
-    class="flex h-9 shrink-0 items-center gap-1 border-b border-stone-200/70 px-2 text-xs text-stone-500 dark:border-stone-800 dark:text-stone-400"
+    class="@container flex h-9 shrink-0 items-center gap-0.5 border-b border-stone-200/70 px-1.5 text-xs text-stone-500 dark:border-stone-800 dark:text-stone-400"
   >
-    <span class="min-w-0 flex-1 truncate" title={path}>{name || path}</span>
+    <span
+      class="hidden min-w-0 flex-1 truncate px-1 @[30rem]:block"
+      title={path}>{name || path}</span
+    >
+    <!-- Narrow panes drop the name, but the controls stay where they were. -->
+    <span class="flex-1 @[30rem]:hidden"></span>
+
     {#if kind === "pdf"}
-      <span class="tabular-nums">{pageLabel}</span>
+      <input
+        class={field}
+        value={pageNow}
+        inputmode="numeric"
+        aria-label={$i18n.t("readables.page")}
+        title={$i18n.t("readables.page")}
+        onkeydown={(event) => {
+          if (event.key === "Enter") {
+            goToPage(event.currentTarget.value);
+          }
+        }}
+        onblur={(event) => (event.currentTarget.value = pageNow)}
+      />
+      <span class="tabular-nums text-stone-400 dark:text-stone-500">
+        / {pageTotal}
+      </span>
     {:else}
       <button
         type="button"
@@ -156,6 +194,9 @@
         <ChevronRight class="size-4" />
       </button>
     {/if}
+
+    <span class={divider}></span>
+
     <button
       type="button"
       class={button}
@@ -165,7 +206,16 @@
     >
       <ZoomOut class="size-4" />
     </button>
-    <span class="tabular-nums">{percent}</span>
+    <!-- Familiar from every viewer: the percentage is the way back to 100%. -->
+    <button
+      type="button"
+      class="hidden rounded-md px-1 tabular-nums hover:bg-stone-500/10 @[22rem]:block"
+      aria-label={$i18n.t("readables.resetZoom")}
+      title={$i18n.t("readables.resetZoom")}
+      onclick={() => setZoom(1)}
+    >
+      {percent}
+    </button>
     <button
       type="button"
       class={button}
@@ -175,44 +225,51 @@
     >
       <ZoomIn class="size-4" />
     </button>
+
     {#if kind === "pdf"}
-      <button
-        type="button"
-        class={button}
-        aria-label={$i18n.t("readables.rotate")}
-        title={$i18n.t("readables.rotate")}
-        onclick={() => (rotation = (rotation + 90) % 360)}
-      >
-        <RotateCw class="size-4" />
-      </button>
-      <button
-        type="button"
-        class={button}
-        class:text-emerald-600={invert}
-        aria-label={$i18n.t("readables.invert")}
-        title={$i18n.t("readables.invert")}
-        aria-pressed={invert}
-        onclick={toggleInvert}
-      >
-        <Contrast class="size-4" />
-      </button>
+      <!-- Page dressing: the first thing a cramped pane can do without. -->
+      <span class="hidden @[26rem]:contents">
+        <span class={divider}></span>
+        <button
+          type="button"
+          class={button}
+          aria-label={$i18n.t("readables.rotate")}
+          title={$i18n.t("readables.rotate")}
+          onclick={() => (rotation = (rotation + 90) % 360)}
+        >
+          <RotateCw class="size-4" />
+        </button>
+        <button
+          type="button"
+          class={invert ? active : button}
+          aria-label={$i18n.t("readables.invert")}
+          title={$i18n.t("readables.invert")}
+          aria-pressed={invert}
+          onclick={toggleInvert}
+        >
+          <Contrast class="size-4" />
+        </button>
+      </span>
     {/if}
+
+    <span class={divider}></span>
+
     <button
       type="button"
-      class={button}
-      class:text-emerald-600={sidebar === "toc"}
+      class={sidebar === "toc" ? active : button}
       aria-label={$i18n.t("readables.contents")}
       title={$i18n.t("readables.contents")}
+      aria-pressed={sidebar === "toc"}
       onclick={() => toggle("toc")}
     >
       <List class="size-4" />
     </button>
     <button
       type="button"
-      class={button}
-      class:text-emerald-600={sidebar === "search"}
+      class={sidebar === "search" ? active : button}
       aria-label={$i18n.t("readables.search")}
       title={$i18n.t("readables.search")}
+      aria-pressed={sidebar === "search"}
       onclick={() => toggle("search")}
     >
       <Search class="size-4" />
@@ -228,10 +285,10 @@
     </button>
     <button
       type="button"
-      class={button}
-      class:text-emerald-600={sidebar === "annotations"}
+      class={sidebar === "annotations" ? active : button}
       aria-label={$i18n.t("readables.highlights")}
       title={$i18n.t("readables.highlights")}
+      aria-pressed={sidebar === "annotations"}
       onclick={() => toggle("annotations")}
     >
       <BookOpenText class="size-4" />

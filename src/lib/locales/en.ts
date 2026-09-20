@@ -91,6 +91,8 @@ export const en = {
   "readables.loading": "Opening...",
   "readables.unsupported": "Only PDF and EPUB files can be read in the app.",
   "readables.zoomIn": "Zoom in",
+  "readables.page": "Page",
+  "readables.resetZoom": "Reset zoom",
   "readables.zoomOut": "Zoom out",
   "readables.rotate": "Rotate 90°",
   "readables.invert": "Invert colours",
