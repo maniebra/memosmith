@@ -89,6 +89,7 @@ export const en = {
   "tabs.unpin": "Unpin tab",
   "tabs.split": "Open in split view",
   "tabs.unsplit": "Close split view",
+  "tabs.splitResize": "Resize split view",
   "toolbar.grammar": "Grammar Police",
   "toolbar.exportPdf": "Export PDF",
   "toolbar.databases": "Databases",

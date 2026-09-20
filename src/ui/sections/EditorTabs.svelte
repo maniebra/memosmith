@@ -51,7 +51,14 @@
         class:opacity-50={id === dragged}
         draggable="true"
         role="presentation"
-        ondragstart={() => (dragged = id)}
+        ondragstart={(event) => {
+          dragged = id;
+          event.dataTransfer?.setData("application/x-memosmith-tab", id);
+          event.dataTransfer?.setData("text/plain", id);
+          if (event.dataTransfer) {
+            event.dataTransfer.effectAllowed = "move";
+          }
+        }}
         ondragend={() => (dragged = null)}
         ondragover={(event) => event.preventDefault()}
         ondrop={(event) => {

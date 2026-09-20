@@ -312,6 +312,15 @@
     void tabs.closeTab(id);
   }
 
+  /** A tab dropped on the trailing edge of the editor opens there. */
+  function openSplitTab(id: string) {
+    if (id === activeRelativePath || splitTab === id) {
+      return;
+    }
+    splitTab = id;
+    splitContents = noteContents[id] ?? "";
+  }
+
   /** The split pane always holds a different note than the active tab. */
   function toggleSplitTab(id: string) {
     splitTab = splitTab === id || id === activeRelativePath ? null : id;
@@ -446,6 +455,7 @@
   bind:splitContents
   onSplitInput={updateSplitNote}
   onSplitTab={toggleSplitTab}
+  onSplitOpen={openSplitTab}
   {paneSlide}
   {path}
   bind:pdfPreviewOpen

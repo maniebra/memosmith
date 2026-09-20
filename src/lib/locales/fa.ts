@@ -90,6 +90,7 @@ export const fa: Record<I18nKey, string> = {
   "tabs.unpin": "برداشتن سنجاق زبانه",
   "tabs.split": "باز کردن در نمای دوتایی",
   "tabs.unsplit": "بستن نمای دوتایی",
+  "tabs.splitResize": "تغییر اندازه نمای دوتایی",
   "toolbar.grammar": "Grammar Police",
   "toolbar.exportPdf": "خروجی PDF",
   "toolbar.databases": "پایگاه داده ها",
