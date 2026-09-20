@@ -103,6 +103,9 @@
   let splitTab: string | null = null;
   let splitSaveTimer: ReturnType<typeof setTimeout> | undefined;
   let splitContents = "";
+  /** The note that was active before the current one, for split hand-off. */
+  let lastNote: string | null = null;
+  let previousNote: string | null = null;
 
   $: noteDir = path ? dirname(path) : null;
   $: spacePrefix = spaceRoot ? `${spaceRoot}/` : null;
@@ -141,6 +144,10 @@
     ),
     active: isDiagramPreviewTab(activeTab ?? "") ? null : activeTab,
   });
+  $: if (activeRelativePath !== lastNote) {
+    previousNote = lastNote;
+    lastNote = activeRelativePath;
+  }
   $: if (
     splitTab &&
     (!openTabs.includes(splitTab) || splitTab === activeRelativePath)
@@ -312,14 +319,39 @@
     void tabs.closeTab(id);
   }
 
+  /** The note that takes over the main pane when the active one is split off. */
+  function handoverNote(id: string) {
+    const candidates = openTabs.filter(
+      (tab) =>
+        tab !== id && !tab.startsWith("db:") && !isDiagramPreviewTab(tab),
+    );
+    return previousNote && candidates.includes(previousNote)
+      ? previousNote
+      : (candidates[0] ?? null);
+  }
+
   /** A tab dropped on the trailing edge of the editor opens there. */
   function openSplitTab(id: string) {
-    if (id === activeRelativePath || splitTab === id) {
+    if (splitTab === id) {
       return;
     }
     if (!openTabs.includes(id)) {
       // Dropped from the tree: it needs a tab before it can hold a pane.
       openTabs = [...openTabs, id];
+    }
+    if (id === activeRelativePath) {
+      // The active note moves into the split pane, so another one takes the
+      // main pane; the split cannot hold the active note.
+      const other = handoverNote(id);
+      if (!other) {
+        return;
+      }
+      const text = contents;
+      void tabs.openTab(other).then(() => {
+        splitTab = id;
+        splitContents = text;
+      });
+      return;
     }
     splitTab = id;
     splitContents = noteContents[id] ?? "";
