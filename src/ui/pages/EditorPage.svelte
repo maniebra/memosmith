@@ -99,6 +99,8 @@
   let pinnedTabs = storedTabs.pinned;
   let activeTab: string | null = null;
   let diagramPreviews: Record<string, DiagramPreview> = {};
+  /** Session-only: the note shown beside the active tab, read-only. */
+  let splitTab: string | null = null;
 
   $: noteDir = path ? dirname(path) : null;
   $: spacePrefix = spaceRoot ? `${spaceRoot}/` : null;
@@ -137,6 +139,12 @@
     ),
     active: isDiagramPreviewTab(activeTab ?? "") ? null : activeTab,
   });
+  $: if (splitTab && !openTabs.includes(splitTab)) {
+    splitTab = null;
+  }
+  $: splitContents = splitTab
+    ? (splitTab === activeRelativePath ? contents : noteContents[splitTab] ?? "")
+    : "";
   $: dirtyMarker = isDirty ? " *" : "";
   $: displayName = `${fileLabel}${dirtyMarker}`;
   $: grammarProfile = settings.grammarProfiles[settings.grammarMode];
@@ -398,6 +406,9 @@
   onCloseTab={closeTab}
   onPinTab={(id) => (openTabs = tabs.togglePinTab(id))}
   onReorderTabs={(id, target) => (openTabs = tabs.reorderTabs(id, target))}
+  {splitTab}
+  {splitContents}
+  onSplitTab={(id) => (splitTab = splitTab === id ? null : id)}
   {paneSlide}
   {path}
   bind:pdfPreviewOpen

@@ -3,6 +3,7 @@
   import TemplatePicker from "../sections/TemplatePicker.svelte";
   import { slide } from "svelte/transition";
   import { i18n } from "../../lib/i18n";
+  import { displayNoteName, entryPathFromNote } from "../../lib/utils/path";
   import BacklinksPanel from "../sections/BacklinksPanel.svelte";
   import DatabaseManager from "../sections/DatabaseManager.svelte";
   import DatabaseView from "../sections/DatabaseView.svelte";
@@ -61,6 +62,9 @@
   export let onCloseTab: (id: string) => void;
   export let onPinTab: (id: string) => void;
   export let onReorderTabs: (id: string, target: string) => void;
+  export let splitTab: string | null = null;
+  export let splitContents = "";
+  export let onSplitTab: (id: string) => void = () => {};
   export let onPreviewDiagram:
     (preview: DiagramPreviewData) => void | Promise<void>;
   export let explainGrammarIssue: (issue: any) => Promise<string>;
@@ -69,6 +73,9 @@
   /** Session-only: locks the open note against edits. */
   let readOnly = false;
   let templates: { name: string; text: string }[] = [];
+
+  $: splitEntryPath = splitTab ? entryPathFromNote(splitTab) : null;
+  $: splitTitle = splitTab ? displayNoteName(splitTab) : "";
 
   $: activeDatabaseTabId =
     activeTab?.startsWith("db:") ? activeTab.slice(3) : null;
@@ -174,8 +181,11 @@
         onClose={onCloseTab}
         onPin={onPinTab}
         onReorder={onReorderTabs}
+        {splitTab}
+        onSplit={onSplitTab}
       />
-      <div class="relative min-h-0 flex-1">
+      <div class="flex min-h-0 min-w-0 flex-1">
+      <div class="relative min-h-0 min-w-0 flex-1">
       {#if !activeTab}
         <WelcomeDashboard
           root={spaceRoot}
@@ -290,6 +300,57 @@
             : []}
           resolveAsset={actions.resolveAsset}
         />
+      {/if}
+      </div>
+      {#if splitTab}
+        <div
+          class="relative min-h-0 min-w-0 flex-1 overflow-y-auto border-s border-stone-200/70 dark:border-stone-800"
+        >
+          <NoteEditorForm
+            contents={splitContents}
+            editorWidth={settings.editorWidth}
+            textSize={settings.textSize}
+            spellcheck={false}
+            slashCommands={false}
+            fancyTableEditor={false}
+            callouts={settings.features.callouts}
+            calloutDefinitions={settings.callouts}
+            highlightColors={settings.highlightPalette}
+            drawings={settings.features.drawings}
+            diagrams={settings.features.diagrams}
+            inlineEmbeds={settings.appearance.embedEditing === "inline"}
+            quizzes={settings.features.quizzes}
+            codeExecution={settings.features.codeExecution}
+            plantuml={settings.features.plantuml}
+            plantumlSettings={settings.plantuml}
+            mermaid={settings.features.mermaid}
+            mermaidSettings={settings.mermaid}
+            youtube={settings.features.youtube}
+            spotify={settings.features.spotify}
+            runner={settings.runner}
+            lsp={false}
+            lspSettings={settings.lsp}
+            editable={false}
+            noteTitle={splitTitle}
+            pageMeta={spaceMeta[splitEntryPath ?? ""] ?? {}}
+            showPageTitle={settings.showPageTitle}
+            onInput={() => {}}
+            onIconChange={() => {}}
+            onCoverChange={() => {}}
+            onCoverPositionChange={() => {}}
+            onPickCover={() => {}}
+            onAssets={async () => ""}
+            onPickAssets={async () => ""}
+            onWikilink={(target) =>
+              actions.runWithStatus(() => actions.openWikilink(target))}
+            resolveWikilink={actions.resolveActiveWikilink}
+            renderWikilinkEmbed={actions.renderActiveWikilinkEmbed}
+            databaseRoot={settings.features.databases ? (spaceRoot ?? "") : ""}
+            databaseOptions={databases}
+            onStatus={(message) => (statusMessage = message)}
+            resolveAsset={actions.resolveAsset}
+          />
+        </div>
       {/if}
       </div>
     </div>
