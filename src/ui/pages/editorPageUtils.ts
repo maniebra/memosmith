@@ -6,6 +6,7 @@ import {
 } from "../../lib/utils/path";
 import type { SpaceMeta } from "../../lib/utils/pageMeta";
 import { movedPath } from "../../lib/utils/tree";
+import { isReadableTab } from "../../lib/storage/readables";
 
 export type Breadcrumb = { label: string; path?: string };
 
@@ -32,6 +33,7 @@ export function syncTabs(
   const exists = (tab: string) =>
     !closingTabs.has(tab) &&
     (tab === activeTab ||
+      isReadableTab(tab) ||
       (tab.startsWith("db:")
         ? databases.some((entry) => `db:${entry.id}` === tab)
         : isDiagramPreviewTab(tab)

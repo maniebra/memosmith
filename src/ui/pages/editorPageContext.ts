@@ -8,6 +8,7 @@ import type { GrammarMode, GrammarReport } from "../../lib/utils/grammar";
 import type { PageMeta, SpaceMeta } from "../../lib/utils/pageMeta";
 import type { I18nKey } from "../../lib/i18n";
 import type { DiagramPreview } from "../../lib/utils/diagramPreview";
+import type { Readable } from "../../lib/storage/readables";
 
 export type PaneName = "space" | "settings" | "backlinks";
 
@@ -40,6 +41,7 @@ export type EditorPageContext = {
   path: string | null;
   pinnedTabs: string[];
   readonly previewTabs: string[];
+  readables: Readable[];
   activeTab: string | null;
   resizing: { pane: PaneName; startX: number; startWidth: number } | null;
   settings: AppSettings;

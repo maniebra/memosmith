@@ -126,6 +126,12 @@
       className="h-10 w-full"
       onChange={(quizzes) => patchFeatures({ quizzes })}
     />
+    <Switch
+      checked={settings.features.readables}
+      label={$i18n.t("feature.readables")}
+      className="h-10 w-full"
+      onChange={(readables) => patchFeatures({ readables })}
+    />
     <CodeExecutionSettings {settings} {onChange} />
     <PlantumlFeatureSettings {settings} {onChange} />
     <MermaidFeatureSettings {settings} {onChange} />
