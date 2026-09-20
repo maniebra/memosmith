@@ -99,8 +99,10 @@
   let pinnedTabs = storedTabs.pinned;
   let activeTab: string | null = null;
   let diagramPreviews: Record<string, DiagramPreview> = {};
-  /** Session-only: the note shown beside the active tab, read-only. */
+  /** Session-only: the note shown beside the active tab. */
   let splitTab: string | null = null;
+  let splitSaveTimer: ReturnType<typeof setTimeout> | undefined;
+  let splitContents = "";
 
   $: noteDir = path ? dirname(path) : null;
   $: spacePrefix = spaceRoot ? `${spaceRoot}/` : null;
@@ -139,12 +141,12 @@
     ),
     active: isDiagramPreviewTab(activeTab ?? "") ? null : activeTab,
   });
-  $: if (splitTab && !openTabs.includes(splitTab)) {
+  $: if (
+    splitTab &&
+    (!openTabs.includes(splitTab) || splitTab === activeRelativePath)
+  ) {
     splitTab = null;
   }
-  $: splitContents = splitTab
-    ? (splitTab === activeRelativePath ? contents : noteContents[splitTab] ?? "")
-    : "";
   $: dirtyMarker = isDirty ? " *" : "";
   $: displayName = `${fileLabel}${dirtyMarker}`;
   $: grammarProfile = settings.grammarProfiles[settings.grammarMode];
@@ -310,6 +312,37 @@
     void tabs.closeTab(id);
   }
 
+  /** The split pane always holds a different note than the active tab. */
+  function toggleSplitTab(id: string) {
+    splitTab = splitTab === id || id === activeRelativePath ? null : id;
+    splitContents = splitTab ? (noteContents[splitTab] ?? "") : "";
+  }
+
+  /**
+   * The split note is saved on its own debounce: `path` and the note save
+   * timer both belong to the active tab.
+   */
+  function updateSplitNote() {
+    if (!splitTab) {
+      return;
+    }
+    const note = splitTab;
+    const text = splitContents;
+    noteContents = { ...noteContents, [note]: text };
+    if (!spaceRoot) {
+      return;
+    }
+    const notePath = `${spaceRoot}/${note}`;
+    if (splitSaveTimer) {
+      clearTimeout(splitSaveTimer);
+    }
+    splitSaveTimer = setTimeout(() => {
+      splitSaveTimer = undefined;
+      void runWithStatus(() => core.saveActiveNote(notePath, text));
+    }, 450);
+    statusMessage = $i18n.t("app.saving");
+  }
+
   function updateNote() {
     if (!path) {
       return;
@@ -364,6 +397,9 @@
   });
 
   onDestroy(() => {
+    if (splitSaveTimer) {
+      clearTimeout(splitSaveTimer);
+    }
     if (noteSaveTimer) {
       clearTimeout(noteSaveTimer);
       void core.saveActiveNote();
@@ -407,8 +443,9 @@
   onPinTab={(id) => (openTabs = tabs.togglePinTab(id))}
   onReorderTabs={(id, target) => (openTabs = tabs.reorderTabs(id, target))}
   {splitTab}
-  {splitContents}
-  onSplitTab={(id) => (splitTab = splitTab === id ? null : id)}
+  bind:splitContents
+  onSplitInput={updateSplitNote}
+  onSplitTab={toggleSplitTab}
   {paneSlide}
   {path}
   bind:pdfPreviewOpen

@@ -65,6 +65,7 @@
   export let splitTab: string | null = null;
   export let splitContents = "";
   export let onSplitTab: (id: string) => void = () => {};
+  export let onSplitInput: () => void = () => {};
   export let onPreviewDiagram:
     (preview: DiagramPreviewData) => void | Promise<void>;
   export let explainGrammarIssue: (issue: any) => Promise<string>;
@@ -307,12 +308,12 @@
           class="relative min-h-0 min-w-0 flex-1 overflow-y-auto border-s border-stone-200/70 dark:border-stone-800"
         >
           <NoteEditorForm
-            contents={splitContents}
+            bind:contents={splitContents}
             editorWidth={settings.editorWidth}
             textSize={settings.textSize}
-            spellcheck={false}
-            slashCommands={false}
-            fancyTableEditor={false}
+            spellcheck={settings.spellcheck}
+            slashCommands={settings.slashCommands}
+            fancyTableEditor={settings.features.fancyTableEditor}
             callouts={settings.features.callouts}
             calloutDefinitions={settings.callouts}
             highlightColors={settings.highlightPalette}
@@ -330,11 +331,11 @@
             runner={settings.runner}
             lsp={false}
             lspSettings={settings.lsp}
-            editable={false}
+            editable={Boolean(spaceRoot) && !readOnly}
             noteTitle={splitTitle}
             pageMeta={spaceMeta[splitEntryPath ?? ""] ?? {}}
             showPageTitle={settings.showPageTitle}
-            onInput={() => {}}
+            onInput={onSplitInput}
             onIconChange={() => {}}
             onCoverChange={() => {}}
             onCoverPositionChange={() => {}}
