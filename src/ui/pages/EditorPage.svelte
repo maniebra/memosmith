@@ -24,7 +24,6 @@
   } from "../../lib/utils/path";
   import { backlinksForNote } from "../../lib/utils/wikilinks";
   import {
-    leaf,
     leafIds,
     pruneTiles,
     removeLeaf,
@@ -109,7 +108,9 @@
   let activeTab: string | null = null;
   let diagramPreviews: Record<string, DiagramPreview> = {};
   /** Session-only: how the panes are tiled. The null leaf is the active tab. */
-  let tiles: TileNode = leaf(null);
+  let tiles: TileNode = storedTabs.tiles;
+  /** Tabs and panes only sync once the space listing is in. */
+  let spaceLoaded = false;
   let splitSaveTimers: Record<string, ReturnType<typeof setTimeout>> = {};
   /** The note that was active before the current one, for split hand-off. */
   let lastNote: string | null = null;
@@ -144,19 +145,32 @@
     ...noteContents,
     ...(activeRelativePath ? { [activeRelativePath]: contents } : {}),
   });
-  $: openTabs = tabs.sync(activeTab, spaceNotes, databases, pinnedTabs);
-  $: saveTabs({
-    open: openTabs.filter((tab) => !isDiagramPreviewTab(tab)),
-    pinned: pinnedTabs.filter(
-      (tab) => openTabs.includes(tab) && !isDiagramPreviewTab(tab),
-    ),
-    active: isDiagramPreviewTab(activeTab ?? "") ? null : activeTab,
-  });
+  // Until the space has loaded, `spaceNotes` is empty and every tab would look
+  // deleted: syncing then would wipe the restored tabs and panes.
+  $: if (spaceLoaded) {
+    openTabs = tabs.sync(activeTab, spaceNotes, databases, pinnedTabs);
+  }
+  $: if (spaceLoaded) {
+    saveTabs({
+      open: openTabs.filter((tab) => !isDiagramPreviewTab(tab)),
+      pinned: pinnedTabs.filter(
+        (tab) => openTabs.includes(tab) && !isDiagramPreviewTab(tab),
+      ),
+      active: isDiagramPreviewTab(activeTab ?? "") ? null : activeTab,
+      // Diagram previews are rebuilt from the note, so their panes do not
+      // persist.
+      tiles: leafIds(tiles)
+        .filter(isDiagramPreviewTab)
+        .reduce((tree, id) => removeLeaf(tree, id), tiles),
+    });
+  }
   $: if (activeRelativePath !== lastNote) {
     previousNote = lastNote;
     lastNote = activeRelativePath;
   }
-  $: tiles = pruneTiles(tiles, openTabs, activeTab);
+  $: if (spaceLoaded) {
+    tiles = pruneTiles(tiles, openTabs, activeTab);
+  }
   $: splitTabs = leafIds(tiles);
   $: dirtyMarker = isDirty ? " *" : "";
   $: displayName = `${fileLabel}${dirtyMarker}`;
@@ -443,6 +457,7 @@
 
   runWithStatus(async () => {
     await space.refreshSpace();
+    spaceLoaded = true;
     await tabs.restoreTab(storedTabs.active);
   });
 
