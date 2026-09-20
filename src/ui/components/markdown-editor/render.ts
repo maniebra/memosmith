@@ -3,6 +3,7 @@ import {
   renderDocument,
   type QuizScore,
 } from "../../../lib/utils/markdown";
+import { paintBlocks } from "./blockDiff";
 import { paintPlayers } from "./players";
 import type { Editor, RenderApi } from "./types";
 
@@ -27,6 +28,7 @@ type ScrollSnapshot = { node: HTMLElement; top: number; left: number }[];
 
 /** Rendering the note, moving the caret with it, and keeping the view still. */
 class EditorRender {
+  private renderedBlocks: string[] = [];
   private renderedCalloutDefinitions = "";
   private renderedHighlightColors = "";
   private renderedWikilinkKey = "";
@@ -89,18 +91,9 @@ class EditorRender {
     };
   }
 
-  render(offset: number | null) {
+  private paintFeatures() {
     const e = this.e;
 
-    if (!e.element) {
-      return;
-    }
-
-    e.element.innerHTML = renderDocument(
-      e.value,
-      e.props.resolveAsset ?? undefined,
-      this.documentOptions(),
-    );
     e.bindTableToolbars();
     e.paintDatabaseEmbeds();
     paintPlayers(e);
@@ -110,19 +103,43 @@ class EditorRender {
     e.paintRunPreviews();
     e.paintDiagramLivePreviews();
 
-    if (!e.props.editable) {
-      for (const cell of Array.from(
-        e.element.querySelectorAll("[data-table-cell]"),
-      )) {
-        (cell as HTMLElement).contentEditable = "false";
-      }
-
-      for (const body of Array.from(
-        e.element.querySelectorAll("[data-subblock-body]"),
-      )) {
-        (body as HTMLElement).contentEditable = "false";
-      }
+    if (e.props.editable || !e.element) {
+      return;
     }
+
+    for (const node of Array.from(
+      e.element.querySelectorAll("[data-table-cell], [data-subblock-body]"),
+    )) {
+      (node as HTMLElement).contentEditable = "false";
+    }
+  }
+
+  render(offset: number | null) {
+    const e = this.e;
+
+    if (!e.element) {
+      return false;
+    }
+
+    const painted = paintBlocks(
+      this.renderedBlocks,
+      renderDocument(
+        e.value,
+        e.props.resolveAsset ?? undefined,
+        this.documentOptions(),
+      ),
+      e.element,
+    );
+
+    this.renderedBlocks = painted.blocks;
+
+    // Nothing in the DOM moved, so there is no caret to put back and no paint
+    // pass with anything to paint: touching either only makes the view jump.
+    if (!painted.changed) {
+      return false;
+    }
+
+    this.paintFeatures();
 
     if (offset !== null) {
       const block = e.blockAtOffset(offset);
@@ -140,6 +157,8 @@ class EditorRender {
     e.markActiveBlock();
     e.markSelectedTableCell();
     e.syncTailAdd();
+
+    return true;
   }
 
   replace(
@@ -247,7 +266,10 @@ class EditorRender {
   ) {
     const snapshot = this.scrollSnapshot();
 
-    this.render(offset);
+    if (!this.render(offset)) {
+      return;
+    }
+
     this.restoreScrollSnapshot(snapshot);
 
     if (revealOffset !== null) {

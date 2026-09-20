@@ -221,7 +221,8 @@ export type DomApi = {
 };
 
 export type RenderApi = {
-  render: (offset: number | null) => void;
+  /** False when the document was already on screen: nothing was touched. */
+  render: (offset: number | null) => boolean;
   renderPreservingScroll: (
     offset: number | null,
     revealOffset?: number | null,
@@ -317,6 +318,8 @@ export type EventApi = {
   handleDrop: (event: DragEvent) => Promise<void>;
   handlePointerDown: (event: PointerEvent) => void;
   handleChange: (event: Event) => void;
+  /** Renders a pending typing burst now, for anything that reads blocks. */
+  flushRender: () => void;
 };
 
 export type Editor = EditorHost &

@@ -50,12 +50,52 @@ function emptyUi(): EditorUi {
   };
 }
 
+/**
+ * Rects and boxes are measured into fresh objects on every keystroke, so the
+ * writes are compared by value: a component re-render per letter is what makes
+ * the toolbar and the underlines twitch while typing.
+ */
+function same(a: unknown, b: unknown, depth = 2): boolean {
+  if (a === b) {
+    return true;
+  }
+
+  if (
+    depth === 0 ||
+    typeof a !== "object" ||
+    typeof b !== "object" ||
+    a === null ||
+    b === null ||
+    Array.isArray(a) !== Array.isArray(b)
+  ) {
+    return false;
+  }
+
+  const keys = Object.keys(a);
+
+  return (
+    keys.length === Object.keys(b).length &&
+    keys.every((key) =>
+      same(
+        (a as Record<string, unknown>)[key],
+        (b as Record<string, unknown>)[key],
+        depth - 1,
+      ),
+    )
+  );
+}
+
 /** Every write to the UI state is one the component has to re-render from. */
 function createUi(notify: () => void): EditorUi {
   return new Proxy(emptyUi(), {
     set(target, key, value) {
+      const unchanged = same(Reflect.get(target, key), value);
+
       Reflect.set(target, key, value);
-      notify();
+
+      if (!unchanged) {
+        notify();
+      }
 
       return true;
     },

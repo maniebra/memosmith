@@ -21,6 +21,7 @@ import { toggleTaskAt, toggleTaskKey } from "./taskToggle";
 import { journal } from "../../../lib/utils/journal";
 import { handleDragOver, handleDrop } from "./drop";
 import { handlePaste } from "./paste";
+import { createRenderQueue, typingKey } from "./renderQueue";
 import type { Editor, EventApi } from "./types";
 
 export function createEvents(e: Editor): EventApi {
@@ -41,12 +42,21 @@ export function createEvents(e: Editor): EventApi {
       handleDrop(e, event, service.insideDatabaseEmbed(event)),
     handlePointerDown: service.handlePointerDown.bind(service),
     handleChange: service.handleChange.bind(service),
+    flushRender: service.flushRender.bind(service),
     insideDatabaseEmbed: service.insideDatabaseEmbed.bind(service),
   };
 }
 
 class EditorEvents {
-  constructor(private e: Editor) {}
+  private queue: ReturnType<typeof createRenderQueue>;
+
+  constructor(private e: Editor) {
+    this.queue = createRenderQueue(e);
+  }
+
+  flushRender() {
+    this.queue.flushRender();
+  }
 
   insideDatabaseEmbed(event?: Event) {
     return Boolean(this.e.databaseCardFor(event));
@@ -106,8 +116,10 @@ class EditorEvents {
     }
 
     e.value = e.getText();
+
     const offset = e.caretOffset();
-    e.renderPreservingScroll(offset);
+
+    this.queue.scheduleRender();
 
     const surface = offset === null ? null : editSurface(e, null);
 
@@ -246,6 +258,12 @@ class EditorEvents {
       return;
     }
 
+    // Plain letters keep the pending render pending; everything else (Enter,
+    // Tab, arrows, shortcuts) works off blocks, so it renders first.
+    if (!typingKey(event)) {
+      this.flushRender();
+    }
+
     if (toggleTaskKey(e, event)) {
       return;
     }
@@ -321,6 +339,8 @@ class EditorEvents {
 
   handlePointerDown(event: PointerEvent) {
     const e = this.e;
+
+    this.flushRender();
     const handle = event.target as HTMLElement;
     if (
       event.button !== 0 ||

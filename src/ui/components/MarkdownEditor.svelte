@@ -268,6 +268,8 @@
         return;
       }
 
+      editor.flushRender();
+
       if (
         !editor.handleTailPointerDown(event) &&
         !editor.handleTablePointerDown(event)
@@ -279,6 +281,7 @@
     ondragover={editor.handleDragOver}
     ondrop={editor.handleDrop}
     onblur={() => {
+      editor.flushRender();
       editor.closeMenu();
       editor.closeCompletions();
     }}
