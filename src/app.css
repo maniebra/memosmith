@@ -610,6 +610,11 @@ textarea,
     @apply my-4 border-b border-stone-200 dark:border-stone-800;
   }
 
+  /* The dashes are hidden, so the line box has nothing to stay tall for. */
+  .md-rule:not([data-active]) {
+    @apply my-3 leading-[0];
+  }
+
   /* One continuous slab: no vertical padding per line, only on the fences. */
   .md-codeblock,
   .md-fence {
