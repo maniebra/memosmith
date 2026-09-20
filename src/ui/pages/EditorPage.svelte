@@ -441,7 +441,11 @@
       }
       const text = contents;
       void tabs.openTab(other).then(() => {
-        if (!id.startsWith("db:") && !isDiagramPreviewTab(id)) {
+        if (
+          !id.startsWith("db:") &&
+          !isDiagramPreviewTab(id) &&
+          !isReadableTab(id)
+        ) {
           noteContents = { ...noteContents, [id]: text };
         }
         tiles = zone
