@@ -34,17 +34,27 @@
           ? rect.right - event.clientX
           : event.clientX - rect.left) / rect.width;
 
-  function startDrag(event: PointerEvent, split: TileSplit) {
+  function startDrag(event: PointerEvent) {
     event.preventDefault();
     const rect = element?.getBoundingClientRect();
-    if (!rect) {
+    if (!rect || node.kind !== "split") {
       return;
     }
+    const axis = node.axis;
+    // The pointer has to keep reporting over a pane that holds an iframe.
+    const handle = event.currentTarget as HTMLElement;
+
+    handle.setPointerCapture(event.pointerId);
+
     const move = (moveEvent: PointerEvent) => {
       moveEvent.preventDefault();
-      onRatio(split, snap(clamp(offsetIn(rect, moveEvent, split.axis))));
+      // `node` is read live: every ratio rebuilds the split, and `setRatio`
+      // finds it by identity, so a captured one stops matching after the
+      // first move — which is what froze the divider one pixel in.
+      onRatio(node as TileSplit, snap(clamp(offsetIn(rect, moveEvent, axis))));
     };
     const stop = () => {
+      handle.releasePointerCapture(event.pointerId);
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", stop);
     };
@@ -180,7 +190,7 @@
       class:cursor-row-resize={node.axis === "column"}
       aria-label={$i18n.t("tabs.splitResize")}
       title={$i18n.t("tabs.splitResize")}
-      onpointerdown={(event) => startDrag(event, node)}
+      onpointerdown={startDrag}
       onkeydown={(event) => keyResize(event, node)}
       ondblclick={() => onRatio(node, 0.5)}
     ></button>
