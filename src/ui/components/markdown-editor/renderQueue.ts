@@ -16,6 +16,18 @@ export function typingKey(event: KeyboardEvent) {
   );
 }
 
+/**
+ * The caret sits in a hidden marker (`## `, `- `), so the character just typed
+ * landed inside it and is wearing the marker's faded grey: that one renders now
+ * rather than at the end of the burst.
+ */
+function inMark() {
+  const node = window.getSelection()?.anchorNode;
+  const element = node instanceof Element ? node : node?.parentElement;
+
+  return Boolean(element?.closest(".md-mark"));
+}
+
 /** The pending render a burst of typing shares. */
 export function createRenderQueue(e: Editor) {
   let timer = 0;
@@ -27,6 +39,14 @@ export function createRenderQueue(e: Editor) {
    */
   function scheduleRender() {
     window.clearTimeout(timer);
+
+    if (inMark()) {
+      timer = 0;
+      e.renderPreservingScroll(e.caretOffset());
+
+      return;
+    }
+
     timer = window.setTimeout(() => {
       timer = 0;
       e.renderPreservingScroll(e.caretOffset());

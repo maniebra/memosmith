@@ -35,6 +35,19 @@ export function skeleton(html: string) {
   return html.replace(/>[^<]*</g, "><");
 }
 
+/**
+ * Every element inside the block, with the text it holds. The browser drops a
+ * typed character into whatever node the caret sits in — right after `## ` that
+ * is the hidden marker itself, which then shows the word in the marker's faded
+ * grey. The live node is only kept when its elements hold the same text the
+ * fresh markup gives them.
+ */
+function inlineShape(node: Element) {
+  return Array.from(node.querySelectorAll("*"))
+    .map((child) => `${child.tagName}|${child.className}|${child.textContent}`)
+    .join("\u0000");
+}
+
 /** Same block count: every block is patched where it stands. */
 function patchInPlace(
   renderedBlocks: string[],
@@ -47,7 +60,8 @@ function patchInPlace(
   freshHtml.forEach((html, index) => {
     if (
       html === renderedBlocks[index] ||
-      skeleton(html) === skeleton(renderedBlocks[index])
+      (skeleton(html) === skeleton(renderedBlocks[index]) &&
+        inlineShape(old[index]) === inlineShape(fresh[index]))
     ) {
       return;
     }
