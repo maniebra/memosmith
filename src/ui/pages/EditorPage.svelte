@@ -317,6 +317,10 @@
     if (id === activeRelativePath || splitTab === id) {
       return;
     }
+    if (!openTabs.includes(id)) {
+      // Dropped from the tree: it needs a tab before it can hold a pane.
+      openTabs = [...openTabs, id];
+    }
     splitTab = id;
     splitContents = noteContents[id] ?? "";
   }
