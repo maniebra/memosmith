@@ -2,21 +2,24 @@ const assert = (ok: unknown, msg: string) => {
   if (!ok) throw new Error(msg);
 };
 
-import { reusePlan, skeleton } from "../../../../src/ui/components/markdown-editor/blockDiff";
+import {
+  changedSpan,
+  skeleton,
+} from "../../../../src/ui/components/markdown-editor/blockDiff";
 
-const plan = (a: string[], b: string[]) => reusePlan(a, b).join(",");
+const span = (a: string[], b: string[]) => {
+  const { head, tail } = changedSpan(a, b);
 
-// A letter typed into one block rebuilds that block and reuses the rest.
-assert(plan(["a", "b", "c"], ["a", "bx", "c"]) === "0,-1,2", "one block rebuilt");
-assert(plan(["a", "b"], ["a", "b"]) === "0,1", "nothing rebuilt");
+  return `${head}/${tail}`;
+};
+
 // Enter in the middle: the new block is the only one built.
-assert(plan(["a", "b"], ["a", "new", "b"]) === "0,-1,1", "block inserted");
-assert(plan(["a", "new", "b"], ["a", "b"]) === "0,2", "block removed");
-// A moved block keeps its node, so its images and previews survive.
-assert(plan(["a", "b", "c"], ["c", "a", "b"]) === "2,0,1", "blocks reordered");
-assert(plan([], ["a"]) === "-1", "first render");
-// Repeats are matched in order, never twice.
-assert(plan(["a", "a"], ["a", "a", "a"]) === "0,1,-1", "repeats matched once");
+assert(span(["a", "b"], ["a", "new", "b"]) === "1/1", "block inserted");
+assert(span(["a", "new", "b"], ["a", "b"]) === "1/1", "block removed");
+assert(span(["a", "b"], ["a", "b", "c"]) === "2/0", "block appended");
+assert(span([], ["a"]) === "0/0", "first render");
+// Two blocks that render the same never stand in for each other.
+assert(span(["a", "x", "a"], ["a", "a"]) === "1/1", "equal blocks stay put");
 
 const skeletonsMatch = (a: string, b: string) => skeleton(a) === skeleton(b);
 

@@ -1,22 +1,27 @@
 /**
- * Which already-rendered block each new block can reuse: an index into the old
- * list, or -1 for a block that has to be built. Identical blocks are matched in
- * order, so a block that only moved keeps its node (and its painted contents).
+ * The run of blocks that has to be rebuilt: everything between a matching head
+ * and a matching tail. Blocks are only ever matched at their own position —
+ * matching equal HTML across positions reuses the wrong node and leaves a ghost
+ * copy of a block behind.
  */
-export function reusePlan(old: string[], next: string[]) {
-  const pool = new Map<string, number[]>();
+export function changedSpan(old: string[], next: string[]) {
+  const limit = Math.min(old.length, next.length);
+  let head = 0;
 
-  old.forEach((html, index) => {
-    const bucket = pool.get(html);
+  while (head < limit && old[head] === next[head]) {
+    head++;
+  }
 
-    if (bucket) {
-      bucket.push(index);
-    } else {
-      pool.set(html, [index]);
-    }
-  });
+  let tail = 0;
 
-  return next.map((html) => pool.get(html)?.shift() ?? -1);
+  while (
+    tail < limit - head &&
+    old[old.length - 1 - tail] === next[next.length - 1 - tail]
+  ) {
+    tail++;
+  }
+
+  return { head, tail };
 }
 
 /**
@@ -28,6 +33,53 @@ export function reusePlan(old: string[], next: string[]) {
  */
 export function skeleton(html: string) {
   return html.replace(/>[^<]*</g, "><");
+}
+
+/** Same block count: every block is patched where it stands. */
+function patchInPlace(
+  renderedBlocks: string[],
+  freshHtml: string[],
+  fresh: HTMLElement[],
+  old: HTMLElement[],
+) {
+  let changed = false;
+
+  freshHtml.forEach((html, index) => {
+    if (
+      html === renderedBlocks[index] ||
+      skeleton(html) === skeleton(renderedBlocks[index])
+    ) {
+      return;
+    }
+
+    old[index].replaceWith(fresh[index]);
+    changed = true;
+  });
+
+  return changed;
+}
+
+/** Blocks were added or removed: the changed run is swapped in one go. */
+function swapSpan(
+  renderedBlocks: string[],
+  freshHtml: string[],
+  fresh: HTMLElement[],
+  old: HTMLElement[],
+  element: HTMLElement,
+) {
+  const { head, tail } = changedSpan(renderedBlocks, freshHtml);
+  const anchor = old[old.length - tail] ?? null;
+  const fragment = document.createDocumentFragment();
+
+  for (const node of old.slice(head, old.length - tail)) {
+    node.remove();
+  }
+
+  for (const node of fresh.slice(head, fresh.length - tail)) {
+    fragment.append(node);
+  }
+
+  element.insertBefore(fragment, anchor);
 }
 
 /**
@@ -57,47 +109,14 @@ export function paintBlocks(
     return { blocks: freshHtml, changed: true };
   }
 
-  const textOnly = old.length === fresh.length;
-
-  const plan = reusePlan(renderedBlocks, freshHtml);
-  // A node another position already claimed is not free to keep in place.
-  const claimed = new Set(plan);
-  const kept = new Set<HTMLElement>();
-  let changed = false;
-  let cursor: ChildNode | null = element.firstChild;
-
-  plan.forEach((index, position) => {
-    const live =
-      index === -1 &&
-      textOnly &&
-      !claimed.has(position) &&
-      skeleton(renderedBlocks[position]) === skeleton(freshHtml[position])
-        ? old[position]
-        : null;
-    const node = live ?? (index === -1 ? fresh[position] : old[index]);
-
-    if (index !== -1 || live) {
-      kept.add(node);
-    } else {
-      changed = true;
-    }
-
-    if (node === cursor) {
-      cursor = cursor.nextSibling;
-
-      return;
-    }
-
-    element.insertBefore(node, cursor);
-    changed = true;
-  });
-
-  for (const node of old) {
-    if (!kept.has(node)) {
-      node.remove();
-      changed = true;
-    }
+  if (old.length === fresh.length) {
+    return {
+      blocks: freshHtml,
+      changed: patchInPlace(renderedBlocks, freshHtml, fresh, old),
+    };
   }
 
-  return { blocks: freshHtml, changed };
+  swapSpan(renderedBlocks, freshHtml, fresh, old, element);
+
+  return { blocks: freshHtml, changed: true };
 }
