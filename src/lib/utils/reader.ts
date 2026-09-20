@@ -46,36 +46,67 @@ function nodeAt(nodes: Text[], offset: number) {
   return { node: last, offset: last?.nodeValue?.length ?? 0 };
 }
 
-/**
- * Ranges covering every case-insensitive occurrence of `quote` under `root`,
- * even when the text is split across spans, as a PDF text layer splits it.
- */
-export function quoteRanges(root: HTMLElement, quote: string): Range[] {
-  const needle = quote.trim().toLowerCase();
+/** The text without its spaces, and where each kept character came from. */
+function compact(text: string) {
+  const kept: string[] = [];
+  const index: number[] = [];
 
-  if (!needle) {
-    return [];
+  for (let at = 0; at < text.length; at++) {
+    if (!/\s/.test(text[at])) {
+      kept.push(text[at]);
+      index.push(at);
+    }
   }
 
-  const { nodes, text } = textNodes(root);
-  const haystack = text.toLowerCase();
-  const ranges: Range[] = [];
+  return { text: kept.join("").toLowerCase(), index };
+}
+
+/**
+ * Where `quote` sits in `text`, as `[start, end]` pairs, ignoring whitespace on
+ * both sides: a PDF text layer breaks its lines with `<br>` and drops the
+ * spaces a selection reports, so the quote a reader highlighted rarely matches
+ * the page's own text character for character.
+ */
+export function quoteMatches(text: string, quote: string) {
+  const haystack = compact(text);
+  const needle = compact(quote);
+  const spans: [number, number][] = [];
+
+  if (!needle.text) {
+    return spans;
+  }
 
   for (
-    let at = haystack.indexOf(needle);
+    let at = haystack.text.indexOf(needle.text);
     at !== -1;
-    at = haystack.indexOf(needle, at + needle.length)
+    at = haystack.text.indexOf(needle.text, at + needle.text.length)
   ) {
-    const start = nodeAt(nodes, at);
-    const end = nodeAt(nodes, at + needle.length);
+    spans.push([
+      haystack.index[at],
+      haystack.index[at + needle.text.length - 1] + 1,
+    ]);
+  }
+
+  return spans;
+}
+
+/**
+ * Ranges covering every occurrence of `quote` under `root`, even when the text
+ * is split across spans, as a PDF text layer splits it.
+ */
+export function quoteRanges(root: HTMLElement, quote: string): Range[] {
+  const { nodes, text } = textNodes(root);
+
+  return quoteMatches(text, quote).map(([from, to]) => {
+    const start = nodeAt(nodes, from);
+    const end = nodeAt(nodes, to);
     const range = document.createRange();
 
     range.setStart(start.node, start.offset);
     range.setEnd(end.node, end.offset);
-    ranges.push(range);
-  }
 
-  return ranges;
+    return range;
+  });
 }
 
 /**
