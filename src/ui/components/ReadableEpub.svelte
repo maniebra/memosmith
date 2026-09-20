@@ -5,6 +5,7 @@
     savePosition,
     type Annotation,
   } from "../../lib/storage/readables";
+  import { readFileBytes } from "../../lib/tauri/readables";
   import type { OutlineItem, SearchHit } from "../../lib/utils/reader";
   import {
     epubOutline,
@@ -14,7 +15,6 @@
   } from "../../lib/utils/readerEpub";
 
   export let path: string;
-  export let url: string;
   export let zoom = 1;
   export let annotations: Annotation[] = [];
   export let onOutline: (items: OutlineItem[]) => void = () => {};
@@ -45,7 +45,7 @@
 
   async function start() {
     try {
-      book = await loadEpub(url);
+      book = await loadEpub(await readFileBytes(path));
       if (!host) {
         return;
       }

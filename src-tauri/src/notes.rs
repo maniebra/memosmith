@@ -33,6 +33,12 @@ pub fn read_note(path: String) -> Result<String, String> {
     std::fs::read_to_string(path).map_err(|error| error.to_string())
 }
 
+/// Raw bytes of any file the user pointed at, for the in-app readers.
+#[tauri::command]
+pub fn read_binary(path: String) -> Result<Vec<u8>, String> {
+    std::fs::read(path).map_err(|error| error.to_string())
+}
+
 #[tauri::command]
 pub fn write_note(path: String, contents: String) -> Result<(), String> {
     std::fs::write(path, contents).map_err(|error| error.to_string())

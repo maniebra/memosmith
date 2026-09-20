@@ -2,13 +2,10 @@ import type { OutlineItem, SearchHit } from "./reader";
 
 export type EpubBook = any;
 
-export async function loadEpub(url: string): Promise<EpubBook> {
+export async function loadEpub(data: ArrayBuffer): Promise<EpubBook> {
   const { default: ePub } = await import("epubjs");
-  // The asset URL carries no `.epub`, so epub.js cannot sniff the format:
-  // hand it the bytes instead.
-  const response = await fetch(url);
 
-  return ePub(await response.arrayBuffer());
+  return ePub(data);
 }
 
 function tocItems(entries: any[], depth: number): OutlineItem[] {

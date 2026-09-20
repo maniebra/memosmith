@@ -7,15 +7,28 @@ export type PdfPage = {
   number: number;
   wrapper: HTMLElement;
   textLayer: HTMLElement;
+  /** False while the page is still an empty placeholder. */
+  rendered: boolean;
 };
 
-export async function loadPdf(url: string): Promise<PdfDocument> {
+export type PdfOptions = { scale: number; rotation: number };
+
+export async function loadPdf(data: ArrayBuffer): Promise<PdfDocument> {
   const pdfjs = await import("pdfjs-dist");
   const worker = await import("pdfjs-dist/build/pdf.worker.mjs?url");
 
   pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
 
-  return pdfjs.getDocument({ url }).promise;
+  // Copied into `public/pdfjs` by the `pdfjs` script: without these, pages
+  // with JPEG 2000 images or CJK text fail to decode.
+  return pdfjs.getDocument({
+    data,
+    wasmUrl: "/pdfjs/wasm/",
+    iccUrl: "/pdfjs/iccs/",
+    cMapUrl: "/pdfjs/cmaps/",
+    cMapPacked: true,
+    standardFontDataUrl: "/pdfjs/standard_fonts/",
+  }).promise;
 }
 
 /** The scale that fits a page to `width`, before the reader's own zoom. */
@@ -25,63 +38,153 @@ export async function fitScale(document_: PdfDocument, width: number) {
   return Math.max(0.2, (width - 32) / page.getViewport({ scale: 1 }).width);
 }
 
+function sizeOf(
+  wrapper: HTMLElement,
+  size: { width: number; height: number; scale: number },
+) {
+  wrapper.style.width = `${Math.floor(size.width)}px`;
+  wrapper.style.height = `${Math.floor(size.height)}px`;
+  // The pdf.js text layer positions its spans against this.
+  wrapper.style.setProperty("--total-scale-factor", String(size.scale));
+}
+
+/**
+ * Lays out one empty, correctly sized placeholder per page. Pages are drawn
+ * only once they scroll near the viewport, so a thousand-page book opens as
+ * fast as a one-page one.
+ */
+export async function buildPages(
+  document_: PdfDocument,
+  host: HTMLElement,
+  options: PdfOptions,
+): Promise<PdfPage[]> {
+  const estimate = (await document_.getPage(1)).getViewport(options);
+  const pages: PdfPage[] = [];
+
+  host.replaceChildren();
+
+  for (let number = 1; number <= document_.numPages; number++) {
+    const wrapper = document.createElement("div");
+    const textLayer = document.createElement("div");
+
+    wrapper.className = "ms-readable-page";
+    wrapper.dataset.page = String(number);
+    textLayer.className = "textLayer";
+    sizeOf(wrapper, estimate);
+    wrapper.append(textLayer);
+    host.append(wrapper);
+    pages.push({ number, wrapper, textLayer, rendered: false });
+  }
+
+  return pages;
+}
+
 /**
  * Draws one page: a canvas with a selectable text layer on top, so copying,
  * searching and highlighting all work against real text.
  */
 async function renderPage(
   document_: PdfDocument,
-  number: number,
-  options: { scale: number; rotation: number },
-): Promise<PdfPage> {
+  entry: PdfPage,
+  options: PdfOptions,
+) {
   const { TextLayer } = await import("pdfjs-dist");
-  const page = await document_.getPage(number);
+  const page = await document_.getPage(entry.number);
   const viewport = page.getViewport(options);
-  const wrapper = document.createElement("div");
   const canvas = document.createElement("canvas");
-  const textLayer = document.createElement("div");
-
-  wrapper.className = "ms-readable-page";
-  wrapper.dataset.page = String(number);
-  wrapper.style.width = `${Math.floor(viewport.width)}px`;
-  wrapper.style.height = `${Math.floor(viewport.height)}px`;
-  textLayer.className = "textLayer";
-  canvas.width = Math.floor(viewport.width);
-  canvas.height = Math.floor(viewport.height);
-  wrapper.append(canvas, textLayer);
-
   const context = canvas.getContext("2d");
+  // Draw at device resolution, lay out at CSS resolution: on a HiDPI screen
+  // a 1:1 canvas looks blurry.
+  const ratio = window.devicePixelRatio || 1;
 
-  if (context) {
-    await page.render({ canvas, canvasContext: context, viewport }).promise;
-    await new TextLayer({
-      textContentSource: page.streamTextContent(),
-      container: textLayer,
-      viewport,
-    }).render();
+  sizeOf(entry.wrapper, viewport);
+  canvas.width = Math.floor(viewport.width * ratio);
+  canvas.height = Math.floor(viewport.height * ratio);
+  canvas.style.width = `${Math.floor(viewport.width)}px`;
+  canvas.style.height = `${Math.floor(viewport.height)}px`;
+  entry.wrapper.prepend(canvas);
+  entry.textLayer.replaceChildren();
+
+  if (!context) {
+    return;
   }
 
-  return { number, wrapper, textLayer };
+  await page.render({
+    canvas,
+    canvasContext: context,
+    viewport,
+    transform: ratio === 1 ? undefined : [ratio, 0, 0, ratio, 0, 0],
+  }).promise;
+  await new TextLayer({
+    textContentSource: page.streamTextContent(),
+    container: entry.textLayer,
+    viewport,
+  }).render();
 }
 
-/** Renders every page into `host`; big documents pay for it up front. */
-export async function renderPdf(
-  document_: PdfDocument,
-  host: HTMLElement,
-  options: { scale: number; rotation: number },
-): Promise<PdfPage[]> {
-  host.replaceChildren();
-  const pages: PdfPage[] = [];
+/**
+ * Page tops, measured once per layout: asking the DOM for 800 offsets on every
+ * scroll is what makes a big book feel heavy.
+ */
+export function measurePages(host: HTMLElement, pages: PdfPage[]) {
+  return pages.map((entry) => entry.wrapper.offsetTop - host.offsetTop);
+}
 
-  // ponytail: eager full render; page virtualisation if large PDFs drag.
-  for (let number = 1; number <= document_.numPages; number++) {
-    const page = await renderPage(document_, number, options);
+/** Index of the last page whose top is at or above `y`. */
+export function pageIndexAt(offsets: number[], y: number) {
+  let low = 0;
+  let high = offsets.length - 1;
 
-    host.append(page.wrapper);
-    pages.push(page);
+  while (low < high) {
+    const middle = Math.ceil((low + high) / 2);
+
+    if (offsets[middle] <= y) {
+      low = middle;
+    } else {
+      high = middle - 1;
+    }
   }
 
-  return pages;
+  return low;
+}
+
+/** Renders the pages within one screen of the viewport, and no others. */
+export async function renderVisible(
+  document_: PdfDocument,
+  host: HTMLElement,
+  pages: PdfPage[],
+  offsets: number[],
+  options: PdfOptions,
+) {
+  const first = pageIndexAt(offsets, host.scrollTop - host.clientHeight);
+  const last = pageIndexAt(offsets, host.scrollTop + host.clientHeight * 2);
+  let drew = false;
+
+  for (const entry of pages.slice(first, last + 1)) {
+    if (!entry.rendered) {
+      entry.rendered = true;
+      await renderPage(document_, entry, options);
+      drew = true;
+    }
+  }
+
+  return drew;
+}
+
+/** Resizes every placeholder and drops what was drawn, after a zoom or turn. */
+export async function resetPages(
+  document_: PdfDocument,
+  pages: PdfPage[],
+  options: PdfOptions,
+) {
+  const estimate = (await document_.getPage(1)).getViewport(options);
+
+  for (const entry of pages) {
+    entry.rendered = false;
+    entry.wrapper.querySelector("canvas")?.remove();
+    entry.textLayer.replaceChildren();
+    sizeOf(entry.wrapper, estimate);
+  }
 }
 
 async function outlineItems(

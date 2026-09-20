@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { convertFileSrc } from "@tauri-apps/api/core";
   import {
     BookOpenText,
     ChevronLeft,
@@ -45,13 +44,33 @@
   let sidebar: "toc" | "search" | "annotations" | null = null;
   let epubPage = "";
   let annotations: Annotation[] = loadAnnotations(path);
+  let frame: HTMLElement | undefined;
+  /** Ctrl+= and friends act on the reader the pointer is over. */
+  let hot = false;
 
-  $: url = convertFileSrc(path);
   $: percent = `${Math.round(zoom * 100)}%`;
 
   function setZoom(next: number) {
     zoom = Math.min(4, Math.max(0.4, Number(next.toFixed(2))));
     localStorage.setItem(ZOOM_KEY, String(zoom));
+  }
+
+  function onKeydown(event: KeyboardEvent) {
+    if (!event.ctrlKey || !(hot || frame?.contains(document.activeElement))) {
+      return;
+    }
+
+    if (event.key === "+" || event.key === "=") {
+      setZoom(zoom + 0.2);
+    } else if (event.key === "-") {
+      setZoom(zoom - 0.2);
+    } else if (event.key === "0") {
+      setZoom(1);
+    } else {
+      return;
+    }
+
+    event.preventDefault();
   }
 
   function toggle(panel: "toc" | "search" | "annotations") {
@@ -94,7 +113,14 @@
   }
 </script>
 
-<div class="flex min-h-0 min-w-0 flex-1 flex-col">
+<svelte:window onkeydown={onKeydown} />
+<div
+  bind:this={frame}
+  onpointerenter={() => (hot = true)}
+  onpointerleave={() => (hot = false)}
+  role="presentation"
+  class="flex min-h-0 min-w-0 flex-1 flex-col"
+>
   <div
     class="flex h-9 shrink-0 items-center gap-1 border-b border-stone-200/70 px-2 text-xs text-stone-500 dark:border-stone-800 dark:text-stone-400"
   >
@@ -203,19 +229,18 @@
         <ReadablePdf
           bind:this={reader}
           {path}
-          {url}
           {zoom}
           {rotation}
           {annotations}
           onOutline={(items) => (outline = items)}
           onReady={() => (loading = false)}
           onError={(message) => ((error = message), (loading = false))}
+          onZoom={setZoom}
         />
       {:else}
         <ReadableEpub
           bind:this={reader}
           {path}
-          {url}
           {zoom}
           {annotations}
           onOutline={(items) => (outline = items)}

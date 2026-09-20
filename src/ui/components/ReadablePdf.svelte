@@ -6,90 +6,106 @@
     savePosition,
     type Annotation,
   } from "../../lib/storage/readables";
+  import { readFileBytes } from "../../lib/tauri/readables";
   import { paintRanges, quoteRanges } from "../../lib/utils/reader";
   import type { OutlineItem, SearchHit } from "../../lib/utils/reader";
   import {
+    buildPages,
     fitScale,
     loadPdf,
-    renderPdf,
+    measurePages,
+    pageIndexAt,
     pdfOutline,
+    renderVisible,
+    resetPages,
     searchPdf,
     type PdfDocument,
     type PdfPage,
   } from "../../lib/utils/readerPdf";
 
   export let path: string;
-  export let url: string;
   export let zoom = 1;
   export let rotation = 0;
   export let annotations: Annotation[] = [];
   export let onOutline: (items: OutlineItem[]) => void = () => {};
   export let onReady: () => void = () => {};
   export let onError: (message: string) => void = () => {};
+  export let onZoom: (zoom: number) => void = () => {};
 
   let host: HTMLDivElement | undefined;
   let document_: PdfDocument | null = null;
   let pages: PdfPage[] = [];
   let base = 1;
-  let rendering = false;
-  let redraw = false;
+  let busy = false;
   let lastQuery = "";
+  /** Page tops, remeasured after a layout change instead of on every scroll. */
+  let offsets: number[] = [];
+  let applied = "";
 
-  onMount(() => void start());
-  onDestroy(() => {
-    paintRanges("ms-readable-marks", []);
-    paintRanges("ms-readable-search", []);
-    void document_?.cleanup();
-  });
-
-  // Re-render whenever the view settings change; the first render is `start`.
-  $: if (document_ && host && (zoom || rotation !== undefined)) {
-    void draw();
+  $: options = { scale: base * zoom, rotation };
+  // Re-lay-out only when the settings really changed, not on every render.
+  $: if (document_ && `${zoom}/${rotation}` !== applied) {
+    applied = `${zoom}/${rotation}`;
+    void rescale();
   }
   $: if (pages.length) {
     paintAnnotations(annotations);
   }
 
+  onMount(() => void start());
+  onDestroy(() => {
+    clearTimeout(scrollTimer);
+    paintRanges("ms-readable-marks", []);
+    paintRanges("ms-readable-search", []);
+    void document_?.cleanup();
+  });
+
   async function start() {
     try {
-      document_ = await loadPdf(url);
-      base = await fitScale(document_, host?.clientWidth ?? 800);
-      await draw();
+      document_ = await loadPdf(await readFileBytes(path));
+      base = await fitScale(document_, host?.clientWidth || 800);
+      applied = `${zoom}/${rotation}`;
+      pages = await buildPages(document_, host as HTMLElement, options);
+      offsets = measurePages(host as HTMLElement, pages);
       restorePosition();
-      onOutline(await pdfOutline(document_));
+      await fill();
       onReady();
+      onOutline(await pdfOutline(document_));
     } catch (cause) {
       onError(cause instanceof Error ? cause.message : String(cause));
     }
   }
 
-  async function draw() {
+  /** Draws whatever is on screen now, then paints marks over it. */
+  async function fill() {
+    if (!document_ || !host || busy) {
+      return;
+    }
+
+    busy = true;
+    try {
+      if (await renderVisible(document_, host, pages, offsets, options)) {
+        offsets = measurePages(host, pages);
+        paintAnnotations(annotations);
+        markSearch(lastQuery);
+      }
+    } finally {
+      busy = false;
+    }
+  }
+
+  /** A zoom or a turn keeps the page you were on, at the new size. */
+  async function rescale() {
     if (!document_ || !host) {
       return;
     }
 
-    // A zoom or rotation during a render queues one more pass after it.
-    if (rendering) {
-      redraw = true;
-      return;
-    }
+    const current = currentPage();
 
-    rendering = true;
-    try {
-      pages = await renderPdf(document_, host, {
-        scale: base * zoom,
-        rotation,
-      });
-      paintAnnotations(annotations);
-      markSearch(lastQuery);
-    } finally {
-      rendering = false;
-    }
-
-    if (redraw) {
-      redraw = false;
-      await draw();
-    }
+    await resetPages(document_, pages, options);
+    offsets = measurePages(host, pages);
+    goTo(String(current));
+    await fill();
   }
 
   function restorePosition() {
@@ -106,15 +122,23 @@
     return pages[Math.min(Math.max(1, number), pages.length) - 1];
   }
 
+  /** The page in view is the last one whose top has scrolled past the pane. */
+  function currentPage() {
+    return host && offsets.length
+      ? pageIndexAt(offsets, host.scrollTop + 8) + 1
+      : 1;
+  }
+
   export function goTo(location: string) {
     pageOf(location)?.wrapper.scrollIntoView();
+    void fill();
   }
 
   export function search(query: string): Promise<SearchHit[]> {
     return document_ ? searchPdf(document_, query) : Promise.resolve([]);
   }
 
-  /** Tints every occurrence of the query across the rendered pages. */
+  /** Tints every occurrence of the query across the pages drawn so far. */
   export function markSearch(query: string) {
     lastQuery = query;
     paintRanges(
@@ -149,43 +173,80 @@
     );
   }
 
-  /** The page in view is the last one whose top has scrolled past the pane. */
-  function rememberPage() {
-    if (!host) {
-      return;
-    }
-
-    let current = 1;
-
-    for (const page of pages) {
-      if (page.wrapper.offsetTop - host.offsetTop <= host.scrollTop + 8) {
-        current = page.number;
-      }
-    }
-
-    savePosition(path, String(current));
-  }
-
   let scrollTimer: ReturnType<typeof setTimeout> | undefined;
 
   function onScroll() {
     clearTimeout(scrollTimer);
-    scrollTimer = setTimeout(rememberPage, 400);
+    scrollTimer = setTimeout(() => {
+      savePosition(path, String(currentPage()));
+      void fill();
+    }, 150);
   }
 
-  onDestroy(() => clearTimeout(scrollTimer));
+  /** Ctrl and the wheel is what everyone reaches for to zoom a document. */
+  function onWheel(event: WheelEvent) {
+    if (!event.ctrlKey) {
+      return;
+    }
+
+    event.preventDefault();
+    onZoom(zoom * (event.deltaY < 0 ? 1.1 : 1 / 1.1));
+  }
+
+  let panning: { x: number; y: number; left: number; top: number } | null =
+    null;
+
+  /** Middle-button drag pans; the left button stays free for selecting text. */
+  function onPointerDown(event: PointerEvent) {
+    if (event.button !== 1 || !host) {
+      return;
+    }
+
+    event.preventDefault();
+    panning = {
+      x: event.clientX,
+      y: event.clientY,
+      left: host.scrollLeft,
+      top: host.scrollTop,
+    };
+    host.setPointerCapture(event.pointerId);
+  }
+
+  function onPointerMove(event: PointerEvent) {
+    if (!panning || !host) {
+      return;
+    }
+
+    host.scrollLeft = panning.left - (event.clientX - panning.x);
+    host.scrollTop = panning.top - (event.clientY - panning.y);
+  }
+
+  function onPointerUp(event: PointerEvent) {
+    if (panning && host) {
+      host.releasePointerCapture(event.pointerId);
+      panning = null;
+    }
+  }
 </script>
 
 <div
   bind:this={host}
   onscroll={onScroll}
+  onwheel={onWheel}
+  onpointerdown={onPointerDown}
+  onpointermove={onPointerMove}
+  onpointerup={onPointerUp}
+  onpointercancel={onPointerUp}
+  role="document"
   class="min-h-0 min-w-0 flex-1 overflow-auto bg-stone-100 p-2 dark:bg-stone-900"
+  class:cursor-grabbing={panning}
 ></div>
 
 <style>
   :global(.ms-readable-page) {
     position: relative;
     margin: 0 auto 0.75rem;
+    background: white;
     box-shadow: 0 1px 6px rgb(0 0 0 / 0.18);
   }
 
