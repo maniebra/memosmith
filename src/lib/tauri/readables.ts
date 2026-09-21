@@ -6,6 +6,15 @@ import { convertFileSrc, invoke } from "@tauri-apps/api/core";
  * protocol streams them; the command is the fallback, and moves every byte
  * through the IPC bridge, so it is slow for a large book.
  */
+/**
+ * Where the player should load a video or audio file from. WebKitGTK hands
+ * media URLs to GStreamer, which fetches them outside the webview, so the
+ * asset protocol never resolves; a loopback server serves the bytes instead.
+ */
+export function mediaUrl(path: string): Promise<string> {
+  return invoke<string>("media_url", { path });
+}
+
 export async function readFileBytes(path: string): Promise<ArrayBuffer> {
   try {
     const response = await fetch(convertFileSrc(path));

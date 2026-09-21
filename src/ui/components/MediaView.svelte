@@ -8,6 +8,7 @@
     savePosition,
     type ReadableKind,
   } from "../../lib/storage/readables";
+  import { mediaUrl } from "../../lib/tauri/readables";
 
   export let path: string;
   export let kind: ReadableKind;
@@ -18,8 +19,29 @@
     " focus-visible:outline-none focus-visible:ring-2" +
     " focus-visible:ring-emerald-600/25 dark:text-stone-400";
 
-  // The asset protocol streams the file; nothing is copied into the space.
-  $: src = convertFileSrc(path);
+  // Images come off the asset protocol; video and audio stream over the
+  // loopback server, the only source GStreamer can both fetch and seek.
+  let streamUrl = "";
+  let error = "";
+
+  $: src = kind === "image" ? convertFileSrc(path) : streamUrl;
+
+  $: void openStream(path, kind);
+
+  async function openStream(file: string, mediaKind: ReadableKind) {
+    if (mediaKind === "image") {
+      return;
+    }
+
+    streamUrl = "";
+    error = "";
+
+    try {
+      streamUrl = await mediaUrl(file);
+    } catch (cause) {
+      error = cause instanceof Error ? cause.message : String(cause);
+    }
+  }
 
   let zoom = 1;
   let pan = { x: 0, y: 0 };
@@ -59,6 +81,15 @@
     if (dragFrom) {
       pan = { x: event.clientX - dragFrom.x, y: event.clientY - dragFrom.y };
     }
+  }
+
+  /** What the element itself says went wrong, rather than a guess. */
+  function playbackError(element: HTMLMediaElement | undefined) {
+    const detail = element?.error?.message;
+
+    return detail
+      ? `${$i18n.t("readables.unsupported")} (${detail})`
+      : $i18n.t("readables.unsupported");
   }
 
   /** Playback picks up where it stopped, the way the reader keeps a page. */
@@ -137,7 +168,13 @@
     onpointerup={() => (dragFrom = null)}
     onpointercancel={() => (dragFrom = null)}
   >
-    {#if kind === "image"}
+    {#if error}
+      <p class="px-3 text-center text-xs text-rose-500">{error}</p>
+    {:else if kind !== "image" && !streamUrl}
+      <p class="px-3 text-center text-xs text-stone-400">
+        {$i18n.t("readables.loading")}
+      </p>
+    {:else if kind === "image"}
       <img
         {src}
         alt={name || path}
@@ -158,6 +195,7 @@
         onloadedmetadata={restorePosition}
         ontimeupdate={rememberPosition}
         onpause={rememberPosition}
+        onerror={() => (error = playbackError(player))}
       ></video>
     {:else}
       <audio
@@ -168,6 +206,7 @@
         onloadedmetadata={restorePosition}
         ontimeupdate={rememberPosition}
         onpause={rememberPosition}
+        onerror={() => (error = playbackError(player))}
       >
         {$i18n.t("readables.unsupported")}
       </audio>

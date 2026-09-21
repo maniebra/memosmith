@@ -2,6 +2,7 @@ pub mod assets;
 pub mod databases;
 pub mod frame_menu;
 pub mod lsp;
+pub mod media;
 pub mod notes;
 pub mod pdf;
 pub mod plantuml;
@@ -59,6 +60,7 @@ pub fn run() {
             lsp::detect_language_servers,
             plantuml::render_plantuml,
             pdf::export_pdf,
+            media::media_url,
             youtube::youtube_port,
             youtube::youtube_decodable
         ])

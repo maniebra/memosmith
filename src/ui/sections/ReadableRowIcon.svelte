@@ -13,34 +13,20 @@
     audio: Music,
   };
 
-  // A frame offset makes the webview paint a still instead of a black box.
-  $: src =
-    kind === "video"
-      ? `${convertFileSrc(path)}#t=0.5`
-      : convertFileSrc(path);
-  $: preview = kind === "image" || kind === "video";
+  // Only images preview: video frames would need the whole file in memory.
+  $: preview = kind === "image";
 
   let failed = false;
 </script>
 
 {#if preview && !failed}
-  {#if kind === "image"}
-    <img
-      {src}
-      alt=""
-      loading="lazy"
-      class="{className} rounded-sm object-cover"
-      onerror={() => (failed = true)}
-    />
-  {:else}
-    <video
-      {src}
-      muted
-      preload="metadata"
-      class="{className} rounded-sm object-cover"
-      onerror={() => (failed = true)}
-    ></video>
-  {/if}
+  <img
+    src={convertFileSrc(path)}
+    alt=""
+    loading="lazy"
+    class="{className} rounded-sm object-cover"
+    onerror={() => (failed = true)}
+  />
 {:else}
   <svelte:component this={icons[kind ?? ""] ?? BookOpen} class={className} />
 {/if}
