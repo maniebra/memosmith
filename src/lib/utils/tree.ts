@@ -56,18 +56,13 @@ export function buildTree(paths: string[], meta: SpaceMeta = {}): TreeNode[] {
   return sortNodes(roots, meta);
 }
 
-/**
- * Adds readable shortcuts as rows in their folder. Readables without a folder
- * stay out of the tree; their row lives in the sidebar's unfiled list.
- */
+/** Adds readable shortcuts as rows in their folder ("" = space root). */
 export function withReadables(
   nodes: TreeNode[],
   readables: { path: string; name: string; folder?: string }[],
   meta: SpaceMeta = {},
 ): TreeNode[] {
-  const filed = readables.filter((entry) => typeof entry.folder === "string");
-
-  if (!filed.length) {
+  if (!readables.length) {
     return nodes;
   }
 
@@ -79,13 +74,13 @@ export function withReadables(
             ? { ...node, children: clone(node.children, node.path) }
             : node,
         ),
-        ...filed
-          .filter((entry) => entry.folder === folder)
+        ...readables
+          .filter((entry) => (entry.folder ?? "") === folder)
           .map((entry) => ({
             name: entry.name,
             path: `read:${entry.path}`,
             readable: entry.path,
-            folder: entry.folder,
+            folder: entry.folder ?? "",
           })),
       ],
       meta,

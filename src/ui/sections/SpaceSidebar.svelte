@@ -16,7 +16,6 @@
   } from "../components/ContextMenu.svelte";
   import { sidebarMenuItems } from "./spaceSidebarMenu";
   import SpaceTree from "./SpaceTree.svelte";
-  import ReadablesPanel from "./ReadablesPanel.svelte";
   import {
     isReadableTab,
     readableTabPath,
@@ -45,7 +44,7 @@
     siblingOrder?: string[],
   ) => void;
   export let width = 240;
-  /** null hides the section: the Readables feature is switched off. */
+  /** null keeps readables out of the tree: the feature is switched off. */
   export let readables: Readable[] | null = null;
   export let activeReadablePath: string | null = null;
   export let onAddReadables: (folder?: string) => void = () => {};
@@ -84,10 +83,6 @@
     scopeRoot ? (findNode(sourceTree, scopeRoot)?.children ?? []) : sourceTree,
     matchedReadables,
     meta,
-  );
-  // The panel keeps whatever has not been filed into a folder yet.
-  $: unfiledReadables = matchedReadables.filter(
-    (entry) => typeof entry.folder !== "string",
   );
   $: scopeLabel = scopePath ? displayNotePath(scopePath) : "";
   $: currentParent = scopeRoot;
@@ -365,15 +360,6 @@
     {/if}
   </div>
 
-  {#if readables}
-    <ReadablesPanel
-      readables={unfiledReadables}
-      activePath={activeReadablePath}
-      onAdd={() => onAddReadables()}
-      onOpen={onOpenReadable}
-      onRemove={onRemoveReadable}
-    />
-  {/if}
 
   {#if contextMenu}
     <ContextMenu
