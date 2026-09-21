@@ -1,11 +1,14 @@
 import {
   confirmDelete,
+  createNote,
   deletePageMeta,
   deletePath,
   pruneAssets,
+  readNote,
   renamePageMeta,
   renamePath,
   saveSpaceMeta,
+  writeNote,
 } from "../../lib/tauri/files";
 import { cleanPageMeta } from "../../lib/utils/pageMeta";
 import {
@@ -14,6 +17,8 @@ import {
   dirNotePath,
   displayNotePath,
   entryPathFromNote,
+  isDirNotePath,
+  stripNoteExtension,
 } from "../../lib/utils/path";
 import type { EditorPageContext } from "./editorPageContext";
 import {
@@ -43,6 +48,7 @@ export function createEntryActions(
     moveSpaceEntry: service.moveSpaceEntry.bind(service),
     orderSiblings: service.applySiblingOrder.bind(service),
     renameSpaceEntry: service.renameSpaceEntry.bind(service),
+    convertNoteToFolder: service.convertNoteToFolder.bind(service),
   };
 }
 
@@ -61,6 +67,33 @@ class EntryActions {
       target,
       renameTarget(this.context.spaceNotes, target, name),
     );
+  }
+
+  /** Turns the note `a/b.md` into the folder `a/b` holding its `b.dir.md`. */
+  async convertNoteToFolder(relativePath: string) {
+    const folder = stripNoteExtension(relativePath);
+    const target = dirNotePath(folder);
+
+    if (isDirNotePath(relativePath) || folder === relativePath) {
+      return;
+    }
+
+    if (pathTaken(this.context.spaceNotes, folder)) {
+      this.context.statusMessage = this.context.t("app.moveConflict", {
+        name: displayNotePath(folder),
+      });
+      return;
+    }
+
+    // The dir note is a note like any other, so the rest is a plain move.
+    const next = { folder: false, path: target };
+
+    await this.applyMove(relativePath, next, async () => {
+      const text = await readNote(this.spacePath(relativePath));
+      await createNote(this.spacePath(target));
+      await writeNote(this.spacePath(target), text);
+      await deletePath(this.spacePath(relativePath));
+    });
   }
 
   /**
@@ -108,10 +141,20 @@ class EntryActions {
   private async applyMove(
     relativePath: string,
     next: ReturnType<typeof renameTarget>,
+    move?: () => Promise<void>,
   ) {
     await this.core.flushNoteSave();
-    await renamePath(this.spacePath(relativePath), this.spacePath(next.path));
-    await renameDirectoryNote(this.context, relativePath, next, this.spacePath);
+    if (move) {
+      await move();
+    } else {
+      await renamePath(this.spacePath(relativePath), this.spacePath(next.path));
+      await renameDirectoryNote(
+        this.context,
+        relativePath,
+        next,
+        this.spacePath,
+      );
+    }
     this.updateOpenPath(relativePath, next);
     await renamePageMeta(
       this.context.spaceRoot!,

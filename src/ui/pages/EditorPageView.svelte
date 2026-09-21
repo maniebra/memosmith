@@ -198,6 +198,10 @@
             actions.runWithStatus(() =>
               actions.deleteSpaceEntry(relativePath),
             )}
+          onConvertToFolder={(notePath) =>
+            actions.runWithStatus(() =>
+              actions.convertNoteToFolder(notePath),
+            )}
           onMove={(relativePath, destFolder, siblingOrder) =>
             actions.runWithStatus(() =>
               actions.moveSpaceEntry(relativePath, destFolder, siblingOrder),

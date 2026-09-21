@@ -38,6 +38,7 @@
     folder: boolean,
   ) => void;
   export let onDelete: (relativePath: string) => void;
+  export let onConvertToFolder: (notePath: string) => void;
   export let onMove: (
     relativePath: string,
     destFolder: string,
@@ -357,6 +358,7 @@
         onRename={commitRename}
         onCreate={commitCreate}
         onDelete={deleteNode}
+        {onConvertToFolder}
         onMove={moveNode}
         onCancelEdit={cancelEdit}
       />

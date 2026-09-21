@@ -90,6 +90,7 @@ export type EditorPageActions = {
   refreshSpace: () => Promise<void>;
   saveNoteAs: () => Promise<void>;
   renameSpaceEntry: (relativePath: string, name: string) => Promise<void>;
+  convertNoteToFolder: (notePath: string) => Promise<void>;
   renderActiveWikilinkEmbed: (target: string, depth: number) => any;
   resetSettings: () => void;
   resizeWithKeyboard: (event: KeyboardEvent, pane: PaneName) => void;

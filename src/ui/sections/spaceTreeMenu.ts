@@ -5,6 +5,7 @@ import {
   ChevronRight,
   FolderOpen,
   FolderPlus,
+  FolderSymlink,
   Pencil,
   Plus,
   Trash2,
@@ -22,6 +23,8 @@ export type TreeMenuDeps = {
   onStartCreate: (parentPath: string, folder?: boolean) => void;
   onExpand: (relativePath: string) => void;
   onStartRename: (relativePath: string) => void;
+  /** Turns a plain note into a folder holding it as the folder's own page. */
+  onConvertToFolder: (notePath: string) => void;
   /** Absent when the Readables feature is off. */
   onAddReadables?: (folder: string, group: "books" | "media") => void;
   onDelete: (relativePath: string) => void;
@@ -87,6 +90,15 @@ export function treeContextItems(
       : []),
     ...(node.children ? folderItems(node, deps) : []),
     { separator: true },
+    ...(node.note && !node.children && !node.readable
+      ? [
+          {
+            label: "Convert to folder",
+            icon: FolderSymlink,
+            onSelect: () => deps.onConvertToFolder(node.note!),
+          } as ContextMenuItem,
+        ]
+      : []),
     ...(node.readable
       ? []
       : [

@@ -39,6 +39,7 @@
   export let onRename: (relativePath: string, name: string) => void;
   export let onCreate: (parentPath: string, name: string) => void;
   export let onDelete: (relativePath: string) => void;
+  export let onConvertToFolder: (notePath: string) => void;
   export let onMove: (
     relativePath: string,
     destFolder: string,
@@ -179,6 +180,7 @@
       onStartCreate,
       onExpand: (path) => (collapsed = { ...collapsed, [path]: false }),
       onStartRename,
+      onConvertToFolder,
       onDelete,
       onAddReadables,
     });
@@ -371,6 +373,7 @@
           {onRename}
           {onCreate}
           {onDelete}
+          {onConvertToFolder}
           {onMove}
           {onCancelEdit}
           depth={depth + 1}
