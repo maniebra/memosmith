@@ -9,6 +9,7 @@
     type ReadableKind,
   } from "../../lib/storage/readables";
   import { mediaUrl } from "../../lib/tauri/readables";
+  import MediaPlayer from "./MediaPlayer.svelte";
 
   export let path: string;
   export let kind: ReadableKind;
@@ -185,31 +186,16 @@
         style="transform: translate({pan.x}px, {pan.y}px) scale({zoom});
           transform-origin: center;"
       />
-    {:else if kind === "video"}
-      <!-- svelte-ignore a11y_media_has_caption -->
-      <video
-        bind:this={player}
-        {src}
-        controls
-        class="max-h-full max-w-full"
-        onloadedmetadata={restorePosition}
-        ontimeupdate={rememberPosition}
-        onpause={rememberPosition}
-        onerror={() => (error = playbackError(player))}
-      ></video>
     {:else}
-      <audio
-        bind:this={player}
+      <MediaPlayer
         {src}
-        controls
-        class="w-full max-w-lg"
-        onloadedmetadata={restorePosition}
-        ontimeupdate={rememberPosition}
-        onpause={rememberPosition}
-        onerror={() => (error = playbackError(player))}
-      >
-        {$i18n.t("readables.unsupported")}
-      </audio>
+        kind={kind === "video" ? "video" : "audio"}
+        label={name || path}
+        bind:element={player}
+        onready={restorePosition}
+        onprogress={rememberPosition}
+        onfail={() => (error = playbackError(player))}
+      />
     {/if}
   </div>
 </div>
