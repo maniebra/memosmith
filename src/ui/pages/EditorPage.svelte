@@ -16,6 +16,7 @@
     addReadable,
     isReadableTab,
     loadReadables,
+    moveReadable,
     readableKind,
     readableTabId,
     readableTabPath,
@@ -377,6 +378,11 @@
     }
   }
 
+  function moveReadableShortcut(path: string, folder: string) {
+    readables = moveReadable(readables, path, folder);
+    saveReadables(readables);
+  }
+
   function removeReadableShortcut(path: string) {
     readables = removeReadable(readables, path);
     saveReadables(readables);
@@ -595,6 +601,7 @@
   onAddReadables={() => runWithStatus(addReadables)}
   onOpenReadable={(readablePath) => tabs.openTab(readableTabId(readablePath))}
   onRemoveReadable={removeReadableShortcut}
+  onMoveReadable={moveReadableShortcut}
   noteText={(note) => noteContents[note] ?? ""}
   onSplitInput={updateSplitNote}
   onSplitTab={toggleSplitTab}

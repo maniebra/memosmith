@@ -14,7 +14,7 @@
     type Keybinding,
   } from "../../lib/utils/keybindings";
   import type { SpaceMeta } from "../../lib/utils/pageMeta";
-  import { buildTree } from "../../lib/utils/tree";
+  import { buildTree, withReadables } from "../../lib/utils/tree";
   import type { TreeNode } from "../../lib/utils/tree";
   import { searchNotes } from "../../lib/tauri/files";
   import Input from "../components/Input.svelte";
@@ -23,7 +23,11 @@
   } from "../components/ContextMenu.svelte";
   import SpaceTree from "./SpaceTree.svelte";
   import ReadablesPanel from "./ReadablesPanel.svelte";
-  import type { Readable } from "../../lib/storage/readables";
+  import {
+    isReadableTab,
+    readableTabPath,
+    type Readable,
+  } from "../../lib/storage/readables";
   import TreeNameInput from "./TreeNameInput.svelte";
 
   export let root: string | null;
@@ -53,6 +57,7 @@
   export let onAddReadables: () => void = () => {};
   export let onOpenReadable: (path: string) => void = () => {};
   export let onRemoveReadable: (path: string) => void = () => {};
+  export let onMoveReadable: (path: string, folder: string) => void = () => {};
 
   let renaming: string | null = null;
   let creating: string | null = null;
@@ -72,9 +77,14 @@
   $: sourceTree = buildTree(searchQuery ? (searchResults ?? []) : notes, meta);
   $: scopeNode = scopePath ? findNode(tree, scopePath) : null;
   $: scopeRoot = scopePath && scopeNode ? scopePath : "";
-  $: displayTree = scopeRoot
-    ? (findNode(sourceTree, scopeRoot)?.children ?? [])
-    : sourceTree;
+  $: displayTree = withReadables(
+    scopeRoot ? (findNode(sourceTree, scopeRoot)?.children ?? []) : sourceTree,
+    searchQuery ? [] : (readables ?? []),
+  );
+  // The panel keeps whatever has not been filed into a folder yet.
+  $: unfiledReadables = (readables ?? []).filter(
+    (entry) => typeof entry.folder !== "string",
+  );
   $: scopeLabel = scopePath ? displayNotePath(scopePath) : "";
   $: currentParent = scopeRoot;
   $: if (root !== lastRoot) {
@@ -166,6 +176,25 @@
 
     return null;
   }
+
+  const selectNode = (path: string) =>
+    isReadableTab(path)
+      ? onOpenReadable(readableTabPath(path))
+      : onSelect(path);
+
+  const deleteNode = (path: string) =>
+    isReadableTab(path)
+      ? onRemoveReadable(readableTabPath(path))
+      : onDelete(path);
+
+  const moveNode = (
+    path: string,
+    destFolder: string,
+    siblingOrder?: string[],
+  ) =>
+    isReadableTab(path)
+      ? onMoveReadable(readableTabPath(path), destFolder)
+      : onMove(path, destFolder, siblingOrder);
 
   function contextItems(): ContextMenuItem[] {
     if (!root) {
@@ -334,7 +363,7 @@
       const source = event.dataTransfer?.getData("text/memosmith-path");
       if (source) {
         event.preventDefault();
-        onMove(source, currentParent);
+        moveNode(source, currentParent);
       }
     }}
   >
@@ -363,7 +392,10 @@
         {meta}
         {activePath}
         {openPaths}
-        {onSelect}
+        activeReadableTab={activeReadablePath
+          ? `read:${activeReadablePath}`
+          : null}
+        onSelect={selectNode}
         {renaming}
         {creating}
         onStartRename={startRename}
@@ -371,8 +403,8 @@
         onScopeDirectory={scopeDirectory}
         onRename={commitRename}
         onCreate={commitCreate}
-        {onDelete}
-        {onMove}
+        onDelete={deleteNode}
+        onMove={moveNode}
         onCancelEdit={cancelEdit}
       />
     {/if}
@@ -380,7 +412,7 @@
 
   {#if readables}
     <ReadablesPanel
-      {readables}
+      readables={unfiledReadables}
       activePath={activeReadablePath}
       onAdd={onAddReadables}
       onOpen={onOpenReadable}

@@ -7,6 +7,10 @@ export type TreeNode = {
   path: string;
   /** Markdown file backing this node — a folder's own page, when it has one. */
   note?: string;
+  /** Disk path of the readable this row is a shortcut to. */
+  readable?: string;
+  /** Folder a readable row sits in ("" = space root). */
+  folder?: string;
   children?: TreeNode[];
 };
 
@@ -50,6 +54,39 @@ export function buildTree(paths: string[], meta: SpaceMeta = {}): TreeNode[] {
   }
 
   return sortNodes(roots, meta);
+}
+
+/**
+ * Adds readable shortcuts as rows in their folder. Readables without a folder
+ * stay out of the tree; their row lives in the sidebar's unfiled list.
+ */
+export function withReadables(
+  nodes: TreeNode[],
+  readables: { path: string; name: string; folder?: string }[],
+): TreeNode[] {
+  const filed = readables.filter((entry) => typeof entry.folder === "string");
+
+  if (!filed.length) {
+    return nodes;
+  }
+
+  const clone = (level: TreeNode[], folder: string): TreeNode[] => [
+    ...level.map((node) =>
+      node.children
+        ? { ...node, children: clone(node.children, node.path) }
+        : node,
+    ),
+    ...filed
+      .filter((entry) => entry.folder === folder)
+      .map((entry) => ({
+        name: entry.name,
+        path: `read:${entry.path}`,
+        readable: entry.path,
+        folder: entry.folder,
+      })),
+  ];
+
+  return clone(nodes, "");
 }
 
 /** Where `source` lands when dropped into `destFolder` ("" = space root). */

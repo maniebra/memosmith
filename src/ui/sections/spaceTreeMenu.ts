@@ -66,11 +66,15 @@ export function treeContextItems(
       : []),
     ...(node.children ? folderItems(node, deps) : []),
     { separator: true },
-    {
-      label: "Rename",
-      icon: Pencil,
-      onSelect: () => deps.onStartRename(node.path),
-    },
+    ...(node.readable
+      ? []
+      : [
+          {
+            label: "Rename",
+            icon: Pencil,
+            onSelect: () => deps.onStartRename(node.path),
+          } as ContextMenuItem,
+        ]),
     {
       label: "Delete",
       icon: Trash2,

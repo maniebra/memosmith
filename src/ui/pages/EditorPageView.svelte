@@ -87,6 +87,7 @@
   export let onAddReadables: () => void = () => {};
   export let onOpenReadable: (path: string) => void = () => {};
   export let onRemoveReadable: (path: string) => void = () => {};
+  export let onMoveReadable: (path: string, folder: string) => void = () => {};
   export let onPreviewDiagram:
     (preview: DiagramPreviewData) => void | Promise<void>;
   export let explainGrammarIssue: (issue: any) => Promise<string>;
@@ -164,6 +165,7 @@
           onAddReadables={onAddReadables}
           onOpenReadable={onOpenReadable}
           onRemoveReadable={onRemoveReadable}
+          onMoveReadable={onMoveReadable}
           onChooseSpace={() => actions.runWithStatus(actions.chooseSpace)}
           onRefresh={() => actions.runWithStatus(actions.refreshSpace)}
           onSelect={(relativePath) =>

@@ -7,6 +7,8 @@ export type Readable = {
   path: string;
   name: string;
   kind: ReadableKind;
+  /** Space-relative folder the shortcut sits in ("" = space root); unset = unfiled. */
+  folder?: string;
 };
 
 const READABLES_KEY = "memosmith:readables";
@@ -44,6 +46,9 @@ export function loadReadables(): Readable[] {
             ? [{
                 path,
                 kind,
+                ...(typeof entry?.folder === "string"
+                  ? { folder: entry.folder }
+                  : {}),
                 name:
                   typeof entry?.name === "string" && entry.name
                     ? entry.name
@@ -72,6 +77,17 @@ export function addReadable(readables: Readable[], path: string): Readable[] {
   return !kind || readables.some((entry) => entry.path === path)
     ? readables
     : [...readables, { path, kind, name: basename(path) }];
+}
+
+/** Files the shortcut under a space folder, so it shows up in the note tree. */
+export function moveReadable(
+  readables: Readable[],
+  path: string,
+  folder: string,
+) {
+  return readables.map((entry) =>
+    entry.path === path ? { ...entry, folder } : entry,
+  );
 }
 
 export function removeReadable(readables: Readable[], path: string) {

@@ -1,5 +1,6 @@
 <script lang="ts">
   import {
+    BookOpen,
     ChevronDown,
     ChevronRight,
     FileText,
@@ -46,6 +47,8 @@
   export let depth = 0;
   /** Note paths with an open tab; their folders start expanded, others collapsed. */
   export let openPaths: string[] = [];
+  /** Tab id of the readable being read, so its row can highlight. */
+  export let activeReadableTab: string | null = null;
 
   let collapsed: Record<string, boolean> = {};
   let defaulted = new Set<string>();
@@ -83,7 +86,9 @@
   } | null = null;
 
   function label(node: TreeNode) {
-    return node.children ? node.name : displayNoteName(node.name);
+    return node.children || node.readable
+      ? node.name
+      : displayNoteName(node.name);
   }
 
   function toggle(node: TreeNode) {
@@ -95,6 +100,9 @@
     if (node.children) {
       return node.path;
     }
+    if (node.readable) {
+      return node.folder ?? "";
+    }
     return node.path.includes("/")
       ? node.path.slice(0, node.path.lastIndexOf("/"))
       : "";
@@ -102,7 +110,9 @@
 
   /** Parent folder of a node's row, used when dropping between rows. */
   function parentFolder(node: TreeNode) {
-    return node.path.includes("/")
+    return node.readable
+      ? (node.folder ?? "")
+      : node.path.includes("/")
       ? node.path.slice(0, node.path.lastIndexOf("/"))
       : "";
   }
@@ -201,7 +211,9 @@
           class={cn(
             "group flex items-center rounded-md pr-1 transition-[background-color,box-shadow,opacity] duration-150",
             dragging === node.path && "opacity-40",
-            node.note && node.note === activePath
+            node.readable && `read:${node.readable}` === activeReadableTab
+              ? "bg-emerald-600/12 text-emerald-800 dark:text-emerald-300"
+              : node.note && node.note === activePath
               ? "bg-emerald-600/12 text-emerald-800 dark:text-emerald-300"
               : "text-stone-600 hover:bg-stone-500/10 dark:text-stone-400",
             dropHint?.path === node.path &&
@@ -278,11 +290,20 @@
             style={node.children
               ? "padding-left: 0.375rem"
               : `padding-left: ${depth * 0.75 + 1.375}rem`}
-            onclick={() => (node.note ? onSelect(node.note) : toggle(node))}
+            onclick={() =>
+              node.note
+                ? onSelect(node.note)
+                : node.readable
+                  ? onSelect(node.path)
+                  : toggle(node)}
           >
             <PageIcon
               icon={meta[node.path]?.icon}
-              fallback={node.children ? Folder : FileText}
+              fallback={node.children
+                ? Folder
+                : node.readable
+                  ? BookOpen
+                  : FileText}
               className="mr-1.5 size-4 text-base text-stone-400 dark:text-stone-500"
             />
             <span class="truncate">{label(node)}</span>
@@ -305,6 +326,7 @@
                 <Plus class="size-3.5" strokeWidth={1.8} aria-hidden="true" />
               </button>
             {/if}
+            {#if !node.readable}
             <button
               type="button"
               class="rounded p-1 text-stone-400 hover:text-stone-800 dark:hover:text-stone-100"
@@ -314,6 +336,7 @@
             >
               <Pencil class="size-3.5" strokeWidth={1.8} aria-hidden="true" />
             </button>
+            {/if}
             <button
               type="button"
               class="rounded p-1 text-stone-400 hover:text-rose-600"
@@ -342,6 +365,7 @@
           {meta}
           {activePath}
           {openPaths}
+          {activeReadableTab}
           {onSelect}
           {renaming}
           {creating}
