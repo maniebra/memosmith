@@ -20,10 +20,13 @@
   import WelcomeDashboard from "../sections/WelcomeDashboard.svelte";
   import SplitNotePane from "../sections/SplitNotePane.svelte";
   import ReadableView from "../components/ReadableView.svelte";
+  import MediaView from "../components/MediaView.svelte";
   import {
+    isMediaKind,
     isReadableTab,
     readableTabPath,
     type Readable,
+    type ReadableKind,
   } from "../../lib/storage/readables";
   import TilePane from "../sections/TilePane.svelte";
   import { setRatio } from "../../lib/utils/tiling";
@@ -101,6 +104,10 @@
   let readOnly = false;
   let templates: { name: string; text: string }[] = [];
 
+
+  /** Images, video and audio play themselves; books go through the reader. */
+  const viewerFor = (kind: ReadableKind) =>
+    isMediaKind(kind) ? MediaView : ReadableView;
 
   $: activeReadable =
     readables.find((entry) => entry.path === activeReadablePath) ?? null;
@@ -344,7 +351,8 @@
         {:else if activeDiagramPreview}
           <DiagramPreview preview={activeDiagramPreview} />
         {:else if settings.features.readables && activeReadable}
-          <ReadableView
+          <svelte:component
+            this={viewerFor(activeReadable.kind)}
             path={activeReadable.path}
             kind={activeReadable.kind}
             name={activeReadable.name}
@@ -465,7 +473,8 @@
           (entry) => entry.path === readableTabPath(id),
         )}
         {#if readable}
-          <ReadableView
+          <svelte:component
+            this={viewerFor(readable.kind)}
             path={readable.path}
             kind={readable.kind}
             name={readable.name}

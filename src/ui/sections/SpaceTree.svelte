@@ -1,6 +1,9 @@
 <script lang="ts">
   import {
     BookOpen,
+    Image,
+    Music,
+    Video,
     ChevronDown,
     ChevronRight,
     FileText,
@@ -87,6 +90,12 @@
     y: number;
     node: TreeNode;
   } | null = null;
+
+  const readableIcons: Record<string, typeof BookOpen> = {
+    image: Image,
+    video: Video,
+    audio: Music,
+  };
 
   function label(node: TreeNode) {
     return node.children || node.readable
@@ -289,7 +298,7 @@
               fallback={node.children
                 ? Folder
                 : node.readable
-                  ? BookOpen
+                  ? (readableIcons[node.kind ?? ""] ?? BookOpen)
                   : FileText}
               className="mr-1.5 size-4 text-base text-stone-400 dark:text-stone-500"
             />

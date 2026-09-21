@@ -1,8 +1,29 @@
 import { basename } from "../utils/path";
 
-export type ReadableKind = "pdf" | "epub";
+export type ReadableKind =
+  | "pdf"
+  | "epub"
+  | "image"
+  | "video"
+  | "audio";
 
-/** A shortcut to a PDF or EPUB somewhere on disk; the file itself is never copied. */
+/** Extensions per kind; the reader picks its viewer from the kind. */
+const KIND_EXTENSIONS: Record<ReadableKind, string[]> = {
+  pdf: ["pdf"],
+  epub: ["epub"],
+  image: ["png", "jpg", "jpeg", "gif", "webp", "avif", "bmp", "svg"],
+  video: ["mp4", "webm", "mkv", "mov", "m4v"],
+  audio: ["mp3", "wav", "ogg", "oga", "flac", "m4a", "aac", "opus"],
+};
+
+/** Every extension the file picker offers. */
+export const readableExtensions = Object.values(KIND_EXTENSIONS).flat();
+
+/** Media plays or displays itself; pdf and epub go through a reader. */
+export const isMediaKind = (kind: ReadableKind) =>
+  kind === "image" || kind === "video" || kind === "audio";
+
+/** A shortcut to a file somewhere on disk; the file itself is never copied. */
 export type Readable = {
   path: string;
   name: string;
@@ -24,13 +45,13 @@ export const readableTabPath = (id: string) =>
   id.slice(READABLE_PREFIX.length);
 
 export function readableKind(path: string): ReadableKind | null {
-  const lower = path.toLowerCase();
+  const extension = path.slice(path.lastIndexOf(".") + 1).toLowerCase();
 
-  return lower.endsWith(".pdf")
-    ? "pdf"
-    : lower.endsWith(".epub")
-      ? "epub"
-      : null;
+  const match = Object.entries(KIND_EXTENSIONS).find(([, extensions]) =>
+    extensions.includes(extension),
+  );
+
+  return match ? (match[0] as ReadableKind) : null;
 }
 
 export function loadReadables(): Readable[] {

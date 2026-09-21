@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildTree, withReadables } from "../../../src/lib/utils/tree";
+import { readableKind } from "../../../src/lib/storage/readables";
 
 describe("withReadables", () => {
   const tree = buildTree(["notes/one.md", "two.md"]);
@@ -33,5 +34,17 @@ describe("withReadables", () => {
       "two.md",
       "notes",
     ]);
+  });
+});
+
+describe("readableKind", () => {
+  it("names every supported kind and rejects the rest", () => {
+    expect(readableKind("/a/book.PDF")).toBe("pdf");
+    expect(readableKind("/a/book.epub")).toBe("epub");
+    expect(readableKind("/a/shot.webp")).toBe("image");
+    expect(readableKind("/a/clip.mkv")).toBe("video");
+    expect(readableKind("/a/track.flac")).toBe("audio");
+    expect(readableKind("/a/notes.md")).toBe(null);
+    expect(readableKind("/a/noext")).toBe(null);
   });
 });

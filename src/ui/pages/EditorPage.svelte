@@ -17,6 +17,7 @@
     isReadableTab,
     loadReadables,
     moveReadable,
+    readableExtensions,
     readableKind,
     readableTabId,
     readableTabPath,
@@ -365,7 +366,7 @@
   async function addReadables(folder?: string) {
     const picked = await openFileDialog({
       multiple: true,
-      filters: [{ name: "Readables", extensions: ["pdf", "epub"] }],
+      filters: [{ name: "Readables", extensions: readableExtensions }],
     });
     const paths = (Array.isArray(picked) ? picked : picked ? [picked] : [])
       .filter((entry): entry is string => typeof entry === "string");

@@ -11,6 +11,8 @@ export type TreeNode = {
   readable?: string;
   /** Folder a readable row sits in ("" = space root). */
   folder?: string;
+  /** Readable kind, so the row picks its icon. */
+  kind?: string;
   children?: TreeNode[];
 };
 
@@ -59,7 +61,7 @@ export function buildTree(paths: string[], meta: SpaceMeta = {}): TreeNode[] {
 /** Adds readable shortcuts as rows in their folder ("" = space root). */
 export function withReadables(
   nodes: TreeNode[],
-  readables: { path: string; name: string; folder?: string }[],
+  readables: { path: string; name: string; folder?: string; kind?: string }[],
   meta: SpaceMeta = {},
 ): TreeNode[] {
   if (!readables.length) {
@@ -81,6 +83,7 @@ export function withReadables(
             path: `read:${entry.path}`,
             readable: entry.path,
             folder: entry.folder ?? "",
+            kind: entry.kind,
           })),
       ],
       meta,
