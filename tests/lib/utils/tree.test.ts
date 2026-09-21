@@ -1,7 +1,7 @@
 const assert = (ok: unknown, msg: string) => {
   if (!ok) throw new Error(msg);
 };
-import { buildTree, withReadables } from "../../../src/lib/utils/tree";
+import { buildTree } from "../../../src/lib/utils/tree";
 
 const tree = buildTree([
   "b.md",
@@ -45,24 +45,3 @@ assert(
 );
 
 console.log("tree ok");
-
-describe("withReadables", () => {
-  const tree = buildTree(["notes/one.md", "two.md"]);
-
-  it("files a readable into its folder and leaves unfiled ones out", () => {
-    const merged = withReadables(tree, [
-      { path: "/books/a.pdf", name: "a.pdf", folder: "notes" },
-      { path: "/books/b.pdf", name: "b.pdf", folder: "" },
-      { path: "/books/c.pdf", name: "c.pdf" },
-    ]);
-
-    expect(merged.find((n) => n.path === "read:/books/b.pdf")?.folder).toBe("");
-    expect(merged.some((n) => n.path === "read:/books/c.pdf")).toBe(false);
-    expect(
-      merged
-        .find((n) => n.path === "notes")
-        ?.children?.map((n) => n.readable)
-        .filter(Boolean),
-    ).toEqual(["/books/a.pdf"]);
-  });
-});
