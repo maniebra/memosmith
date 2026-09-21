@@ -1,9 +1,5 @@
 <script lang="ts">
   import {
-    BookOpen,
-    Image,
-    Music,
-    Video,
     ChevronDown,
     ChevronRight,
     FileText,
@@ -22,6 +18,7 @@
     type TreeNode,
   } from "../../lib/utils/tree";
   import PageIcon from "../components/PageIcon.svelte";
+  import ReadableRowIcon from "./ReadableRowIcon.svelte";
   import ContextMenu from "../components/ContextMenu.svelte";
   import { treeContextItems } from "./spaceTreeMenu";
   import { dropFolder, parentFolder } from "./spaceTreeDrag";
@@ -90,12 +87,6 @@
     y: number;
     node: TreeNode;
   } | null = null;
-
-  const readableIcons: Record<string, typeof BookOpen> = {
-    image: Image,
-    video: Video,
-    audio: Music,
-  };
 
   function label(node: TreeNode) {
     return node.children || node.readable
@@ -293,15 +284,21 @@
                   ? onSelect(node.path)
                   : toggle(node)}
           >
-            <PageIcon
-              icon={meta[node.path]?.icon}
-              fallback={node.children
-                ? Folder
-                : node.readable
-                  ? (readableIcons[node.kind ?? ""] ?? BookOpen)
-                  : FileText}
-              className="mr-1.5 size-4 text-base text-stone-400 dark:text-stone-500"
-            />
+            {#if node.readable}
+              <ReadableRowIcon
+                path={node.readable}
+                kind={node.kind}
+                className="mr-1.5 size-4 shrink-0 text-stone-400
+                  dark:text-stone-500"
+              />
+            {:else}
+              <PageIcon
+                icon={meta[node.path]?.icon}
+                fallback={node.children ? Folder : FileText}
+                className="mr-1.5 size-4 text-base text-stone-400
+                  dark:text-stone-500"
+              />
+            {/if}
             <span class="truncate">{label(node)}</span>
           </button>
 
