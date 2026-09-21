@@ -21,6 +21,7 @@
   import PageIcon from "../components/PageIcon.svelte";
   import ContextMenu from "../components/ContextMenu.svelte";
   import { treeContextItems } from "./spaceTreeMenu";
+  import { dropFolder, parentFolder } from "./spaceTreeDrag";
   import Self from "./SpaceTree.svelte";
   import TreeNameInput from "./TreeNameInput.svelte";
 
@@ -49,6 +50,8 @@
   export let openPaths: string[] = [];
   /** Tab id of the readable being read, so its row can highlight. */
   export let activeReadableTab: string | null = null;
+  /** Absent when the Readables feature is off. */
+  export let onAddReadables: ((folder: string) => void) | undefined = undefined;
 
   let collapsed: Record<string, boolean> = {};
   let defaulted = new Set<string>();
@@ -93,28 +96,6 @@
 
   function toggle(node: TreeNode) {
     collapsed = { ...collapsed, [node.path]: !collapsed[node.path] };
-  }
-
-  /** Dropping on a folder moves into it; dropping on a note targets its parent. */
-  function dropFolder(node: TreeNode) {
-    if (node.children) {
-      return node.path;
-    }
-    if (node.readable) {
-      return node.folder ?? "";
-    }
-    return node.path.includes("/")
-      ? node.path.slice(0, node.path.lastIndexOf("/"))
-      : "";
-  }
-
-  /** Parent folder of a node's row, used when dropping between rows. */
-  function parentFolder(node: TreeNode) {
-    return node.readable
-      ? (node.folder ?? "")
-      : node.path.includes("/")
-      ? node.path.slice(0, node.path.lastIndexOf("/"))
-      : "";
   }
 
   function handleDragOver(event: DragEvent, node: TreeNode) {
@@ -163,12 +144,17 @@
 
     const destFolder = parentFolder(node);
 
+    // A readable keeps its `read:` id wherever it lands; a note takes a new path.
+    const moved = source.startsWith("read:")
+      ? source
+      : movedPath(source, destFolder);
+
     onMove(
       source,
       destFolder,
       reorderedSiblings(
         nodes.map((sibling) => sibling.path),
-        movedPath(source, destFolder),
+        moved,
         node.path,
         where === "after",
       ),
@@ -192,6 +178,7 @@
       onExpand: (path) => (collapsed = { ...collapsed, [path]: false }),
       onStartRename,
       onDelete,
+      onAddReadables,
     });
   }
 </script>
@@ -366,6 +353,7 @@
           {activePath}
           {openPaths}
           {activeReadableTab}
+          {onAddReadables}
           {onSelect}
           {renaming}
           {creating}

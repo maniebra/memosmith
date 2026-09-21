@@ -41,6 +41,7 @@ export function createEntryActions(
   return {
     deleteSpaceEntry: service.deleteSpaceEntry.bind(service),
     moveSpaceEntry: service.moveSpaceEntry.bind(service),
+    orderSiblings: service.applySiblingOrder.bind(service),
     renameSpaceEntry: service.renameSpaceEntry.bind(service),
   };
 }
@@ -89,7 +90,7 @@ class EntryActions {
   }
 
   /** Pins siblings to their listed positions so name sorting stops applying. */
-  private async applySiblingOrder(paths: string[]) {
+  async applySiblingOrder(paths: string[]) {
     if (paths.length < 2) {
       return;
     }

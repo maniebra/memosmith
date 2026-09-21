@@ -79,6 +79,7 @@ export type EditorPageActions = {
     destFolder: string,
     siblingOrder?: string[],
   ) => Promise<void>;
+  orderSiblings: (paths: string[]) => Promise<void>;
   dismissGrammarIssue: (issue: any) => void;
   flushNoteSave: () => Promise<void>;
   generateFromPrompt: (prompt: string) => Promise<string>;

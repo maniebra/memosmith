@@ -84,10 +84,14 @@
   ) => void = () => {};
   export let readables: Readable[] = [];
   export let activeReadablePath: string | null = null;
-  export let onAddReadables: () => void = () => {};
+  export let onAddReadables: (folder?: string) => void = () => {};
   export let onOpenReadable: (path: string) => void = () => {};
   export let onRemoveReadable: (path: string) => void = () => {};
-  export let onMoveReadable: (path: string, folder: string) => void = () => {};
+  export let onMoveReadable: (
+    path: string,
+    folder: string,
+    siblingOrder?: string[],
+  ) => void = () => {};
   export let onPreviewDiagram:
     (preview: DiagramPreviewData) => void | Promise<void>;
   export let explainGrammarIssue: (issue: any) => Promise<string>;

@@ -1,4 +1,5 @@
 import {
+  BookOpen,
   ChevronDown,
   ChevronRight,
   FolderOpen,
@@ -20,6 +21,8 @@ export type TreeMenuDeps = {
   onStartCreate: (parentPath: string, folder?: boolean) => void;
   onExpand: (relativePath: string) => void;
   onStartRename: (relativePath: string) => void;
+  /** Absent when the Readables feature is off. */
+  onAddReadables?: (folder: string) => void;
   onDelete: (relativePath: string) => void;
 };
 
@@ -45,6 +48,18 @@ function folderItems(node: TreeNode, deps: TreeMenuDeps): ContextMenuItem[] {
         deps.onStartCreate(node.path);
       },
     },
+    ...(deps.onAddReadables
+      ? [
+          {
+            label: "Add readable",
+            icon: BookOpen,
+            onSelect: () => {
+              deps.onExpand(node.path);
+              deps.onAddReadables!(node.path);
+            },
+          } as ContextMenuItem,
+        ]
+      : []),
     {
       label: "Add folder",
       icon: FolderPlus,

@@ -362,7 +362,7 @@
     activeDatabaseId = null;
   }
 
-  async function addReadables() {
+  async function addReadables(folder?: string) {
     const picked = await openFileDialog({
       multiple: true,
       filters: [{ name: "Readables", extensions: ["pdf", "epub"] }],
@@ -372,15 +372,28 @@
     const rejected = paths.filter((entry) => !readableKind(entry));
 
     readables = paths.reduce(addReadable, readables);
+    if (typeof folder === "string") {
+      readables = paths.reduce(
+        (list, entry) => moveReadable(list, entry, folder),
+        readables,
+      );
+    }
     saveReadables(readables);
     if (rejected.length) {
       statusMessage = $i18n.t("readables.unsupported");
     }
   }
 
-  function moveReadableShortcut(path: string, folder: string) {
+  function moveReadableShortcut(
+    path: string,
+    folder: string,
+    siblingOrder: string[] = [],
+  ) {
     readables = moveReadable(readables, path, folder);
     saveReadables(readables);
+    if (siblingOrder.length > 1) {
+      void runWithStatus(() => entries.orderSiblings(siblingOrder));
+    }
   }
 
   function removeReadableShortcut(path: string) {
@@ -598,7 +611,7 @@
   {diagramPreviews}
   {readables}
   {activeReadablePath}
-  onAddReadables={() => runWithStatus(addReadables)}
+  onAddReadables={(folder) => runWithStatus(() => addReadables(folder))}
   onOpenReadable={(readablePath) => tabs.openTab(readableTabId(readablePath))}
   onRemoveReadable={removeReadableShortcut}
   onMoveReadable={moveReadableShortcut}

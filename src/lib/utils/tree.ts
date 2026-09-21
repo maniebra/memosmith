@@ -63,6 +63,7 @@ export function buildTree(paths: string[], meta: SpaceMeta = {}): TreeNode[] {
 export function withReadables(
   nodes: TreeNode[],
   readables: { path: string; name: string; folder?: string }[],
+  meta: SpaceMeta = {},
 ): TreeNode[] {
   const filed = readables.filter((entry) => typeof entry.folder === "string");
 
@@ -70,23 +71,44 @@ export function withReadables(
     return nodes;
   }
 
-  const clone = (level: TreeNode[], folder: string): TreeNode[] => [
-    ...level.map((node) =>
-      node.children
-        ? { ...node, children: clone(node.children, node.path) }
-        : node,
-    ),
-    ...filed
-      .filter((entry) => entry.folder === folder)
-      .map((entry) => ({
-        name: entry.name,
-        path: `read:${entry.path}`,
-        readable: entry.path,
-        folder: entry.folder,
-      })),
-  ];
+  const clone = (level: TreeNode[], folder: string): TreeNode[] =>
+    sortNodes(
+      [
+        ...level.map((node) =>
+          node.children
+            ? { ...node, children: clone(node.children, node.path) }
+            : node,
+        ),
+        ...filed
+          .filter((entry) => entry.folder === folder)
+          .map((entry) => ({
+            name: entry.name,
+            path: `read:${entry.path}`,
+            readable: entry.path,
+            folder: entry.folder,
+          })),
+      ],
+      meta,
+    );
 
   return clone(nodes, "");
+}
+
+/** The node at `path`, at any depth. */
+export function findNode(nodes: TreeNode[], path: string): TreeNode | null {
+  for (const node of nodes) {
+    if (node.path === path) {
+      return node;
+    }
+
+    const child = node.children ? findNode(node.children, path) : null;
+
+    if (child) {
+      return child;
+    }
+  }
+
+  return null;
 }
 
 /** Where `source` lands when dropped into `destFolder` ("" = space root). */

@@ -1,12 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import {
-    FolderOpen,
-    FolderPlus,
-    Plus,
-    RotateCcw,
-    Search,
-  } from "@lucide/svelte";
+  import { Plus, RotateCcw, Search } from "@lucide/svelte";
   import { i18n } from "../../lib/i18n";
   import { basename, displayNotePath } from "../../lib/utils/path";
   import {
@@ -14,13 +8,13 @@
     type Keybinding,
   } from "../../lib/utils/keybindings";
   import type { SpaceMeta } from "../../lib/utils/pageMeta";
-  import { buildTree, withReadables } from "../../lib/utils/tree";
-  import type { TreeNode } from "../../lib/utils/tree";
+  import { buildTree, findNode, withReadables } from "../../lib/utils/tree";
   import { searchNotes } from "../../lib/tauri/files";
   import Input from "../components/Input.svelte";
   import ContextMenu, {
     type ContextMenuItem,
   } from "../components/ContextMenu.svelte";
+  import { sidebarMenuItems } from "./spaceSidebarMenu";
   import SpaceTree from "./SpaceTree.svelte";
   import ReadablesPanel from "./ReadablesPanel.svelte";
   import {
@@ -54,10 +48,14 @@
   /** null hides the section: the Readables feature is switched off. */
   export let readables: Readable[] | null = null;
   export let activeReadablePath: string | null = null;
-  export let onAddReadables: () => void = () => {};
+  export let onAddReadables: (folder?: string) => void = () => {};
   export let onOpenReadable: (path: string) => void = () => {};
   export let onRemoveReadable: (path: string) => void = () => {};
-  export let onMoveReadable: (path: string, folder: string) => void = () => {};
+  export let onMoveReadable: (
+    path: string,
+    folder: string,
+    siblingOrder?: string[],
+  ) => void = () => {};
 
   let renaming: string | null = null;
   let creating: string | null = null;
@@ -77,12 +75,18 @@
   $: sourceTree = buildTree(searchQuery ? (searchResults ?? []) : notes, meta);
   $: scopeNode = scopePath ? findNode(tree, scopePath) : null;
   $: scopeRoot = scopePath && scopeNode ? scopePath : "";
+  $: matchedReadables = (readables ?? []).filter(
+    (entry) =>
+      !searchQuery ||
+      entry.name.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
   $: displayTree = withReadables(
     scopeRoot ? (findNode(sourceTree, scopeRoot)?.children ?? []) : sourceTree,
-    searchQuery ? [] : (readables ?? []),
+    matchedReadables,
+    meta,
   );
   // The panel keeps whatever has not been filed into a folder yet.
-  $: unfiledReadables = (readables ?? []).filter(
+  $: unfiledReadables = matchedReadables.filter(
     (entry) => typeof entry.folder !== "string",
   );
   $: scopeLabel = scopePath ? displayNotePath(scopePath) : "";
@@ -160,23 +164,6 @@
     scopePath = null;
   }
 
-  function findNode(nodes: TreeNode[], path: string): TreeNode | null {
-    for (const node of nodes) {
-      if (node.path === path) {
-        return node;
-      }
-
-      if (node.children) {
-        const child = findNode(node.children, path);
-        if (child) {
-          return child;
-        }
-      }
-    }
-
-    return null;
-  }
-
   const selectNode = (path: string) =>
     isReadableTab(path)
       ? onOpenReadable(readableTabPath(path))
@@ -193,55 +180,22 @@
     siblingOrder?: string[],
   ) =>
     isReadableTab(path)
-      ? onMoveReadable(readableTabPath(path), destFolder)
+      ? onMoveReadable(readableTabPath(path), destFolder, siblingOrder)
       : onMove(path, destFolder, siblingOrder);
 
   function contextItems(): ContextMenuItem[] {
-    if (!root) {
-      return [
-        {
-          label: $i18n.t("sidebar.chooseSpace"),
-          icon: FolderOpen,
-          onSelect: onChooseSpace,
-        },
-      ];
-    }
-
-    return [
-      {
-        label: $i18n.t("sidebar.addNote"),
-        icon: Plus,
-        onSelect: () => startCreate(currentParent),
-      },
-      {
-        label: $i18n.t("sidebar.addFolder"),
-        shortcut: "Ctrl Shift N",
-        icon: FolderPlus,
-        onSelect: startRootFolder,
-      },
-      ...(scopePath
-        ? [
-            { separator: true } as ContextMenuItem,
-            {
-              label: $i18n.t("sidebar.resetScope"),
-              icon: RotateCcw,
-              onSelect: resetScope,
-            } as ContextMenuItem,
-          ]
-        : []),
-      { separator: true },
-      {
-        label: $i18n.t("common.refresh"),
-        shortcut: "Ctrl R",
-        icon: RotateCcw,
-        onSelect: onRefresh,
-      },
-      {
-        label: $i18n.t("sidebar.changeSpace"),
-        icon: FolderOpen,
-        onSelect: onChooseSpace,
-      },
-    ];
+    return sidebarMenuItems({
+      root,
+      scoped: Boolean(scopePath),
+      readables: Boolean(readables),
+      t: $i18n.t,
+      onChooseSpace,
+      onRefresh,
+      onAddNote: () => startCreate(currentParent),
+      onAddFolder: startRootFolder,
+      onAddReadables: () => onAddReadables(currentParent),
+      onResetScope: resetScope,
+    });
   }
 
   const sidebarKeybindings: Keybinding[] = [
@@ -392,6 +346,7 @@
         {meta}
         {activePath}
         {openPaths}
+        onAddReadables={readables ? onAddReadables : undefined}
         activeReadableTab={activeReadablePath
           ? `read:${activeReadablePath}`
           : null}
@@ -414,7 +369,7 @@
     <ReadablesPanel
       readables={unfiledReadables}
       activePath={activeReadablePath}
-      onAdd={onAddReadables}
+      onAdd={() => onAddReadables()}
       onOpen={onOpenReadable}
       onRemove={onRemoveReadable}
     />

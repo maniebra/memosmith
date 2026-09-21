@@ -38,6 +38,22 @@
     {:else}
       {#each readables as entry (entry.path)}
         <div
+          role="presentation"
+          draggable="true"
+          ondragstart={(event) => {
+            // Dropping on the tree files the shortcut into that folder.
+            event.dataTransfer?.setData(
+              "text/memosmith-path",
+              `read:${entry.path}`,
+            );
+            event.dataTransfer?.setData(
+              "application/x-memosmith-tab",
+              `read:${entry.path}`,
+            );
+            if (event.dataTransfer) {
+              event.dataTransfer.effectAllowed = "move";
+            }
+          }}
           class="group flex items-center gap-1.5 rounded-md px-2 py-1 text-sm"
           class:bg-stone-500={false}
           class:bg-emerald-600={entry.path === activePath}
