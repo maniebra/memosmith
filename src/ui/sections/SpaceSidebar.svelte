@@ -47,7 +47,10 @@
   /** null keeps readables out of the tree: the feature is switched off. */
   export let readables: Readable[] | null = null;
   export let activeReadablePath: string | null = null;
-  export let onAddReadables: (folder?: string) => void = () => {};
+  export let onAddReadables: (
+    folder?: string,
+    group?: "books" | "media",
+  ) => void = () => {};
   export let onOpenReadable: (path: string) => void = () => {};
   export let onRemoveReadable: (path: string) => void = () => {};
   export let onMoveReadable: (
@@ -188,7 +191,7 @@
       onRefresh,
       onAddNote: () => startCreate(currentParent),
       onAddFolder: startRootFolder,
-      onAddReadables: () => onAddReadables(currentParent),
+      onAddReadables: (group) => onAddReadables(currentParent, group),
       onResetScope: resetScope,
     });
   }

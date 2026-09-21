@@ -51,7 +51,9 @@
   /** Tab id of the readable being read, so its row can highlight. */
   export let activeReadableTab: string | null = null;
   /** Absent when the Readables feature is off. */
-  export let onAddReadables: ((folder: string) => void) | undefined = undefined;
+  export let onAddReadables:
+    | ((folder: string, group: "books" | "media") => void)
+    | undefined = undefined;
 
   let collapsed: Record<string, boolean> = {};
   let defaulted = new Set<string>();

@@ -1,5 +1,6 @@
 import {
   BookOpen,
+  Clapperboard,
   FolderOpen,
   FolderPlus,
   Plus,
@@ -19,9 +20,27 @@ export type SidebarMenuDeps = {
   onRefresh: () => void | Promise<void>;
   onAddNote: () => void;
   onAddFolder: () => void;
-  onAddReadables: () => void;
+  onAddReadables: (group: "books" | "media") => void;
   onResetScope: () => void;
 };
+
+/** Shortcut entries, when the Readables feature is on. */
+function readableItems(deps: SidebarMenuDeps): ContextMenuItem[] {
+  return deps.readables
+    ? [
+        {
+          label: deps.t("readables.add"),
+          icon: BookOpen,
+          onSelect: () => deps.onAddReadables("books"),
+        },
+        {
+          label: deps.t("readables.addMedia"),
+          icon: Clapperboard,
+          onSelect: () => deps.onAddReadables("media"),
+        },
+      ]
+    : [];
+}
 
 /** Entries that only show while the sidebar is scoped to a folder. */
 function scopeItems(deps: SidebarMenuDeps): ContextMenuItem[] {
@@ -60,15 +79,7 @@ export function sidebarMenuItems(deps: SidebarMenuDeps): ContextMenuItem[] {
       icon: FolderPlus,
       onSelect: deps.onAddFolder,
     },
-    ...(deps.readables
-      ? [
-          {
-            label: deps.t("readables.add"),
-            icon: BookOpen,
-            onSelect: deps.onAddReadables,
-          } as ContextMenuItem,
-        ]
-      : []),
+    ...readableItems(deps),
     ...scopeItems(deps),
     { separator: true },
     {

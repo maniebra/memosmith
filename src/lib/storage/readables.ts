@@ -16,8 +16,17 @@ const KIND_EXTENSIONS: Record<ReadableKind, string[]> = {
   audio: ["mp3", "wav", "ogg", "oga", "flac", "m4a", "aac", "opus"],
 };
 
-/** Every extension the file picker offers. */
-export const readableExtensions = Object.values(KIND_EXTENSIONS).flat();
+/** Extensions the file picker offers, per group of kinds. */
+export const bookExtensions = [
+  ...KIND_EXTENSIONS.pdf,
+  ...KIND_EXTENSIONS.epub,
+];
+
+export const mediaExtensions = [
+  ...KIND_EXTENSIONS.image,
+  ...KIND_EXTENSIONS.video,
+  ...KIND_EXTENSIONS.audio,
+];
 
 /** Media plays or displays itself; pdf and epub go through a reader. */
 export const isMediaKind = (kind: ReadableKind) =>

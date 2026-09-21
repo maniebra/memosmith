@@ -87,7 +87,10 @@
   ) => void = () => {};
   export let readables: Readable[] = [];
   export let activeReadablePath: string | null = null;
-  export let onAddReadables: (folder?: string) => void = () => {};
+  export let onAddReadables: (
+    folder?: string,
+    group?: "books" | "media",
+  ) => void = () => {};
   export let onOpenReadable: (path: string) => void = () => {};
   export let onRemoveReadable: (path: string) => void = () => {};
   export let onMoveReadable: (

@@ -1,5 +1,6 @@
 import {
   BookOpen,
+  Clapperboard,
   ChevronDown,
   ChevronRight,
   FolderOpen,
@@ -22,9 +23,25 @@ export type TreeMenuDeps = {
   onExpand: (relativePath: string) => void;
   onStartRename: (relativePath: string) => void;
   /** Absent when the Readables feature is off. */
-  onAddReadables?: (folder: string) => void;
+  onAddReadables?: (folder: string, group: "books" | "media") => void;
   onDelete: (relativePath: string) => void;
 };
+
+/** Shortcut entries: a book or a media file from somewhere on disk. */
+function readableItems(
+  node: TreeNode,
+  deps: TreeMenuDeps,
+): ContextMenuItem[] {
+  const add = (group: "books" | "media") => () => {
+    deps.onExpand(node.path);
+    deps.onAddReadables!(node.path, group);
+  };
+
+  return [
+    { label: "Add readable", icon: BookOpen, onSelect: add("books") },
+    { label: "Add media", icon: Clapperboard, onSelect: add("media") },
+  ];
+}
 
 /** Folder-only entries: expanding, scoping, and adding children. */
 function folderItems(node: TreeNode, deps: TreeMenuDeps): ContextMenuItem[] {
@@ -48,18 +65,7 @@ function folderItems(node: TreeNode, deps: TreeMenuDeps): ContextMenuItem[] {
         deps.onStartCreate(node.path);
       },
     },
-    ...(deps.onAddReadables
-      ? [
-          {
-            label: "Add readable",
-            icon: BookOpen,
-            onSelect: () => {
-              deps.onExpand(node.path);
-              deps.onAddReadables!(node.path);
-            },
-          } as ContextMenuItem,
-        ]
-      : []),
+    ...(deps.onAddReadables ? readableItems(node, deps) : []),
     {
       label: "Add folder",
       icon: FolderPlus,

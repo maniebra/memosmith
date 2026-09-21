@@ -17,7 +17,8 @@
     isReadableTab,
     loadReadables,
     moveReadable,
-    readableExtensions,
+    bookExtensions,
+    mediaExtensions,
     readableKind,
     readableTabId,
     readableTabPath,
@@ -363,10 +364,17 @@
     activeDatabaseId = null;
   }
 
-  async function addReadables(folder?: string) {
+  async function addReadables(
+    folder?: string,
+    group: "books" | "media" = "books",
+  ) {
     const picked = await openFileDialog({
       multiple: true,
-      filters: [{ name: "Readables", extensions: readableExtensions }],
+      filters: [
+        group === "media"
+          ? { name: "Media", extensions: mediaExtensions }
+          : { name: "Readables", extensions: bookExtensions },
+      ],
     });
     const paths = (Array.isArray(picked) ? picked : picked ? [picked] : [])
       .filter((entry): entry is string => typeof entry === "string");
@@ -612,7 +620,8 @@
   {diagramPreviews}
   {readables}
   {activeReadablePath}
-  onAddReadables={(folder) => runWithStatus(() => addReadables(folder))}
+  onAddReadables={(folder, group) =>
+    runWithStatus(() => addReadables(folder, group))}
   onOpenReadable={(readablePath) => tabs.openTab(readableTabId(readablePath))}
   onRemoveReadable={removeReadableShortcut}
   onMoveReadable={moveReadableShortcut}
