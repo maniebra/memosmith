@@ -19,8 +19,12 @@
     renderVisible,
     resetPages,
     searchPdf,
+    startRaster,
+    DRAFT,
+    type Raster,
     type PdfDocument,
     type PdfPage,
+    type RenderMode,
   } from "../../lib/utils/readerPdf";
 
   export let path: string;
@@ -28,6 +32,8 @@
   export let rotation = 0;
   /** Dark-mode reading: the drawn page is inverted, the highlights are not. */
   export let invert = false;
+  /** "gpu" draws at the screen's full pixel ratio on an unsynchronised canvas. */
+  export let mode: RenderMode = "cpu";
   export let annotations: Annotation[] = [];
   export let onOutline: (items: OutlineItem[]) => void = () => {};
   export let onReady: () => void = () => {};
@@ -40,16 +46,22 @@
   let pages: PdfPage[] = [];
   let base = 1;
   let busy = false;
+  /** Quality a fill asked for while another was running; 0 = nothing waiting. */
+  let again = 0;
+  /** Off-thread rasteriser; null once it fails, and the main thread takes over. */
+  let raster: Raster | null = null;
   let lastQuery = "";
   /** Page tops, remeasured after a layout change instead of on every scroll. */
   let offsets: number[] = [];
   let applied = "";
 
   $: options = { scale: base * zoom, rotation };
-  // Re-lay-out only when the settings really changed, not on every render.
-  $: if (document_ && `${zoom}/${rotation}` !== applied) {
-    applied = `${zoom}/${rotation}`;
-    void rescale();
+  // Re-lay-out only when the settings really changed, not on every render, and
+  // not once per notch of a ctrl-wheel zoom: only where the wheel stopped.
+  $: if (document_ && `${zoom}/${rotation}/${mode}` !== applied) {
+    applied = `${zoom}/${rotation}/${mode}`;
+    clearTimeout(rescaleTimer);
+    rescaleTimer = setTimeout(() => void rescale(), 120);
   }
   $: if (pages.length) {
     paintAnnotations(annotations);
@@ -58,6 +70,9 @@
   onMount(() => void start());
   onDestroy(() => {
     clearTimeout(scrollTimer);
+    clearTimeout(rescaleTimer);
+    clearTimeout(sharpenTimer);
+    raster?.close();
     // The debounce may still be pending when the tab closes.
     if (pages.length) {
       savePosition(path, position());
@@ -69,12 +84,17 @@
 
   async function start() {
     try {
-      document_ = await loadPdf(await readFileBytes(path));
+      const bytes = await readFileBytes(path);
+
+      raster = startRaster(bytes, dropRaster);
+      document_ = await loadPdf(bytes);
       base = await fitScale(document_, host?.clientWidth || 800);
-      applied = `${zoom}/${rotation}`;
+      applied = `${zoom}/${rotation}/${mode}`;
       pages = await buildPages(document_, host as HTMLElement, options);
       offsets = measurePages(host as HTMLElement, pages);
       goTo(loadPositions()[path] ?? "1");
+      // A worker that cannot open the file is not worth waiting on twice.
+      await raster?.ready.catch(dropRaster);
       await fill();
       onReady();
       onOutline(await pdfOutline(document_));
@@ -83,15 +103,43 @@
     }
   }
 
+  /** Falls back to main-thread drawing, and redraws what the worker owed us. */
+  function dropRaster() {
+    if (raster) {
+      raster.close();
+      raster = null;
+      void fill(1);
+    }
+  }
+
   /** Draws whatever is on screen now, then paints marks over it. */
-  async function fill() {
-    if (!document_ || !host || busy) {
+  async function fill(quality = 1) {
+    if (!document_ || !host) {
+      return;
+    }
+
+    // A draw can outlast the scroll that asked for it; remember the last ask
+    // instead of dropping it, or the pane stays blank where you stopped.
+    if (busy) {
+      again = Math.max(again, quality);
+
       return;
     }
 
     busy = true;
     try {
-      if (await renderVisible(document_, host, pages, offsets, options)) {
+      if (
+        await renderVisible(
+          document_,
+          host,
+          pages,
+          offsets,
+          options,
+          mode,
+          quality,
+          raster,
+        )
+      ) {
         offsets = measurePages(host, pages);
         paintAnnotations(annotations);
         markSearch(lastQuery);
@@ -99,6 +147,24 @@
     } finally {
       busy = false;
     }
+
+    if (again) {
+      const next = again;
+
+      again = 0;
+      await fill(next);
+    }
+  }
+
+  /**
+   * A draft now, the sharp pass once the scrolling or zooming stops: a page
+   * at half the pixels costs a quarter of the work, and nobody reads a page
+   * that is still moving.
+   */
+  function refill() {
+    void fill(DRAFT);
+    clearTimeout(sharpenTimer);
+    sharpenTimer = setTimeout(() => void fill(1), 250);
   }
 
   /** A zoom or a turn keeps the page you were on, at the new size. */
@@ -112,7 +178,6 @@
     await resetPages(document_, pages, options);
     offsets = measurePages(host, pages);
     goTo(spot);
-    await fill();
   }
 
   /** Height of the page at `index`, falling back to the pane's own height. */
@@ -153,7 +218,7 @@
     }
 
     report();
-    void fill();
+    refill();
   }
 
   function report() {
@@ -199,6 +264,8 @@
     );
   }
 
+  let rescaleTimer: ReturnType<typeof setTimeout> | undefined;
+  let sharpenTimer: ReturnType<typeof setTimeout> | undefined;
   let scrollTimer: ReturnType<typeof setTimeout> | undefined;
 
   function onScroll() {
@@ -206,7 +273,7 @@
     scrollTimer = setTimeout(() => {
       savePosition(path, position());
       report();
-      void fill();
+      refill();
     }, 150);
   }
 

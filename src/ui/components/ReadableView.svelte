@@ -8,6 +8,7 @@
     List,
     RotateCw,
     Search,
+    Zap,
     ZoomIn,
     ZoomOut,
   } from "@lucide/svelte";
@@ -30,6 +31,7 @@
 
   const ZOOM_KEY = "memosmith:readableZoom";
   const INVERT_KEY = "memosmith:readableInvert";
+  const GPU_KEY = "memosmith:readableGpu";
   const button =
     "rounded-md p-1.5 text-stone-500 hover:bg-stone-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 dark:text-stone-400";
   /** A pressed tool reads as a held-down key, not as coloured text. */
@@ -42,6 +44,8 @@
   let zoom = Number(localStorage.getItem(ZOOM_KEY)) || 1;
   let rotation = 0;
   let invert = localStorage.getItem(INVERT_KEY) === "1";
+  /** Off by default: the cheap path caps the canvas and skips HiDPI redraws. */
+  let gpu = localStorage.getItem(GPU_KEY) === "1";
   let loading = true;
   let error = "";
   let outline: OutlineItem[] = [];
@@ -78,6 +82,11 @@
   function toggleInvert() {
     invert = !invert;
     localStorage.setItem(INVERT_KEY, invert ? "1" : "0");
+  }
+
+  function toggleGpu() {
+    gpu = !gpu;
+    localStorage.setItem(GPU_KEY, gpu ? "1" : "0");
   }
 
   function onKeydown(event: KeyboardEvent) {
@@ -249,6 +258,16 @@
         >
           <Contrast class="size-4" />
         </button>
+        <button
+          type="button"
+          class={gpu ? active : button}
+          aria-label={$i18n.t("readables.gpu")}
+          title={$i18n.t("readables.gpu")}
+          aria-pressed={gpu}
+          onclick={toggleGpu}
+        >
+          <Zap class="size-4" />
+        </button>
       </span>
     {/if}
 
@@ -310,6 +329,7 @@
           {zoom}
           {rotation}
           {invert}
+          mode={gpu ? "gpu" : "cpu"}
           {annotations}
           onOutline={(items) => (outline = items)}
           onReady={() => (loading = false)}

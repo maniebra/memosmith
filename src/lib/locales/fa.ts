@@ -109,6 +109,7 @@ export const fa: Record<I18nKey, string> = {
   "readables.zoomOut": "کوچک‌نمایی",
   "readables.rotate": "چرخش ۹۰ درجه",
   "readables.invert": "وارونه‌سازی رنگ‌ها",
+  "readables.gpu": "رندر باکیفیت با GPU",
   "readables.contents": "فهرست مطالب",
   "readables.noContents": "این فایل فهرست مطالب ندارد",
   "readables.search": "جستجو در متن",
@@ -152,8 +153,7 @@ export const fa: Record<I18nKey, string> = {
   "sidebar.scopeDirectory": "محدود کردن به پوشه",
   "sidebar.scopeLabel": "محدوده: {path}",
   "sidebar.resetScope": "بازنشانی محدوده",
-  "sidebar.chooseFolder":
-    "یک پوشه انتخاب کنید تا به عنوان فضای شما استفاده شود.",
+  "sidebar.chooseFolder": "یک پوشه انتخاب کنید تا به عنوان فضای شما استفاده شود.",
   "sidebar.noNotes": "هنوز یادداشتی نیست.",
   "sidebar.resize": "تغییر اندازه پنل فضا",
   "backlinks.title": "بک لینک ها",
