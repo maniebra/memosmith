@@ -4,6 +4,7 @@
   import PageIcon from "../components/PageIcon.svelte";
   import { displayNoteName, entryPathFromNote, basename } from "../../lib/utils/path";
   import { isReadableTab, readableTabPath } from "../../lib/storage/readables";
+  import { tabDroppedOutsideViewport } from "../../lib/utils/detachedTab";
 
   export let tabs: string[];
   export let pinned: string[] = [];
@@ -14,6 +15,7 @@
   export let onClose: (id: string) => void;
   export let onPin: (id: string) => void;
   export let onReorder: (id: string, target: string) => void;
+  export let onDetach: (id: string) => void = () => {};
   export let splitTabs: string[] = [];
   export let onSplit: (id: string) => void = () => {};
 
@@ -63,7 +65,22 @@
             event.dataTransfer.effectAllowed = "move";
           }
         }}
-        ondragend={() => (dragged = null)}
+        ondragend={(event) => {
+          const detached = dragged;
+          dragged = null;
+          if (
+            detached === id &&
+            !isPreview(id) &&
+            tabDroppedOutsideViewport(
+              event.clientX,
+              event.clientY,
+              window.innerWidth,
+              window.innerHeight,
+            )
+          ) {
+            onDetach(id);
+          }
+        }}
         ondragover={(event) => event.preventDefault()}
         ondrop={(event) => {
           event.preventDefault();

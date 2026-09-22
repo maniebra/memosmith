@@ -12,6 +12,8 @@
   import { journal, traced } from "../../lib/utils/journal";
   import { loadSpaceRoot } from "../../lib/storage/space";
   import { loadTabs, saveTabs } from "../../lib/storage/tabs";
+  import { openDetachedTab } from "../../lib/tauri/tabs";
+  import { detachedTabFromSearch } from "../../lib/utils/detachedTab";
   import {
     addReadable,
     isReadableTab,
@@ -39,6 +41,7 @@
   } from "../../lib/utils/path";
   import { backlinksForNote } from "../../lib/utils/wikilinks";
   import {
+    leaf,
     leafIds,
     pruneTiles,
     removeLeaf,
@@ -117,7 +120,15 @@
     startWidth: number;
   } | null = null;
 
-  const storedTabs = loadTabs();
+  const detachedTab = detachedTabFromSearch(window.location.search);
+  const storedTabs = detachedTab
+    ? {
+        open: [detachedTab],
+        pinned: [],
+        active: detachedTab,
+        tiles: leaf(null),
+      }
+    : loadTabs();
   let openTabs = storedTabs.open;
   let pinnedTabs = storedTabs.pinned;
   let activeTab: string | null = null;
@@ -172,7 +183,7 @@
   $: if (spaceLoaded) {
     openTabs = tabs.sync(activeTab, spaceNotes, databases, pinnedTabs);
   }
-  $: if (spaceLoaded) {
+  $: if (spaceLoaded && !detachedTab) {
     saveTabs({
       open: openTabs.filter((tab) => !isDiagramPreviewTab(tab)),
       pinned: pinnedTabs.filter(
@@ -430,6 +441,23 @@
     void tabs.closeTab(id);
   }
 
+  const detachingTabs = new Set<string>();
+
+  async function detachTab(id: string) {
+    if (detachingTabs.has(id) || isDiagramPreviewTab(id)) {
+      return;
+    }
+    detachingTabs.add(id);
+    try {
+      await core.flushNoteSave();
+      await openDetachedTab(id);
+      tiles = removeLeaf(tiles, id);
+      await tabs.closeTab(id);
+    } finally {
+      detachingTabs.delete(id);
+    }
+  }
+
   /** The tab that takes over the main pane when the active one is split off. */
   function handoverNote(id: string) {
     const candidates = openTabs.filter(
@@ -615,6 +643,7 @@
   onCloseTab={closeTab}
   onPinTab={(id) => (openTabs = tabs.togglePinTab(id))}
   onReorderTabs={(id, target) => (openTabs = tabs.reorderTabs(id, target))}
+  onDetachTab={(id) => void runWithStatus(() => detachTab(id))}
   bind:tiles
   {splitTabs}
   {diagramPreviews}

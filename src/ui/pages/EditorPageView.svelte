@@ -74,6 +74,7 @@
   export let onCloseTab: (id: string) => void;
   export let onPinTab: (id: string) => void;
   export let onReorderTabs: (id: string, target: string) => void;
+  export let onDetachTab: (id: string) => void = () => {};
   export let tiles: TileNode;
   export let splitTabs: string[] = [];
   export let diagramPreviews: Record<string, DiagramPreviewData> = {};
@@ -228,6 +229,7 @@
         onClose={onCloseTab}
         onPin={onPinTab}
         onReorder={onReorderTabs}
+        onDetach={onDetachTab}
         {splitTabs}
         onSplit={onSplitTab}
       />
