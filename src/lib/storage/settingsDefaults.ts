@@ -1,5 +1,6 @@
 import { GRAMMAR_MODES, type GrammarMode } from "../utils/grammar";
 import { defaultAppearanceSettings } from "../utils/theme";
+import { hasGpu } from "../utils/gpu";
 import type {
   AppSettings,
   CalloutDefinition,
@@ -171,6 +172,7 @@ export const defaultSettings: AppSettings = {
   slashCommands: true,
   showPageTitle: true,
   focusOnOpen: true,
+  gpuRendering: hasGpu(),
   logDir: "",
   spacePaneWidth: 240,
   settingsPaneWidth: 320,

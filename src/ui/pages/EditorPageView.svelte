@@ -113,6 +113,10 @@
   const viewerFor = (kind: ReadableKind) =>
     isMediaKind(kind) ? MediaView : ReadableView;
 
+  /** Only the reader takes the GPU setting; the media player has no use for it. */
+  const readerProps = (kind: ReadableKind) =>
+    isMediaKind(kind) ? {} : { gpu: settings.gpuRendering };
+
   $: activeReadable =
     readables.find((entry) => entry.path === activeReadablePath) ?? null;
   $: activeDatabaseTabId =
@@ -365,6 +369,7 @@
             path={activeReadable.path}
             kind={activeReadable.kind}
             name={activeReadable.name}
+            {...readerProps(activeReadable.kind)}
           />
         {:else if settings.features.databases && activeDatabaseTabId &&
           spaceRoot}
@@ -487,6 +492,7 @@
             path={readable.path}
             kind={readable.kind}
             name={readable.name}
+            {...readerProps(readable.kind)}
           />
         {/if}
       {/if}

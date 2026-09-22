@@ -7,6 +7,8 @@ export const enSettings = {
   "settings.editor": "Editor",
   "settings.ai": "AI",
   "settings.integrations": "Integrations",
+  "settings.advanced": "Advanced",
+  "advanced.gpuRendering": "Enable GPU rendering",
   "settings.language": "Language",
   "settings.windowControls": "Window buttons",
   "settings.windowControlsHint": "Show minimize, maximize and close",

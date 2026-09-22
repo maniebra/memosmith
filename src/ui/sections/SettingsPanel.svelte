@@ -3,6 +3,7 @@
   import { i18n } from "../../lib/i18n";
   import type { AppSettings } from "../../lib/storage/settings";
   import Button from "../components/Button.svelte";
+  import AdvancedSettingsTab from "./settings/AdvancedSettingsTab.svelte";
   import AppearanceSettingsTab from "./settings/AppearanceSettingsTab.svelte";
   import IntegrationsSettingsTab from "./settings/IntegrationsSettingsTab.svelte";
   import AiSettingsTab from "./settings/AiSettingsTab.svelte";
@@ -23,7 +24,8 @@
     | "editor"
     | "keybindings"
     | "ai"
-    | "integrations";
+    | "integrations"
+    | "advanced";
 
   let activeTab: SettingsTab = "appearance";
 
@@ -34,6 +36,7 @@
     { label: $i18n.t("settings.keybindings"), value: "keybindings" },
     { label: $i18n.t("settings.ai"), value: "ai" },
     { label: $i18n.t("settings.integrations"), value: "integrations" },
+    { label: $i18n.t("settings.advanced"), value: "advanced" },
   ] satisfies { label: string; value: SettingsTab }[];
 </script>
 
@@ -105,6 +108,8 @@
         <AiSettingsTab {settings} {onChange} />
       {:else if activeTab === "integrations"}
         <IntegrationsSettingsTab {settings} {onChange} {root} />
+      {:else if activeTab === "advanced"}
+        <AdvancedSettingsTab {settings} {onChange} />
       {:else}
         <EditorSettingsTab {settings} {onChange} />
       {/if}

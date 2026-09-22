@@ -120,6 +120,8 @@ export type AppSettings = {
   slashCommands: boolean;
   showPageTitle: boolean;
   focusOnOpen: boolean;
+  /** Draw PDF pages at full screen resolution; defaults to on where a GPU exists. */
+  gpuRendering: boolean;
   /** Folder the debug journal writes into; empty means the app log folder. */
   logDir: string;
   spacePaneWidth: number;

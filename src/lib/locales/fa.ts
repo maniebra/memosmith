@@ -109,7 +109,6 @@ export const fa: Record<I18nKey, string> = {
   "readables.zoomOut": "کوچک‌نمایی",
   "readables.rotate": "چرخش ۹۰ درجه",
   "readables.invert": "وارونه‌سازی رنگ‌ها",
-  "readables.gpu": "رندر باکیفیت با GPU",
   "readables.contents": "فهرست مطالب",
   "readables.noContents": "این فایل فهرست مطالب ندارد",
   "readables.search": "جستجو در متن",

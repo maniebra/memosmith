@@ -7,6 +7,8 @@ export const faSettings = {
   "settings.editor": "ویرایشگر",
   "settings.ai": "هوش مصنوعی",
   "settings.integrations": "یکپارچه‌سازی‌ها",
+  "settings.advanced": "پیشرفته",
+  "advanced.gpuRendering": "فعال‌سازی رندر با GPU",
   "settings.language": "زبان",
   "settings.windowControls": "دکمه های پنجره",
   "settings.windowControlsHint": "نمایش کوچک کردن، بزرگ کردن و بستن",

@@ -22,7 +22,6 @@ import {
 } from "../utils/theme";
 import type {
   ThemePreference,
-  EditorWidth,
   GrammarCheckMode,
   FeatureSettings,
   MermaidSettings,
@@ -38,6 +37,7 @@ import type {
 } from "./settingsTypes";
 export type * from "./settingsTypes";
 const SETTINGS_KEY = "memosmith:settings";
+import { readEditorSettings, readPaneSettings } from "./settingsEditorRead";
 export * from "./settingsDefaults";
 import {
   defaultCalloutDefinitions,
@@ -115,14 +115,6 @@ function isEditorLineHeight(value: unknown): value is EditorLineHeight {
 function isWindowButtons(value: unknown): value is WindowButtons {
   return value === "windows" || value === "macos" || value === "native";
 }
-function isEditorWidth(value: unknown): value is EditorWidth {
-  return (
-    value === "focused" ||
-    value === "comfortable" ||
-    value === "wide" ||
-    value === "full"
-  );
-}
 function isGrammarCheckMode(value: unknown): value is GrammarCheckMode {
   return value === "auto-diff" || value === "auto-full" || value === "manual";
 }
@@ -166,20 +158,6 @@ function readCallouts(value: unknown): CalloutDefinition[] {
     });
   }
   return callouts;
-}
-function clampTextSize(value: unknown) {
-  const size = Number(value);
-  if (!Number.isFinite(size)) {
-    return defaultSettings.textSize;
-  }
-  return Math.min(21, Math.max(15, size));
-}
-function clampPaneWidth(value: unknown, fallback: number) {
-  const width = Number(value);
-  if (!Number.isFinite(width)) {
-    return fallback;
-  }
-  return Math.min(480, Math.max(180, width));
 }
 function readAppearance(value: unknown): AppearanceSettings {
   const parsed = (value ?? {}) as Partial<AppearanceSettings>;
@@ -227,7 +205,9 @@ function readFeatures(value: unknown): FeatureSettings {
   const booleans = Object.fromEntries(
     BOOLEAN_FEATURES.map((key) => [
       key,
-      typeof parsed[key] === "boolean" ? parsed[key] : defaultFeatureSettings[key],
+      typeof parsed[key] === "boolean"
+        ? parsed[key]
+        : defaultFeatureSettings[key],
     ]),
   ) as Omit<FeatureSettings, "grammarCheckMode">;
   return {
@@ -295,53 +275,6 @@ function readMermaid(value: unknown): MermaidSettings {
       theme === "default"
         ? theme
         : defaultMermaidSettings.theme,
-  };
-}
-function readBoolean(value: unknown, fallback: boolean) {
-  return typeof value === "boolean" ? value : fallback;
-}
-function readPaneSettings(parsed: Partial<AppSettings>) {
-  return {
-    spacePaneWidth: clampPaneWidth(
-      parsed.spacePaneWidth,
-      defaultSettings.spacePaneWidth,
-    ),
-    settingsPaneWidth: clampPaneWidth(
-      parsed.settingsPaneWidth,
-      defaultSettings.settingsPaneWidth,
-    ),
-    backlinksPaneWidth: clampPaneWidth(
-      parsed.backlinksPaneWidth,
-      defaultSettings.backlinksPaneWidth,
-    ),
-    spacePaneOpen: readBoolean(
-      parsed.spacePaneOpen,
-      defaultSettings.spacePaneOpen,
-    ),
-    backlinksPaneOpen: readBoolean(
-      parsed.backlinksPaneOpen,
-      defaultSettings.backlinksPaneOpen,
-    ),
-  };
-}
-function readEditorSettings(parsed: Partial<AppSettings>) {
-  return {
-    editorWidth: isEditorWidth(parsed.editorWidth)
-      ? parsed.editorWidth
-      : defaultSettings.editorWidth,
-    textSize: clampTextSize(parsed.textSize),
-    spellcheck: readBoolean(parsed.spellcheck, defaultSettings.spellcheck),
-    slashCommands: readBoolean(
-      parsed.slashCommands,
-      defaultSettings.slashCommands,
-    ),
-    showPageTitle: readBoolean(
-      parsed.showPageTitle,
-      defaultSettings.showPageTitle,
-    ),
-    focusOnOpen: readBoolean(parsed.focusOnOpen, defaultSettings.focusOnOpen),
-    logDir:
-      typeof parsed.logDir === "string" ? parsed.logDir : defaultSettings.logDir,
   };
 }
 function readKeybindings(value: unknown): KeybindingSettings {
