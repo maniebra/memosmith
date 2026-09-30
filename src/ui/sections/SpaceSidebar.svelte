@@ -54,6 +54,8 @@
   ) => void = () => {};
   export let onOpenReadable: (path: string) => void = () => {};
   export let onRemoveReadable: (path: string) => void = () => {};
+  /** Dragging a file out of the window opens it in one of its own. */
+  export let onDetach: (tabId: string) => void = () => {};
   export let onMoveReadable: (
     path: string,
     folder: string,
@@ -361,6 +363,7 @@
         {onConvertToFolder}
         onMove={moveNode}
         onCancelEdit={cancelEdit}
+        {onDetach}
       />
     {/if}
   </div>

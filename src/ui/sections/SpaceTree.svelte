@@ -12,16 +12,12 @@
   import { cn } from "../../lib/utils/cn";
   import { displayNoteName } from "../../lib/utils/path";
   import type { SpaceMeta } from "../../lib/utils/pageMeta";
-  import {
-    movedPath,
-    reorderedSiblings,
-    type TreeNode,
-  } from "../../lib/utils/tree";
+  import type { TreeNode } from "../../lib/utils/tree";
   import PageIcon from "../components/PageIcon.svelte";
   import ReadableRowIcon from "./ReadableRowIcon.svelte";
   import ContextMenu from "../components/ContextMenu.svelte";
   import { treeContextItems } from "./spaceTreeMenu";
-  import { dropFolder, parentFolder } from "./spaceTreeDrag";
+  import { draggedOutOfWindow, dropMove } from "./spaceTreeDrag";
   import Self from "./SpaceTree.svelte";
   import TreeNameInput from "./TreeNameInput.svelte";
 
@@ -46,6 +42,8 @@
     siblingOrder?: string[],
   ) => void;
   export let onCancelEdit: () => void;
+  /** Dropping a file outside the window opens it there instead of moving it. */
+  export let onDetach: (tabId: string) => void = () => {};
   export let depth = 0;
   /** Note paths with an open tab; their folders start expanded, others collapsed. */
   export let openPaths: string[] = [];
@@ -140,28 +138,9 @@
     event.preventDefault();
     event.stopPropagation();
 
-    if (where === "inside") {
-      onMove(source, dropFolder(node));
-      return;
-    }
+    const move = dropMove(source, node, where, nodes);
 
-    const destFolder = parentFolder(node);
-
-    // A readable keeps its `read:` id wherever it lands; a note takes a new path.
-    const moved = source.startsWith("read:")
-      ? source
-      : movedPath(source, destFolder);
-
-    onMove(
-      source,
-      destFolder,
-      reorderedSiblings(
-        nodes.map((sibling) => sibling.path),
-        moved,
-        node.path,
-        where === "after",
-      ),
-    );
+    onMove(source, move.destFolder, move.order);
   }
 
   function openContextMenu(event: MouseEvent, node: TreeNode) {
@@ -231,9 +210,12 @@
               event.dataTransfer.effectAllowed = "move";
             }
           }}
-          ondragend={() => {
+          ondragend={(event) => {
             dragging = null;
             clearHint();
+            if (draggedOutOfWindow(event, node)) {
+              onDetach(node.path);
+            }
           }}
           ondragover={(event) => handleDragOver(event, node)}
           ondragleave={(event) => {
@@ -376,6 +358,7 @@
           {onConvertToFolder}
           {onMove}
           {onCancelEdit}
+          {onDetach}
           depth={depth + 1}
         />
       {/if}

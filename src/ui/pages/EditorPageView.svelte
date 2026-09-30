@@ -185,6 +185,7 @@
           onOpenReadable={onOpenReadable}
           onRemoveReadable={onRemoveReadable}
           onMoveReadable={onMoveReadable}
+          onDetach={onDetachTab}
           onChooseSpace={() => actions.runWithStatus(actions.chooseSpace)}
           onRefresh={() => actions.runWithStatus(actions.refreshSpace)}
           onSelect={(relativePath) =>
