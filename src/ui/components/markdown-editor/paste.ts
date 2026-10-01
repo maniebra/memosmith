@@ -1,14 +1,17 @@
 import { spotifyMarkdown } from "../../../lib/utils/spotify";
+import { transferredAssets } from "../../../lib/utils/transfer";
 import { youtubeMarkdown } from "../../../lib/utils/youtube";
 import type { Editor } from "./types";
 
 /** Paste into the editor: files become assets, a link may become a player. */
 export function handlePaste(e: Editor, event: ClipboardEvent) {
-  const files = Array.from(event.clipboardData?.files ?? []);
+  const { files, paths } = event.clipboardData
+    ? transferredAssets(event.clipboardData)
+    : { files: [], paths: [] };
 
-  if (files.length) {
+  if (files.length || paths.length) {
     event.preventDefault();
-    void e.props.onAssets({ files }).then(e.insertAssets);
+    void e.props.onAssets({ files, paths }).then(e.insertAssets);
     return;
   }
 

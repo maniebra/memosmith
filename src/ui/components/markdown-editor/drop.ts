@@ -1,5 +1,6 @@
 import { fetch } from "@tauri-apps/plugin-http";
 import { journal } from "../../../lib/utils/journal";
+import { isImage, transferredAssets } from "../../../lib/utils/transfer";
 import { placeCaretAtPoint } from "./contextMenu";
 import type { Editor } from "./types";
 
@@ -27,12 +28,12 @@ export async function handleDrop(
     return;
   }
 
-  const files = Array.from(data.files).filter((file) =>
-    file.type.startsWith("image/"),
-  );
-  const url = files.length ? null : droppedImageUrl(data);
+  const assets = transferredAssets(data);
+  const files = assets.files.filter((file) => isImage(file.name, file.type));
+  const paths = assets.paths.filter((path) => isImage(path));
+  const url = files.length || paths.length ? null : droppedImageUrl(data);
 
-  if (!files.length && !url) {
+  if (!files.length && !paths.length && !url) {
     return;
   }
 
@@ -43,7 +44,7 @@ export async function handleDrop(
     if (url) {
       files.push(await fetchImage(url));
     }
-    e.insertAssets(await e.props.onAssets({ files }));
+    e.insertAssets(await e.props.onAssets({ files, paths }));
   } catch (error) {
     journal("drop.failed", { url, error: String(error) });
   }
