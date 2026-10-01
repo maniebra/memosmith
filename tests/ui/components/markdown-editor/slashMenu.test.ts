@@ -59,6 +59,7 @@ function editor() {
       databaseRoot: "/space",
       databaseOptions: databases,
       gitlabCards: [],
+      templates: [],
     },
   } as unknown as Editor;
 
@@ -150,6 +151,7 @@ const calloutEditor = (() => {
       databaseRoot: "",
       databaseOptions: [],
       gitlabCards: [],
+      templates: [],
     },
   } as unknown as Editor;
   return { ui, slash: createSlash(e) };
@@ -235,6 +237,7 @@ console.log("slash menu tracking ok");
         ...Array.from({ length: 20 }, (_, i) => card(i, "issues", `bug ${i}`)),
         card(99, "merge_requests", "Fix login"),
       ],
+      templates: [],
     },
   } as unknown as Editor);
   const found = gitlabSlash.slashMatches();
