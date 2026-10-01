@@ -577,12 +577,44 @@ textarea,
 
   /* One faint line per nesting level, under the bullet of each ancestor. */
   .md-block[data-list][style*="--md-guides"] {
-    background: repeating-linear-gradient(
-        to right,
-        color-mix(in srgb, currentColor 15%, transparent) 0 1px,
-        transparent 1px 1.5rem
-      )
-      0.2rem 0 / calc(var(--md-guides) - 0.2rem) 100% no-repeat;
+    background-image: repeating-linear-gradient(
+      to right,
+      color-mix(in srgb, currentColor 15%, transparent) 0 1px,
+      transparent 1px 1.5rem
+    );
+    background-position: 0.2rem 0;
+    background-size: calc(var(--md-guides) - 0.2rem) 100%;
+    background-repeat: no-repeat;
+  }
+
+  /* Obsidian's fold arrow: shown on hover, kept while folded. */
+  .md-block[data-foldable] {
+    position: relative;
+  }
+
+  .md-block[data-foldable]::after {
+    content: "▾";
+    position: absolute;
+    top: 0.15rem;
+    left: calc(var(--md-guides, 0.75rem) - 1rem);
+    width: 1rem;
+    text-align: center;
+    cursor: pointer;
+    opacity: 0;
+    @apply text-stone-400 transition-opacity dark:text-stone-500;
+  }
+
+  .md-block[data-foldable]:hover::after {
+    opacity: 1;
+  }
+
+  .md-block[data-folded]::after {
+    content: "▸";
+    opacity: 1;
+  }
+
+  .md-fold-hidden {
+    display: none;
   }
 
   .md-bullet::before {

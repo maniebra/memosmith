@@ -4,6 +4,7 @@ import {
   type QuizScore,
 } from "../../../lib/utils/markdown";
 import { paintBlocks } from "./blockDiff";
+import { paintListFolds } from "./listFold";
 import { paintPlayers } from "./players";
 import type { Editor, RenderApi } from "./types";
 
@@ -97,6 +98,7 @@ class EditorRender {
     e.bindTableToolbars();
     e.paintDatabaseEmbeds();
     paintPlayers(e);
+    paintListFolds(e);
     e.paintDrawingPreviews();
     e.paintDiagramPreviews();
     e.trackInlineEditor();

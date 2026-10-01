@@ -1,3 +1,4 @@
+import { shortcutKey } from "../../../lib/utils/shortcutKey";
 import type { ContextMenuItem } from "../ContextMenu.svelte";
 import { withoutEmptyCaret } from "./dom";
 import type { Editor, TableMenuApi } from "./types";
@@ -238,7 +239,7 @@ class EditorTableMenu {
 
     const arrow = ARROW_STEPS[event.key];
 
-    if (event.key !== "Tab" && !arrow) {
+    if (shortcutKey(event) !== "tab" && !arrow) {
       return false;
     }
 

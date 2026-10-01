@@ -1,3 +1,4 @@
+import { shortcutKey } from "../../../lib/utils/shortcutKey";
 import {
   enterEdit,
   insideFence,
@@ -18,6 +19,7 @@ import {
   quizFieldOf,
 } from "./quiz";
 import { toggleTaskAt, toggleTaskKey } from "./taskToggle";
+import { toggleFoldAt } from "./listFold";
 import { journal } from "../../../lib/utils/journal";
 import { handleDragOver, handleDrop } from "./drop";
 import { handlePaste } from "./paste";
@@ -215,7 +217,7 @@ class EditorEvents {
   }
 
   private handleTab(event: KeyboardEvent, surface: EditSurface) {
-    if (event.key !== "Tab") {
+    if (shortcutKey(event) !== "tab") {
       return false;
     }
 
@@ -355,7 +357,8 @@ class EditorEvents {
       this.handleWikilinkPointer(event, handle) ||
       handleCalloutPointer(e, event, handle) ||
       handleQuizPointer(e, event, handle) ||
-      toggleTaskAt(this.e, event, handle)
+      toggleTaskAt(this.e, event, handle) ||
+      toggleFoldAt(this.e, event, handle)
     ) {
       return;
     }

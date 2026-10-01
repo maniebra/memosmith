@@ -1,3 +1,4 @@
+import { shortcutKey } from "../../../lib/utils/shortcutKey";
 import type { Editor } from "./types";
 
 /** Arrow/Enter/Escape while the completion menu is open; true when it took the key. */
@@ -17,7 +18,7 @@ export function handleCompletionKeydown(e: Editor, event: KeyboardEvent) {
     return true;
   }
 
-  if (event.key === "Enter" || event.key === "Tab") {
+  if (event.key === "Enter" || shortcutKey(event) === "tab") {
     event.preventDefault();
     e.applyCompletion(completions[e.ui.completionIndex]);
     return true;
@@ -47,7 +48,7 @@ export function handleSlashKeydown(e: Editor, event: KeyboardEvent) {
     return true;
   }
 
-  if (event.key === "Enter" || event.key === "Tab") {
+  if (event.key === "Enter" || shortcutKey(event) === "tab") {
     event.preventDefault();
     e.pickCommand(matches[e.ui.slashIndex]);
     return true;

@@ -8,6 +8,7 @@ export {
   SLASH_COMMANDS,
   stripPrefix,
   tabEdit,
+  indentWidth,
   type InlineMarker,
   type TextEdit,
 } from "./markdownCommands";
