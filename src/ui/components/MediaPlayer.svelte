@@ -101,7 +101,10 @@
   }
 </script>
 
-<svelte:document on:fullscreenchange={() => (fullscreen = Boolean(document.fullscreenElement))} />
+<svelte:document
+  on:fullscreenchange={() =>
+    (fullscreen = Boolean(document.fullscreenElement))}
+/>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <section
@@ -118,7 +121,6 @@
 >
   {#if kind === "video"}
     <!-- svelte-ignore a11y_media_has_caption -->
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
     <video
       bind:this={element}
       bind:paused
@@ -273,7 +275,8 @@
 </section>
 
 <style>
-  /* One flat track filled to --fill; no theme has a native range worth keeping. */
+  /* One flat track filled to --fill; no theme has a native range worth
+     keeping. */
   .seek {
     appearance: none;
     height: 1rem;
