@@ -14,6 +14,7 @@ import {
   renderLine,
   type RenderInlineOptions,
 } from "./markdownInline";
+import { indentWidth } from "./markdownCommands";
 import { MEDIA_LINE, mediaPreview } from "./markdownMedia";
 import { GITHUB_LANGUAGE, GITLAB_LANGUAGE, gitlabPreview } from "./gitlab";
 import {
@@ -454,11 +455,14 @@ class DocumentRenderer {
     return next;
   }
   private renderPlainLine(line: string, index: number) {
-    const indent = / */.exec(line)![0].length;
-    const style = indent ? ` style="padding-left:${indent * 0.75}rem"` : "";
+    const indent = indentWidth(line);
     const className = lineClass(line);
     // A run of bullets, tasks or numbers is one block: one handle, one drag.
     const listed = LIST_CLASSES.has(className);
+    // Nested items draw a guide per level, like Obsidian's indent lines.
+    const style = indent
+      ? ` style="padding-left:${indent * 0.75}rem${listed ? `;--md-guides:${indent * 0.75}rem` : ""}"`
+      : "";
 
     if (listed && !this.inList) {
       this.listGroup++;

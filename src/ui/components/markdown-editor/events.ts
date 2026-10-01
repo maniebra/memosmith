@@ -220,7 +220,15 @@ class EditorEvents {
     }
 
     event.preventDefault();
-    surface.apply(tabEdit(surface.text, surface.caret, event.shiftKey));
+    const { start, end } = surface.selection;
+    const tab = tabEdit(surface.text, start, end, event.shiftKey);
+
+    if (tab) {
+      surface.apply(tab.edit);
+      if (tab.select) {
+        surface.select(tab.select.start, tab.select.end);
+      }
+    }
     return true;
   }
 

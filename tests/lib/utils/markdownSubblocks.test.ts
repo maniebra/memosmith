@@ -96,9 +96,10 @@ assert(
   enterEdit("```\ncode", 8, true).text === "\n",
   "Enter inside a fence stays plain",
 );
-assert(tabEdit("x", 1, false).text === "  ", "Tab indents");
+assert(tabEdit("x", 1, 1, false)!.edit.text === "  ", "Tab indents");
 assert(
-  tabEdit("  x", 3, true).text === "x" && tabEdit("  x", 3, true).start === 0,
+  tabEdit("  x", 3, 3, true)!.edit.text === "x" &&
+    tabEdit("  x", 3, 3, true)!.edit.start === 0,
   "Shift+Tab outdents",
 );
 assert(
