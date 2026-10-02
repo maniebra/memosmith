@@ -8,16 +8,23 @@
     ChevronRight,
     Maximize,
     Minimize,
+    NotebookText,
     X,
   } from "@lucide/svelte";
   import { i18n } from "../../lib/i18n";
-  import { splitSlides } from "../../lib/utils/slides";
+  import {
+    NOTE_MARKER,
+    splitNotes,
+    splitSlides,
+    type Slide,
+  } from "../../lib/utils/slides";
 
   /** The live editor frame; its blocks are cloned so slides show exactly what is on screen. */
   export let source: HTMLElement | undefined;
   export let onClose: () => void;
 
-  let slides: Element[][] = [];
+  let slides: Slide<Element>[] = [];
+  let notesOpen = false;
   let index = 0;
   let direction = 1;
 
@@ -35,6 +42,8 @@
       blocks,
       (block) => block.classList.contains("md-h1"),
       (block) => !block.textContent?.trim() && !block.querySelector("img, svg, canvas, iframe"),
+    ).map((slide) =>
+      splitNotes(slide, (block) => NOTE_MARKER.test(block.textContent ?? "")),
     );
   });
 
@@ -82,6 +91,8 @@
 
     if (event.key === "Escape") {
       onClose();
+    } else if (event.key === "n" || event.key === "N") {
+      notesOpen = !notesOpen;
     } else if (event.key === "f" || event.key === "F") {
       void toggleFullscreen();
     } else if (event.key in moves) {
@@ -112,7 +123,7 @@
 <svelte:window onkeydown={handleKey} />
 
 <div
-  class="ms-slides fixed inset-0 z-[60] grid grid-rows-[1fr_auto] overflow-hidden bg-canvas text-stone-800 dark:text-stone-100"
+  class="ms-slides fixed inset-0 z-[60] grid grid-rows-[1fr_auto_auto] overflow-hidden bg-canvas text-stone-800 dark:text-stone-100"
   role="dialog"
   aria-modal="true"
   aria-label={$i18n.t("slides.title")}
@@ -136,12 +147,28 @@
         >
           <article
             class="ms-slide my-auto w-full max-w-4xl"
-            use:mount={slides[index]}
+            use:mount={slides[index].content}
           ></article>
         </div>
       {/if}
     {/key}
   </div>
+
+  {#if notesOpen}
+    <aside
+      class="relative mx-6 mb-3 max-h-[30vh] overflow-y-auto rounded-lg border border-stone-500/15 bg-stone-500/5 px-5 py-3 text-sm"
+      aria-label={$i18n.t("slides.notes")}
+      transition:fly={{ y: 16, duration: 200, easing: cubicOut }}
+    >
+      {#key index}
+        {#if slides[index]?.notes.length}
+          <div class="ms-slide-notes" use:mount={slides[index].notes}></div>
+        {:else}
+          <p class="text-stone-500">{$i18n.t("slides.noNotes")}</p>
+        {/if}
+      {/key}
+    </aside>
+  {/if}
 
   <footer
     class="relative flex items-center gap-3 px-6 pb-5 text-xs text-stone-500"
@@ -172,6 +199,16 @@
       onclick={() => go(index + 1)}
     >
       <ChevronRight class="size-4" aria-hidden="true" />
+    </button>
+    <button
+      type="button"
+      class="grid size-8 place-items-center rounded-md transition-colors hover:bg-stone-500/10"
+      aria-label={$i18n.t("slides.toggleNotes")}
+      title={$i18n.t("slides.toggleNotes")}
+      aria-pressed={notesOpen}
+      onclick={() => (notesOpen = !notesOpen)}
+    >
+      <NotebookText class="size-4" aria-hidden="true" />
     </button>
     <button
       type="button"
@@ -223,6 +260,12 @@
   .ms-slide :global(.ms-slide-block) {
     animation: ms-slide-rise 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
     animation-delay: calc(120ms + var(--ms-slide-order) * 45ms);
+  }
+
+  /* Notes are read, not presented: no entrance, no slide-sized headings. */
+  .ms-slide-notes :global(.md-block) {
+    margin: 0;
+    font-size: inherit;
   }
 
   .ms-slide :global(.md-h1) {

@@ -11,4 +11,7 @@ export const faSlides = {
   "slides.close": "بستن اسلایدها",
   "feature.slides": "اسلایدها (هر سرتیتر # یک اسلاید می‌شود)",
   "slides.fullscreen": "تمام صفحه (F)",
+  "slides.notes": "یادداشت‌های ارائه",
+  "slides.noNotes": "این اسلاید یادداشتی ندارد. برای افزودن، خطی را با Note: شروع کنید.",
+  "slides.toggleNotes": "یادداشت‌های ارائه (N)",
 } as const;

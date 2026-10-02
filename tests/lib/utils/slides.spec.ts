@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { splitSlides } from "../../../src/lib/utils/slides";
+import {
+  NOTE_MARKER,
+  splitNotes,
+  splitSlides,
+} from "../../../src/lib/utils/slides";
 
 const split = (lines: string[]) =>
   splitSlides(
@@ -19,5 +23,24 @@ describe("splitSlides", () => {
 
   it("drops a blank intro", () => {
     expect(split(["", " ", "# A"])).toEqual([["# A"]]);
+  });
+});
+
+describe("splitNotes", () => {
+  const notes = (lines: string[]) =>
+    splitNotes(lines, (line) => NOTE_MARKER.test(line));
+
+  it("moves everything from Note: on into notes", () => {
+    expect(notes(["# A", "a", "notes: say hi", "more"])).toEqual({
+      content: ["# A", "a"],
+      notes: ["notes: say hi", "more"],
+    });
+  });
+
+  it("leaves a slide without notes alone", () => {
+    expect(notes(["# A", "Notebook"])).toEqual({
+      content: ["# A", "Notebook"],
+      notes: [],
+    });
   });
 });
