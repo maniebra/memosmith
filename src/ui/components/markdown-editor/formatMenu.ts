@@ -1,4 +1,7 @@
 import {
+  AlignCenter,
+  AlignLeft,
+  AlignRight,
   Baseline,
   Bold,
   Eraser,
@@ -13,6 +16,7 @@ import {
   type HighlightColor,
   type InlineMarker,
 } from "../../../lib/utils/markdown";
+import { withTextAlign } from "../../../lib/utils/markdownInline";
 import type { ContextMenuItem } from "../ContextMenu.svelte";
 import type { Editor } from "./types";
 
@@ -133,5 +137,40 @@ export function formatMenuItems(
     item("underline", "Ctrl U", Underline, "__"),
     item("strikethrough", "Ctrl Shift X", Strikethrough, "~~"),
     highlightItems(e, disabled),
+  ];
+}
+
+/** Alignment of the text line under the caret; media lines have their own. */
+export function textAlignItems(e: Editor): ContextMenuItem[] {
+  const range = e.caretLineRange();
+  const line = range ? e.value.slice(range.start, range.end) : "";
+
+  // Only plain text lines carry `data-text`; code, math and tables do not.
+  if (
+    !e.props.editable ||
+    !range ||
+    !line.trim() ||
+    !e.ui.activeBlock?.hasAttribute("data-text")
+  ) {
+    return [];
+  }
+
+  // Left stays explicit: it still means something in a right-to-left line.
+  const aligns = [
+    ["left", "editor.alignLeft", AlignLeft],
+    ["center", "editor.alignCenter", AlignCenter],
+    ["right", "editor.alignRight", AlignRight],
+  ] as const;
+
+  return [
+    ...aligns.map(([align, label, icon]) => ({
+      label: e.t(label),
+      icon,
+      onSelect: () => {
+        e.element?.focus();
+        e.replace(range.start, range.end, withTextAlign(line, align));
+      },
+    })),
+    { separator: true },
   ];
 }

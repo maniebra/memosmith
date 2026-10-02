@@ -9,7 +9,7 @@ import {
 import type { ContextMenuItem } from "../ContextMenu.svelte";
 import { databaseAnchorFor, databaseMenuItems } from "./databaseMenu";
 import { EMBED_SELECTOR } from "./embedLayout";
-import { formatMenuItems } from "./formatMenu";
+import { formatMenuItems, textAlignItems } from "./formatMenu";
 import { diagramMenuItems } from "./diagramMenu";
 import { mediaMenuItems } from "./mediaMenu";
 import { playerSlotFor } from "./players";
@@ -336,7 +336,7 @@ class EditorContextMenu {
 
     return [
       ...e.embedAlignItems(),
-      ...e.alignItems(),
+      ...e.alignItems().concat(textAlignItems(e)),
       ...e.tableItems(),
       ...this.clipboardItems(hasSelection),
       { separator: true },

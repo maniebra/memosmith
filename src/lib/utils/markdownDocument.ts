@@ -11,6 +11,7 @@ import {
   mathLine,
   mathPreview,
   renderCode,
+  renderAlignedLine,
   renderLine,
   type RenderInlineOptions,
 } from "./markdownInline";
@@ -460,9 +461,13 @@ class DocumentRenderer {
     // A run of bullets, tasks or numbers is one block: one handle, one drag.
     const listed = LIST_CLASSES.has(className);
     // Nested items draw a guide per level, like Obsidian's indent lines.
-    const style = indent
-      ? ` style="padding-left:${indent * 0.75}rem${listed ? `;--md-guides:${indent * 0.75}rem` : ""}"`
-      : "";
+    const { html, align } = renderAlignedLine(line, this.inlineOptions);
+    const styles = [
+      indent ? `padding-left:${indent * 0.75}rem` : "",
+      indent && listed ? `--md-guides:${indent * 0.75}rem` : "",
+      align ? `text-align:${align}` : "",
+    ].filter(Boolean);
+    const style = styles.length ? ` style="${styles.join(";")}"` : "";
 
     if (listed && !this.inList) {
       this.listGroup++;
@@ -471,7 +476,7 @@ class DocumentRenderer {
     const list = listed ? ` data-list="${this.listGroup}"` : "";
 
     this.output.push(
-      `<div dir="auto" class="md-block ${className}"${style}${list}>${renderLine(line, this.inlineOptions)}</div>`,
+      `<div dir="auto" class="md-block ${className}"${style}${list} data-text>${html}</div>`,
     );
     return index + 1;
   }

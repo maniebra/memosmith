@@ -283,6 +283,41 @@ export function renderLine(line: string, options: RenderInlineOptions = {}) {
   return `${checkbox}${prefix ? mark(escapeHtml(prefix)) : ""}${body || emptyAnchor()}`;
 }
 
+export type TextAlign = "left" | "center" | "right";
+
+const TEXT_ALIGN = / ?\{(left|center|right)\}$/;
+
+/** A trailing `{center}` (or `{left}`, `{right}`) aligns the whole line. */
+export function textAlignment(line: string) {
+  const match = TEXT_ALIGN.exec(line);
+  const body = match ? line.slice(0, match.index) : line;
+
+  return match && body.trim()
+    ? { body, marker: match[0], align: match[1] as TextAlign }
+    : { body: line, marker: "", align: null };
+}
+
+/** The line with its alignment marker swapped for `align`, or dropped. */
+export function withTextAlign(line: string, align: TextAlign | null) {
+  const { body } = textAlignment(line);
+  return align ? `${body} {${align}}` : body;
+}
+
+/** `renderLine`, with the alignment marker folded away like other syntax. */
+export function renderAlignedLine(
+  line: string,
+  options: RenderInlineOptions = {},
+) {
+  const { body, marker, align } = textAlignment(line);
+
+  return {
+    align,
+    html: marker
+      ? renderLine(body, options) + mark(escapeHtml(marker))
+      : renderLine(line, options),
+  };
+}
+
 /** Highlighting is per line so each line stays one block the caret can map onto. */
 export function renderCode(line: string, language: string) {
   if (!line) {
