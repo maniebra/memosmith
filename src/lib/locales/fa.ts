@@ -1,9 +1,11 @@
 import type { I18nKey } from "./en";
 import { faDatabase } from "./faDatabase";
+import { faSlides } from "./faSlides";
 import { faSettings } from "./faSettings";
 
 export const fa: Record<I18nKey, string> = {
   ...faDatabase,
+  ...faSlides,
   ...faSettings,
   "command.placeholder": "جستجوی یادداشت‌ها، > دستورها، # سرتیترها",
   "command.heading": "سرتیتر",
@@ -13,7 +15,6 @@ export const fa: Record<I18nKey, string> = {
   "command.openSettings": "باز کردن تنظیمات",
   "command.toggleSidebar": "نمایش یا پنهان کردن نوار کناری",
   "command.toggleReadOnly": "حالت فقط خواندنی",
-  "command.exportPdf": "خروجی PDF",
   "command.chooseSpace": "انتخاب فضا",
   "command.refreshSpace": "تازه‌سازی فضا",
   "command.newFromTemplate": "یادداشت جدید از قالب",
@@ -129,7 +130,6 @@ export const fa: Record<I18nKey, string> = {
   "tabs.unsplit": "بستن نمای دوتایی",
   "tabs.splitResize": "تغییر اندازه نمای دوتایی",
   "toolbar.grammar": "Grammar Police",
-  "toolbar.exportPdf": "خروجی PDF",
   "toolbar.databases": "پایگاه داده ها",
   "template.title": "قالب‌ها",
   "template.folder": "پوشه",

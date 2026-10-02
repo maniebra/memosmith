@@ -34,9 +34,10 @@
   export let contents: string;
   export let editor: HTMLElement | undefined;
   export let path: string | null;
-  export let settings: { features: { databases: boolean } };
+  export let settings: { features: { databases: boolean; slides: boolean } };
   export let settingsOpen: boolean;
   export let pdfPreviewOpen: boolean;
+  export let slidesOpen = false;
   export let toggleReadOnly: () => void;
   export let root: string | null;
 
@@ -61,6 +62,7 @@
     openSettings: () => (settingsOpen = true),
     toggleReadOnly,
     exportPdf: () => (pdfPreviewOpen = true),
+    presentSlides: settings.features.slides ? () => (slidesOpen = true) : null,
     templates,
   });
   $: placeholder = $i18n.t("command.placeholder");

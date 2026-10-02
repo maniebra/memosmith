@@ -63,6 +63,8 @@ type CommandSource = {
   openSettings: () => void;
   toggleReadOnly: () => void;
   exportPdf: () => void;
+  /** Null while the Slides feature is off. */
+  presentSlides: (() => void) | null;
   /** Every space template, each a new note in its own folder. */
   templates: SpaceTemplate[];
 };
@@ -106,6 +108,15 @@ function noteActions(source: CommandSource): Command[] {
       label: t("command.exportPdf"),
       run: source.exportPdf,
     },
+    ...(source.presentSlides
+      ? [
+          {
+            id: "action:slides",
+            label: t("command.presentSlides"),
+            run: source.presentSlides,
+          },
+        ]
+      : []),
     {
       id: "action:save",
       label: t("command.saveNote"),

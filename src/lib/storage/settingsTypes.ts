@@ -24,6 +24,7 @@ export type FeatureSettings = {
   youtube: boolean;
   spotify: boolean;
   readables: boolean;
+  slides: boolean;
   windowControls: boolean;
 };
 

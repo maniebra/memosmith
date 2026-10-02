@@ -7,6 +7,7 @@
     Lock,
     Minus,
     Pencil,
+    Presentation,
     PanelLeftClose,
     PanelLeftOpen,
     Settings,
@@ -53,6 +54,7 @@
   export let onToggleDatabases: () => void;
   export let onToggleGrammar: () => void;
   export let onExportPdf: (() => void) | null = null;
+  export let onPresentSlides: (() => void) | null = null;
   export let spaceRoot: string | null = null;
   export let spaceNotes: string[] = [];
   export let actions: Pick<
@@ -235,6 +237,15 @@
         label={$i18n.t("toolbar.exportPdf")}
         icon={FileDown}
         onClick={onExportPdf}
+        variant="ghost"
+        size="sm"
+      />
+    {/if}
+    {#if onPresentSlides}
+      <Button
+        label={$i18n.t("toolbar.slides")}
+        icon={Presentation}
+        onClick={onPresentSlides}
         variant="ghost"
         size="sm"
       />

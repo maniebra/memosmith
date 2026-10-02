@@ -1,8 +1,10 @@
 import { enDatabase } from "./enDatabase";
+import { enSlides } from "./enSlides";
 import { enSettings } from "./enSettings";
 
 export const en = {
   ...enDatabase,
+  ...enSlides,
   ...enSettings,
   "command.placeholder": "Search notes, > commands, # headings",
   "command.heading": "Heading",
@@ -12,7 +14,6 @@ export const en = {
   "command.openSettings": "Open settings",
   "command.toggleSidebar": "Toggle sidebar",
   "command.toggleReadOnly": "Toggle read-only mode",
-  "command.exportPdf": "Export PDF",
   "command.chooseSpace": "Choose space",
   "command.refreshSpace": "Refresh space",
   "command.newFromTemplate": "New note from template",
@@ -128,7 +129,6 @@ export const en = {
   "tabs.unsplit": "Close split view",
   "tabs.splitResize": "Resize split view",
   "toolbar.grammar": "Grammar Police",
-  "toolbar.exportPdf": "Export PDF",
   "toolbar.databases": "Databases",
   "template.title": "Templates",
   "template.folder": "Folder",

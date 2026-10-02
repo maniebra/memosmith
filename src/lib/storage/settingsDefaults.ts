@@ -74,6 +74,7 @@ export const defaultFeatureSettings: FeatureSettings = {
   youtube: true,
   spotify: true,
   readables: true,
+  slides: false,
   windowControls: true,
 };
 export const defaultPlantumlSettings: PlantumlSettings = {

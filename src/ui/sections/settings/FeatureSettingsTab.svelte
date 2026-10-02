@@ -132,6 +132,12 @@
       className="h-10 w-full"
       onChange={(readables) => patchFeatures({ readables })}
     />
+    <Switch
+      checked={settings.features.slides}
+      label={$i18n.t("feature.slides")}
+      className="h-10 w-full"
+      onChange={(slides) => patchFeatures({ slides })}
+    />
     <CodeExecutionSettings {settings} {onChange} />
     <PlantumlFeatureSettings {settings} {onChange} />
     <MermaidFeatureSettings {settings} {onChange} />

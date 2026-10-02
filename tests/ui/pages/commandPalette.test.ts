@@ -43,6 +43,7 @@ const source = {
   openSettings: () => {},
   toggleReadOnly: () => {},
   exportPdf: () => {},
+  presentSlides: null,
   templates: [{ folder: "", name: "daily", text: "# {{title}}" }],
 } as any;
 

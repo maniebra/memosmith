@@ -14,6 +14,7 @@
   import CommandPalette from "../components/CommandPalette.svelte";
   import DiagramPreview from "../components/DiagramPreview.svelte";
   import PdfExportModal from "../components/PdfExportModal.svelte";
+  import SlideDeck from "../components/SlideDeck.svelte";
   import SettingsPanel from "../sections/SettingsPanel.svelte";
   import ModalOverlay from "../components/ModalOverlay.svelte";
   import SpaceSidebar from "../sections/SpaceSidebar.svelte";
@@ -59,6 +60,7 @@
   export let paneSlide: any;
   export let path: string | null;
   export let pdfPreviewOpen: boolean;
+  let slidesOpen = false;
   export let settings: any;
   export let settingsOpen: boolean;
   export let spaceMeta: any;
@@ -167,6 +169,9 @@
     onToggleGrammar={actions.toggleGrammar}
     onExportPdf={path && !activeDiagramPreview
       ? () => (pdfPreviewOpen = true)
+      : null}
+    onPresentSlides={settings.features.slides && path && !activeDiagramPreview
+      ? () => (slidesOpen = true)
       : null}
   />
   <div class="ms-islands-row flex min-h-0 min-w-0">
@@ -540,8 +545,16 @@
   root={spaceRoot}
   bind:settingsOpen
   bind:pdfPreviewOpen
+  bind:slidesOpen
   toggleReadOnly={() => (readOnly = !readOnly)}
 />
+{#if slidesOpen}
+  <SlideDeck
+    source={(editor?.closest(".ms-editor-frame") as HTMLElement | null) ??
+      undefined}
+    onClose={() => (slidesOpen = false)}
+  />
+{/if}
 {#if pdfPreviewOpen}
   <PdfExportModal
     source={(editor?.closest(".ms-editor-frame") as HTMLElement | null) ??
