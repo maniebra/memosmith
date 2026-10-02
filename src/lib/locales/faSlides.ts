@@ -10,4 +10,5 @@ export const faSlides = {
   "slides.next": "اسلاید بعدی",
   "slides.close": "بستن اسلایدها",
   "feature.slides": "اسلایدها (هر سرتیتر # یک اسلاید می‌شود)",
+  "slides.fullscreen": "تمام صفحه (F)",
 } as const;

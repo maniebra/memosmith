@@ -10,4 +10,5 @@ export const enSlides = {
   "slides.next": "Next slide",
   "slides.close": "Close slides",
   "feature.slides": "Slides (each # heading becomes a slide)",
+  "slides.fullscreen": "Toggle fullscreen (F)",
 } as const;

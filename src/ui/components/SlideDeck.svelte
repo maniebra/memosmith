@@ -1,8 +1,15 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onDestroy, onMount } from "svelte";
+  import { getCurrentWindow } from "@tauri-apps/api/window";
   import { cubicOut } from "svelte/easing";
   import { fade, fly } from "svelte/transition";
-  import { ChevronLeft, ChevronRight, X } from "@lucide/svelte";
+  import {
+    ChevronLeft,
+    ChevronRight,
+    Maximize,
+    Minimize,
+    X,
+  } from "@lucide/svelte";
   import { i18n } from "../../lib/i18n";
   import { splitSlides } from "../../lib/utils/slides";
 
@@ -31,6 +38,27 @@
     );
   });
 
+  let fullscreen = false;
+  /** Whether the window was fullscreen before the deck, so closing restores it. */
+  let wasFullscreen = false;
+
+  onMount(() => {
+    void getCurrentWindow()
+      .isFullscreen()
+      .then((value) => (fullscreen = wasFullscreen = value));
+  });
+
+  onDestroy(() => {
+    if (fullscreen !== wasFullscreen) {
+      void getCurrentWindow().setFullscreen(wasFullscreen);
+    }
+  });
+
+  async function toggleFullscreen() {
+    await getCurrentWindow().setFullscreen(!fullscreen);
+    fullscreen = !fullscreen;
+  }
+
   function go(next: number) {
     if (next < 0 || next >= slides.length || next === index) {
       return;
@@ -54,6 +82,8 @@
 
     if (event.key === "Escape") {
       onClose();
+    } else if (event.key === "f" || event.key === "F") {
+      void toggleFullscreen();
     } else if (event.key in moves) {
       go(moves[event.key]);
     } else {
@@ -142,6 +172,20 @@
       onclick={() => go(index + 1)}
     >
       <ChevronRight class="size-4" aria-hidden="true" />
+    </button>
+    <button
+      type="button"
+      class="grid size-8 place-items-center rounded-md transition-colors hover:bg-stone-500/10"
+      aria-label={$i18n.t("slides.fullscreen")}
+      title={$i18n.t("slides.fullscreen")}
+      aria-pressed={fullscreen}
+      onclick={() => void toggleFullscreen()}
+    >
+      <svelte:component
+        this={fullscreen ? Minimize : Maximize}
+        class="size-4"
+        aria-hidden="true"
+      />
     </button>
     <button
       type="button"
