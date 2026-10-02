@@ -42,11 +42,11 @@ export function createContextMenu(e: Editor): ContextMenuApi {
   };
 }
 
-/** Puts a collapsed caret under the pointer, unless a real selection exists. */
-export function placeCaretAtPoint(e: Editor, event: MouseEvent) {
+/** Puts a collapsed caret under the pointer, unless a real selection exists (or `force`). */
+export function placeCaretAtPoint(e: Editor, event: MouseEvent, force = false) {
   const selection = e.selectionOffsets();
 
-  if (selection && selection.start !== selection.end) {
+  if (!force && selection && selection.start !== selection.end) {
     return;
   }
 

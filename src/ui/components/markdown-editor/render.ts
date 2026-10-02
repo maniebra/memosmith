@@ -288,14 +288,17 @@ class EditorRender {
   }
 
   /** Media wants its own line, so it lands after the current one. */
-  insertAssets(markdown: string) {
+  insertAssets(markdown: string, at: number | null = null) {
     const e = this.e;
 
     if (!markdown) {
       return;
     }
 
-    const offset = e.caretOffset() ?? e.value.length;
+    const offset = Math.min(
+      at ?? e.caretOffset() ?? e.value.length,
+      e.value.length,
+    );
     const newline = e.value.indexOf("\n", offset);
     const lineEnd = newline === -1 ? e.value.length : newline;
     const lead = e.value.slice(e.lineStartAt(lineEnd), lineEnd) ? "\n" : "";

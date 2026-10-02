@@ -8,11 +8,15 @@ import type { Editor } from "./types";
 export function handleDragOver(e: Editor, event: DragEvent) {
   const types = event.dataTransfer?.types ?? [];
 
+  // Browsers may offer an image only as markup, with no uri-list.
   if (
     e.props.editable &&
-    (types.includes("Files") || types.includes("text/uri-list"))
+    ["Files", "text/uri-list", "text/html"].some((type) => types.includes(type))
   ) {
     event.preventDefault();
+    if (event.dataTransfer && types.includes("Files")) {
+      event.dataTransfer.dropEffect = "copy";
+    }
   }
 }
 
@@ -23,6 +27,11 @@ export async function handleDrop(
   insideDatabase: boolean,
 ) {
   const data = event.dataTransfer;
+
+  // The webview's own file drop pastes paths or garbage into the editor.
+  if (data?.types.includes("Files")) {
+    event.preventDefault();
+  }
 
   if (!data || !e.props.editable || insideDatabase) {
     return;
@@ -38,13 +47,15 @@ export async function handleDrop(
   }
 
   event.preventDefault();
-  placeCaretAtPoint(e, event);
+  placeCaretAtPoint(e, event, true);
+  // Fetching and saving are async; the caret may wander off meanwhile.
+  const offset = e.caretOffset();
 
   try {
     if (url) {
       files.push(await fetchImage(url));
     }
-    e.insertAssets(await e.props.onAssets({ files, paths }));
+    e.insertAssets(await e.props.onAssets({ files, paths }), offset);
   } catch (error) {
     journal("drop.failed", { url, error: String(error) });
   }
