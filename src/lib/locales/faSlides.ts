@@ -14,6 +14,9 @@ export const faSlides = {
   "slides.notes": "یادداشت‌های ارائه",
   "slides.noNotes": "این اسلاید یادداشتی ندارد. برای افزودن، خطی را با Note: شروع کنید.",
   "slides.toggleNotes": "یادداشت‌های ارائه (N)",
-  "slides.theme": "پوسته اسلاید",
-  "slides.defaultTheme": "پیش‌فرض",
+  "feature.slidesOptions": "تنظیمات اسلایدها",
+  "settings.slideShell": "پوسته اسلاید (Slide Shell)",
+  "settings.slideShellHelp": "پوسته اسلاید یک فایل CSS در پوشه .slide-shells/ در ریشه فضا است و ظاهر ارائه را تغییر می‌دهد: رنگ، قلم، چیدمان و انیمیشن.",
+  "settings.slideShellBuiltIn": "داخلی",
+  "settings.slideShellNone": "هنوز پوسته‌ای نیست. یک فایل .css به .slide-shells/ در این فضا اضافه کنید.",
 } as const;

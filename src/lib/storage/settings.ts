@@ -25,6 +25,7 @@ import type {
   GrammarCheckMode,
   FeatureSettings,
   MermaidSettings,
+  SlideSettings,
   PlantumlSettings,
   RunnerSettings,
   LspSettings,
@@ -48,6 +49,7 @@ import {
   defaultLlmSettings,
   defaultLspSettings,
   defaultMermaidSettings,
+  defaultSlideSettings,
   defaultPlantumlSettings,
   defaultProfiles,
   defaultRunnerSettings,
@@ -277,6 +279,10 @@ function readMermaid(value: unknown): MermaidSettings {
         : defaultMermaidSettings.theme,
   };
 }
+function readSlides(value: unknown): SlideSettings {
+  const shell = ((value ?? {}) as Partial<SlideSettings>).shell;
+  return { shell: typeof shell === "string" ? shell : defaultSlideSettings.shell };
+}
 function readKeybindings(value: unknown): KeybindingSettings {
   const parsed = (value ?? {}) as Partial<KeybindingSettings>;
   const mode = KEYBINDING_MODES.includes(parsed.mode as KeybindingMode)
@@ -315,6 +321,7 @@ export function loadSettings(): AppSettings {
       lsp: readLsp(parsed.lsp),
       plantuml: readPlantuml(parsed.plantuml),
       mermaid: readMermaid(parsed.mermaid),
+      slides: readSlides(parsed.slides),
       ...readEditorSettings(parsed),
       ...readPaneSettings(parsed),
       grammarMode: isGrammarMode(parsed.grammarMode)

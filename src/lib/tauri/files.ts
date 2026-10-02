@@ -51,9 +51,9 @@ export function listAllTemplates(root: string) {
   );
 }
 
-/** Slide themes: `.slides/*.css` in the space, named by file stem. */
-export function listSlideThemes(root: string) {
-  return invoke<{ name: string; text: string }[]>("list_slide_themes", {
+/** Slide Shells: `.slide-shells/*.css` in the space, named by file stem. */
+export function listSlideShells(root: string) {
+  return invoke<{ name: string; text: string }[]>("list_slide_shells", {
     root,
   });
 }

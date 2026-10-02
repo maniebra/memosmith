@@ -3,8 +3,12 @@
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { cubicOut } from "svelte/easing";
   import { fade, fly } from "svelte/transition";
-  import { listSlideThemes } from "../../lib/tauri/files";
-  import "./slideTheme.css";
+  import {
+    loadSlideShells,
+    mountSlideShell,
+  } from "../../lib/utils/slideShells";
+  import "./slideCore.css";
+  import "./slideShell.css";
   import {
     ChevronLeft,
     ChevronRight,
@@ -24,42 +28,26 @@
   /** The live editor frame; its blocks are cloned so slides show exactly what is on screen. */
   export let source: HTMLElement | undefined;
   export let onClose: () => void;
-  /** Space root; its `.slides/*.css` files are the themes to pick from. */
+  /** Space root, where `.slide-shells/` lives. */
   export let root: string | null = null;
+  /** The chosen Slide Shell's name; empty keeps the built-in one. */
+  export let shell = "";
 
-  const THEME_KEY = "memosmith.slidesTheme";
-
-  let themes: { name: string; text: string }[] = [];
-  let theme = "";
-  try {
-    theme = localStorage.getItem(THEME_KEY) ?? "";
-  } catch {
-    // Storage can be blocked; the default theme still works.
-  }
-
-  // Re-read on every open, so editing a theme file shows on the next run.
+  // Re-read on every open, so editing a shell file shows on the next run.
+  let unmountShell = () => {};
   onMount(() => {
-    if (root) {
-      void listSlideThemes(root)
-        .then((found) => (themes = found))
-        .catch(() => (themes = []));
+    if (shell) {
+      void loadSlideShells(root).then((shells) => {
+        const css = shells.find((found) => found.name === shell)?.text;
+        if (css) {
+          unmountShell = mountSlideShell(css);
+        }
+      });
     }
   });
+  onDestroy(() => unmountShell());
 
-  // A theme is plain CSS, injected unlayered so it beats the default layer.
-  const themeStyle = document.head.appendChild(
-    document.createElement("style"),
-  );
-  $: themeStyle.textContent =
-    themes.find((candidate) => candidate.name === theme)?.text ?? "";
-  $: try {
-    localStorage.setItem(THEME_KEY, theme);
-  } catch {
-    // Not remembered, nothing lost.
-  }
-  onDestroy(() => themeStyle.remove());
-
-  /** Plays the theme's `--slide-leave` animation, however long it runs. */
+  /** Plays the shell's `--slide-leave` animation, however long it runs. */
   function leave(node: HTMLElement) {
     node.classList.add("is-leaving");
     const seconds = getComputedStyle(node)
@@ -172,7 +160,7 @@
   role="dialog"
   aria-modal="true"
   aria-label={$i18n.t("slides.title")}
-  data-theme={theme || "default"}
+  data-shell={shell || "default"}
   data-slide={index + 1}
   data-slides={slides.length}
   data-first={index === 0 || undefined}
@@ -238,18 +226,6 @@
     <span class="ms-slides-counter">
       {slides.length ? index + 1 : 0} / {slides.length}
     </span>
-    {#if themes.length}
-      <select
-        class="ms-slides-theme"
-        aria-label={$i18n.t("slides.theme")}
-        bind:value={theme}
-      >
-        <option value="">{$i18n.t("slides.defaultTheme")}</option>
-        {#each themes as option (option.name)}
-          <option value={option.name}>{option.name}</option>
-        {/each}
-      </select>
-    {/if}
     <button
       type="button"
       class="ms-slides-button"

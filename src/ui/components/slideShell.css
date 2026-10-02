@@ -1,9 +1,8 @@
 /*
- * The default slide theme. It lives in a cascade layer, so any rule in a user
- * theme (`<space>/.slides/<name>.css`, unlayered) wins without fighting
- * specificity. See "Slide themes" in README.md for the full contract.
+ * The built-in Slide Shell: the look of the deck, on top of slideCore.css.
+ * A user's Slide Shell is unlayered, so any of its rules wins over this one.
  */
-@layer slides-default {
+@layer slide-shell {
   .ms-slides {
     /* Colour */
     --slide-bg: #f6f3ec;
@@ -50,14 +49,6 @@
     --slide-block-stagger: 60ms;
     --slide-distance: 60px;
 
-    position: fixed;
-    inset: 0;
-    z-index: 60;
-    display: grid;
-    grid-template-rows: 1fr auto auto;
-    overflow: hidden;
-    background: var(--slide-bg);
-    color: var(--slide-fg);
     -webkit-font-smoothing: antialiased;
   }
 
@@ -88,60 +79,24 @@
   }
 
   .ms-slides-backdrop {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: var(--slide-backdrop);
     mask-image: radial-gradient(ellipse at center, #000 40%, transparent 95%);
   }
 
-  .ms-slides-viewport {
-    position: relative;
-    display: grid;
-    min-height: 0;
-    place-items: center;
-    overflow: hidden;
-  }
-
   .ms-slides-empty {
-    grid-area: 1 / 1;
     font-family: var(--slide-heading-font);
     font-size: 1.125rem;
     font-style: italic;
     color: var(--slide-muted);
   }
 
-  .ms-slides-stage {
-    grid-area: 1 / 1;
-    display: flex;
-    justify-content: center;
-    width: 100%;
-    max-height: 100%;
-    overflow-y: auto;
-    padding: var(--slide-padding);
-    animation: var(--slide-enter);
-  }
-
-  .ms-slides-stage.is-leaving {
-    animation: var(--slide-leave);
-  }
-
-  /* The editor's type is sized in rem, so zoom scales a whole slide up. */
   .ms-slide {
-    position: relative;
     width: 100%;
-    max-width: var(--slide-width);
-    margin-block: auto;
     padding: 3rem 3.5rem 3.25rem;
     border: 1px solid var(--slide-border);
     border-radius: 1.25rem;
     background: var(--slide-surface);
     box-shadow: var(--slide-shadow);
     backdrop-filter: blur(18px) saturate(1.2);
-    zoom: var(--slide-zoom);
-    font-family: var(--slide-font);
-    line-height: var(--slide-line-height);
-    text-align: var(--slide-align);
   }
 
   /* A hairline of accent along the top edge of the card. */
@@ -170,16 +125,7 @@
     font-size: 4.5rem;
     font-style: italic;
     line-height: 1;
-    color: var(--slide-fg);
     opacity: 0.06;
-    pointer-events: none;
-  }
-
-  .ms-slide .ms-slide-block {
-    animation: var(--slide-block-enter);
-    animation-delay: calc(
-      var(--slide-block-delay) + var(--slide-order) * var(--slide-block-stagger)
-    );
   }
 
   .ms-slide .md-h1 {
@@ -285,9 +231,6 @@
   }
 
   .ms-slides-notes {
-    position: relative;
-    max-height: 30vh;
-    overflow-y: auto;
     width: min(60rem, calc(100% - 3rem));
     margin: 0 auto 0.75rem;
     padding: 0.875rem 1.25rem;
@@ -299,16 +242,7 @@
     font-size: 0.875rem;
   }
 
-  /* Notes are read, not presented: no slide-sized headings. */
-  .ms-slides-notes .md-block {
-    margin: 0;
-    font-size: inherit;
-  }
-
   .ms-slides-bar {
-    position: relative;
-    display: flex;
-    align-items: center;
     gap: 0.5rem;
     width: min(44rem, calc(100% - 2rem));
     margin: 0 auto 1.25rem;
@@ -330,11 +264,8 @@
   }
 
   .ms-slides-button {
-    display: grid;
     width: 2rem;
     height: 2rem;
-    flex-shrink: 0;
-    place-items: center;
     border-radius: 999px;
     transition:
       background-color 150ms,
@@ -348,25 +279,20 @@
 
   .ms-slides-button:disabled {
     opacity: 0.3;
-    pointer-events: none;
   }
 
-  .ms-slides-button:focus-visible,
-  .ms-slides-theme:focus-visible {
+  .ms-slides-button:focus-visible {
     outline: 2px solid rgb(var(--ms-accent-rgb) / 0.4);
     outline-offset: 1px;
   }
 
   .ms-slides-track {
-    flex: 1;
     height: 2px;
-    overflow: hidden;
     border-radius: 999px;
     background: var(--slide-border);
   }
 
   .ms-slides-progress {
-    height: 100%;
     border-radius: 999px;
     background: linear-gradient(
       90deg,
@@ -384,14 +310,6 @@
     font-size: 0.8125rem;
     font-style: italic;
     font-variant-numeric: tabular-nums;
-  }
-
-  .ms-slides-theme {
-    max-width: 9rem;
-    border-radius: 999px;
-    background: transparent;
-    color: inherit;
-    padding: 0.25rem 0.5rem;
   }
 
   @keyframes ms-slide-enter {
@@ -427,18 +345,6 @@
   @keyframes ms-slide-bar {
     from {
       transform: scaleX(0);
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .ms-slides {
-      --slide-enter: none;
-      --slide-leave: none;
-      --slide-block-enter: none;
-    }
-
-    .ms-slide .md-h1::after {
-      animation: none;
     }
   }
 }

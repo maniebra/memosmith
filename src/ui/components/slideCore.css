@@ -1,0 +1,158 @@
+/*
+ * Slide core: the structure every Slide Shell builds on — layout, stacking,
+ * scaling and the animation hooks. Shells style it; they do not replace it.
+ * Layer order is core < shell < user shell (unlayered), so a user's Slide
+ * Shell always wins. See "Slide Shells" in README.md for the contract.
+ */
+@layer slide-core, slide-shell;
+
+@layer slide-core {
+  .ms-slides {
+    /* Fallbacks, so a shell only has to set what it cares about. */
+    --slide-bg: var(--ms-canvas);
+    --slide-fg: currentColor;
+    --slide-muted: currentColor;
+    --slide-accent: var(--ms-accent-color);
+    --slide-accent-2: var(--ms-accent-soft);
+    --slide-surface: transparent;
+    --slide-border: transparent;
+    --slide-shadow: none;
+    --slide-backdrop: none;
+    --slide-font: var(--ms-editor-font);
+    --slide-heading-font: var(--slide-font);
+    --slide-line-height: var(--ms-editor-line-height);
+    --slide-zoom: 1.35;
+    --slide-width: 56rem;
+    --slide-padding: 4rem 2.5rem;
+    --slide-align: start;
+    --slide-h1-size: 2.75rem;
+    --slide-enter: none;
+    --slide-leave: none;
+    --slide-block-enter: none;
+    --slide-block-delay: 0ms;
+    --slide-block-stagger: 0ms;
+    --slide-distance: 60px;
+
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: grid;
+    grid-template-rows: 1fr auto auto;
+    overflow: hidden;
+    background: var(--slide-bg);
+    color: var(--slide-fg);
+  }
+
+  .ms-slides-backdrop {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: var(--slide-backdrop);
+  }
+
+  .ms-slides-viewport {
+    position: relative;
+    display: grid;
+    min-height: 0;
+    place-items: center;
+    overflow: hidden;
+  }
+
+  /* Leaving and entering slides share one cell, so they cross over. */
+  .ms-slides-empty,
+  .ms-slides-stage {
+    grid-area: 1 / 1;
+  }
+
+  .ms-slides-stage {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    max-height: 100%;
+    overflow-y: auto;
+    padding: var(--slide-padding);
+    animation: var(--slide-enter);
+  }
+
+  /* The deck waits for this animation to end before removing the slide. */
+  .ms-slides-stage.is-leaving {
+    animation: var(--slide-leave);
+  }
+
+  /* The editor's type is sized in rem, so zoom scales a whole slide up. */
+  .ms-slide {
+    position: relative;
+    width: 100%;
+    max-width: var(--slide-width);
+    margin-block: auto;
+    zoom: var(--slide-zoom);
+    font-family: var(--slide-font);
+    line-height: var(--slide-line-height);
+    text-align: var(--slide-align);
+  }
+
+  .ms-slide .ms-slide-block {
+    animation: var(--slide-block-enter);
+    animation-delay: calc(
+      var(--slide-block-delay) + var(--slide-order) * var(--slide-block-stagger)
+    );
+  }
+
+  .ms-slide .md-h1 {
+    margin-top: 0;
+    font-family: var(--slide-heading-font);
+    font-size: var(--slide-h1-size);
+  }
+
+  .ms-slides-notes {
+    position: relative;
+    max-height: 30vh;
+    overflow-y: auto;
+  }
+
+  /* Notes are read, not presented: no slide-sized headings. */
+  .ms-slides-notes .md-block {
+    margin: 0;
+    font-size: inherit;
+  }
+
+  .ms-slides-bar {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .ms-slides-button {
+    display: grid;
+    flex-shrink: 0;
+    place-items: center;
+  }
+
+  .ms-slides-button:disabled {
+    pointer-events: none;
+  }
+
+  .ms-slides-track {
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .ms-slides-progress {
+    height: 100%;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ms-slides {
+      --slide-enter: none !important;
+      --slide-leave: none !important;
+      --slide-block-enter: none !important;
+    }
+
+    .ms-slides *,
+    .ms-slides *::before,
+    .ms-slides *::after {
+      animation-duration: 1ms !important;
+      animation-delay: 0ms !important;
+    }
+  }
+}

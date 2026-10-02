@@ -11,6 +11,7 @@ import type {
   LlmSettings,
   LspSettings,
   MermaidSettings,
+  SlideSettings,
   PaletteColor,
   PlantumlSettings,
   RunnerSettings,
@@ -84,6 +85,7 @@ export const defaultPlantumlSettings: PlantumlSettings = {
   theme: "",
 };
 export const defaultMermaidSettings: MermaidSettings = { theme: "default" };
+export const defaultSlideSettings: SlideSettings = { shell: "" };
 export const defaultRunnerSettings: RunnerSettings = {
   commands: {
     bash: "",
@@ -167,6 +169,7 @@ export const defaultSettings: AppSettings = {
   lsp: { commands: { ...defaultLspSettings.commands } },
   plantuml: { ...defaultPlantumlSettings },
   mermaid: { ...defaultMermaidSettings },
+  slides: { ...defaultSlideSettings },
   editorWidth: "comfortable",
   textSize: 17,
   spellcheck: true,

@@ -553,6 +553,7 @@
     source={(editor?.closest(".ms-editor-frame") as HTMLElement | null) ??
       undefined}
     root={spaceRoot}
+    shell={settings.slides.shell}
     onClose={() => (slidesOpen = false)}
   />
 {/if}

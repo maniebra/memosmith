@@ -99,7 +99,7 @@
       {#if activeTab === "appearance"}
         <AppearanceSettingsTab {settings} {onChange} />
       {:else if activeTab === "features"}
-        <FeatureSettingsTab {settings} {onChange} />
+        <FeatureSettingsTab {settings} {onChange} {root} />
       {:else if activeTab === "keybindings"}
         <div class="grid max-w-xl gap-6">
           <KeybindingSettings {settings} {onChange} />

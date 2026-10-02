@@ -41,6 +41,11 @@ export type KeybindingSettings = {
 
 export type PlantumlFormat = "svg" | "png" | "txt";
 
+/** `shell` names a Slide Shell in the space; empty means the built-in one. */
+export type SlideSettings = {
+  shell: string;
+};
+
 export type MermaidTheme = "default" | "dark" | "forest" | "neutral";
 
 /** Mermaid renders in the page, so all it needs is which built-in theme to draw with. */
@@ -115,6 +120,7 @@ export type AppSettings = {
   lsp: LspSettings;
   plantuml: PlantumlSettings;
   mermaid: MermaidSettings;
+  slides: SlideSettings;
   editorWidth: EditorWidth;
   textSize: number;
   spellcheck: boolean;

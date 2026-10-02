@@ -229,11 +229,11 @@ pub struct NoteTemplate {
     pub text: String,
 }
 
-/// Slide themes: every `.css` file in the space's `.slides` folder, named by
-/// file stem and sorted. No folder simply means no themes.
+/// Slide Shells: every `.css` file in the space's `.slide-shells` folder,
+/// named by file stem and sorted. No folder simply means no shells.
 #[tauri::command]
-pub fn list_slide_themes(root: String) -> Result<Vec<NoteTemplate>, String> {
-    let dir = std::path::Path::new(&root).join(".slides");
+pub fn list_slide_shells(root: String) -> Result<Vec<NoteTemplate>, String> {
+    let dir = std::path::Path::new(&root).join(".slide-shells");
     let Ok(entries) = std::fs::read_dir(&dir) else {
         return Ok(Vec::new());
     };

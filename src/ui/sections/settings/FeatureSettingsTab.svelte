@@ -16,9 +16,11 @@
   import LspFeatureSettings from "./LspFeatureSettings.svelte";
   import MermaidFeatureSettings from "./MermaidFeatureSettings.svelte";
   import PlantumlFeatureSettings from "./PlantumlFeatureSettings.svelte";
+  import SlideFeatureSettings from "./SlideFeatureSettings.svelte";
 
   export let settings: AppSettings;
   export let onChange: (settings: AppSettings) => void;
+  export let root: string | null = null;
 
   let grammarOptionsOpen = false;
 
@@ -132,12 +134,7 @@
       className="h-10 w-full"
       onChange={(readables) => patchFeatures({ readables })}
     />
-    <Switch
-      checked={settings.features.slides}
-      label={$i18n.t("feature.slides")}
-      className="h-10 w-full"
-      onChange={(slides) => patchFeatures({ slides })}
-    />
+    <SlideFeatureSettings {settings} {onChange} {root} />
     <CodeExecutionSettings {settings} {onChange} />
     <PlantumlFeatureSettings {settings} {onChange} />
     <MermaidFeatureSettings {settings} {onChange} />

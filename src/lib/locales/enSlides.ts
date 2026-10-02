@@ -14,6 +14,9 @@ export const enSlides = {
   "slides.notes": "Speaker notes",
   "slides.noNotes": "No notes for this slide. Start a line with Note: to add some.",
   "slides.toggleNotes": "Toggle speaker notes (N)",
-  "slides.theme": "Slide theme",
-  "slides.defaultTheme": "Default",
+  "feature.slidesOptions": "Slides options",
+  "settings.slideShell": "Slide Shell",
+  "settings.slideShellHelp": "A Slide Shell is a CSS file in .slide-shells/ at the space root. It restyles the deck: colours, type, layout and animations.",
+  "settings.slideShellBuiltIn": "Built-in",
+  "settings.slideShellNone": "No shells yet. Add a .css file to .slide-shells/ in this space.",
 } as const;

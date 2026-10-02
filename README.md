@@ -20,19 +20,28 @@ accounts, no lock-in, nothing leaves your machine unless you want it to.
 - **Make it yours.** Themes, accent colors, fonts, custom keybindings, Vim mode,
   and right-to-left language support.
 
-## Slide themes
+## Slide Shells
 
 With **Slides** turned on in Settings → Features, any note can be presented:
 each `#` heading starts a slide, and a line beginning with `Note:` starts that
 slide's speaker notes (`N` toggles them, `F` goes fullscreen).
 
-A theme is a plain CSS file in your space at `.slides/<name>.css`. Every file
-there shows up in the theme picker at the bottom of the deck; the choice is
-remembered. Themes are re-read each time the deck opens, so edit, close, reopen.
+The deck is built in two parts:
 
-The built-in theme lives in a cascade layer, so **any rule you write wins** —
+- **Slide core** — the structure: layout, stacking, scaling, and the hooks the
+  animations run through. It is always there, and shells build on it.
+- **Slide Shell** — the look: colours, type, the slide card, the controls and
+  the motion. MemoSmith ships a built-in shell, and you can write your own.
+
+A Slide Shell is a plain CSS file in your space at `.slide-shells/<name>.css`.
+Choose one under Settings → Features → Slides (the arrow next to the switch).
+Shells are re-read each time the deck opens, so edit, close, reopen.
+
+The core and the built-in shell live in cascade layers (`slide-core` below
+`slide-shell`), and your shell is unlayered, so **any rule you write wins** —
 no `!important`, no specificity games. You have the whole of CSS: start with
 the variables below, then restyle any element, or bring your own `@keyframes`.
+Anything you leave out falls back to the built-in shell.
 
 ### Variables (set them on `.ms-slides`)
 
@@ -61,17 +70,17 @@ the variables below, then restyle any element, or bring your own `@keyframes`.
 | `.ms-slide-block` | Each block on a slide; `--slide-order` is its position (0–12) |
 | `.md-h1` … `.md-h4`, `.md-bullet`, `.md-quote`, `.md-codeblock`, … | Note content, same classes as the editor |
 | `.ms-slides-notes` | Speaker notes panel |
-| `.ms-slides-bar`, `.ms-slides-button`, `.ms-slides-track`, `.ms-slides-progress`, `.ms-slides-counter`, `.ms-slides-theme` | Footer controls |
+| `.ms-slides-bar`, `.ms-slides-button`, `.ms-slides-track`, `.ms-slides-progress`, `.ms-slides-counter` | Footer controls |
 
 ### State attributes
 
-`.ms-slides` carries `data-theme`, `data-slide` (1-based), `data-slides` (total),
+`.ms-slides` carries `data-shell`, `data-slide` (1-based), `data-slides` (total),
 `data-first`, `data-last`, `data-direction` (`forward`/`backward`),
 `data-fullscreen` and `data-notes`. `.ms-slide` carries `data-slide` and
 `data-has-notes`. So `.ms-slides[data-first] .ms-slide { … }` styles a title slide,
 and `.ms-slide[data-slide="3"]` targets one slide.
 
-### Example: `.slides/midnight.css`
+### Example: `.slide-shells/midnight.css`
 
 ```css
 .ms-slides {
@@ -104,7 +113,7 @@ and `.ms-slide[data-slide="3"]` targets one slide.
 }
 ```
 
-Themes are CSS only: no scripts run, so a theme from a shared space can restyle
+Shells are CSS only: no scripts run, so a shell from a shared space can restyle
 the deck but cannot do anything else.
 
 ## Install
