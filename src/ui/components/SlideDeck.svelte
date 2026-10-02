@@ -32,12 +32,14 @@
   export let root: string | null = null;
   /** The chosen Slide Shell's name; empty keeps the built-in one. */
   export let shell = "";
+  /** Shells imported into settings, offered alongside the space's own. */
+  export let imported: { name: string; text: string }[] = [];
 
   // Re-read on every open, so editing a shell file shows on the next run.
   let unmountShell = () => {};
   onMount(() => {
     if (shell) {
-      void loadSlideShells(root).then((shells) => {
+      void loadSlideShells(root, imported).then((shells) => {
         const css = shells.find((found) => found.name === shell)?.text;
         if (css) {
           unmountShell = mountSlideShell(css);

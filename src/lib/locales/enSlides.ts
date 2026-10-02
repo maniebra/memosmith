@@ -18,5 +18,8 @@ export const enSlides = {
   "settings.slideShell": "Slide Shell",
   "settings.slideShellHelp": "A Slide Shell is a CSS file in .slide-shells/ at the space root. It restyles the deck: colours, type, layout and animations.",
   "settings.slideShellBuiltIn": "Built-in",
-  "settings.slideShellNone": "No shells yet. Add a .css file to .slide-shells/ in this space.",
+  "settings.slideShellImport": "Import shell…",
+  "settings.slideShellRemove": "Remove imported shell",
+  "settings.slideShellInvalid": "That file is empty or could not be read.",
+  "settings.slideShellNone": "No shells yet. Import a .css file, or add one to .slide-shells/ in this space.",
 } as const;

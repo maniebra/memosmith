@@ -554,6 +554,7 @@
       undefined}
     root={spaceRoot}
     shell={settings.slides.shell}
+    imported={settings.slides.imported}
     onClose={() => (slidesOpen = false)}
   />
 {/if}

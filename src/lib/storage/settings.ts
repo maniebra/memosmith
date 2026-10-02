@@ -280,8 +280,16 @@ function readMermaid(value: unknown): MermaidSettings {
   };
 }
 function readSlides(value: unknown): SlideSettings {
-  const shell = ((value ?? {}) as Partial<SlideSettings>).shell;
-  return { shell: typeof shell === "string" ? shell : defaultSlideSettings.shell };
+  const { shell, imported } = (value ?? {}) as Partial<SlideSettings>;
+  return {
+    shell: typeof shell === "string" ? shell : defaultSlideSettings.shell,
+    imported: Array.isArray(imported)
+      ? imported.filter(
+          (found) =>
+            typeof found?.name === "string" && typeof found?.text === "string",
+        )
+      : [],
+  };
 }
 function readKeybindings(value: unknown): KeybindingSettings {
   const parsed = (value ?? {}) as Partial<KeybindingSettings>;

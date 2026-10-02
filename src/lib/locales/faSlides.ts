@@ -18,5 +18,8 @@ export const faSlides = {
   "settings.slideShell": "پوسته اسلاید (Slide Shell)",
   "settings.slideShellHelp": "پوسته اسلاید یک فایل CSS در پوشه .slide-shells/ در ریشه فضا است و ظاهر ارائه را تغییر می‌دهد: رنگ، قلم، چیدمان و انیمیشن.",
   "settings.slideShellBuiltIn": "داخلی",
-  "settings.slideShellNone": "هنوز پوسته‌ای نیست. یک فایل .css به .slide-shells/ در این فضا اضافه کنید.",
+  "settings.slideShellImport": "وارد کردن پوسته…",
+  "settings.slideShellRemove": "حذف پوسته وارد شده",
+  "settings.slideShellInvalid": "این فایل خالی است یا خوانده نشد.",
+  "settings.slideShellNone": "هنوز پوسته‌ای نیست. یک فایل .css وارد کنید یا آن را به .slide-shells/ در این فضا اضافه کنید.",
 } as const;

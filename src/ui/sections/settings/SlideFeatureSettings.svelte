@@ -5,8 +5,10 @@
   import { i18n } from "../../../lib/i18n";
   import type { AppSettings } from "../../../lib/storage/settings";
   import { cn } from "../../../lib/utils/cn";
+  import { chooseSlideShellFile, readNote } from "../../../lib/tauri/files";
   import {
     loadSlideShells,
+    slideShellName,
     type SlideShell,
   } from "../../../lib/utils/slideShells";
   import Select, { type SelectOption } from "../../components/Select.svelte";
@@ -21,9 +23,51 @@
   let shells: SlideShell[] = [];
   const compactSelectRoot = "w-full sm:w-56";
 
-  // Re-read whenever the options open, so a newly added file shows up.
+  let importError = "";
+
+  // Re-read whenever the options open or an import lands.
   $: if (slideOptionsOpen) {
-    void loadSlideShells(root).then((found) => (shells = found));
+    void loadSlideShells(root, settings.slides.imported).then(
+      (found) => (shells = found),
+    );
+  }
+
+  $: importedActive = settings.slides.imported.some(
+    (found) => found.name === settings.slides.shell,
+  );
+
+  /** Copies the file into settings and selects it; re-importing replaces it. */
+  async function importShell() {
+    const path = await chooseSlideShellFile();
+    if (!path) {
+      return;
+    }
+    const text = await readNote(path).catch(() => "");
+    importError = text.trim() ? "" : $i18n.t("settings.slideShellInvalid");
+    if (!text.trim()) {
+      return;
+    }
+    const name = slideShellName(path);
+    updateSettings(settings, onChange, {
+      slides: {
+        shell: name,
+        imported: [
+          ...settings.slides.imported.filter((found) => found.name !== name),
+          { name, text },
+        ],
+      },
+    });
+  }
+
+  function removeImported() {
+    updateSettings(settings, onChange, {
+      slides: {
+        shell: "",
+        imported: settings.slides.imported.filter(
+          (found) => found.name !== settings.slides.shell,
+        ),
+      },
+    });
   }
 
   $: shellOptions = [
@@ -80,9 +124,32 @@
           className="h-9"
           rootClassName={compactSelectRoot}
           onChange={(shell) =>
-            updateSettings(settings, onChange, { slides: { shell } })}
+            updateSettings(settings, onChange, {
+              slides: { ...settings.slides, shell },
+            })}
         />
       </label>
+      <div class="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          class="h-9 rounded-lg border border-stone-200 px-3 text-sm text-stone-600 hover:bg-stone-100 dark:border-stone-700 dark:text-stone-300 dark:hover:bg-stone-800"
+          onclick={importShell}
+        >
+          {$i18n.t("settings.slideShellImport")}
+        </button>
+        {#if importedActive}
+          <button
+            type="button"
+            class="h-9 rounded-lg px-3 text-sm text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-800"
+            onclick={removeImported}
+          >
+            {$i18n.t("settings.slideShellRemove")}
+          </button>
+        {/if}
+        {#if importError}
+          <span class="text-xs text-rose-600">{importError}</span>
+        {/if}
+      </div>
       {#if !shells.length}
         <span class="text-xs text-stone-500">
           {$i18n.t("settings.slideShellNone")}

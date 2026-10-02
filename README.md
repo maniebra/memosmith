@@ -34,7 +34,9 @@ The deck is built in two parts:
   the motion. MemoSmith ships a built-in shell, and you can write your own.
 
 A Slide Shell is a plain CSS file in your space at `.slide-shells/<name>.css`.
-Choose one under Settings → Features → Slides (the arrow next to the switch).
+Choose one under Settings → Features → Slides (the arrow next to the switch),
+where **Import shell…** also loads a `.css` file from anywhere into your
+settings, so it works in every space. A space file with the same name wins.
 Shells are re-read each time the deck opens, so edit, close, reopen.
 
 The core and the built-in shell live in cascade layers (`slide-core` below

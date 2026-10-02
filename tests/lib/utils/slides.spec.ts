@@ -4,6 +4,7 @@ import {
   splitNotes,
   splitSlides,
 } from "../../../src/lib/utils/slides";
+import { slideShellName } from "../../../src/lib/utils/slideShells";
 
 const split = (lines: string[]) =>
   splitSlides(
@@ -42,5 +43,12 @@ describe("splitNotes", () => {
       content: ["# A", "Notebook"],
       notes: [],
     });
+  });
+});
+
+describe("slideShellName", () => {
+  it("strips folders and the .css extension", () => {
+    expect(slideShellName("/home/me/shells/Midnight.CSS")).toBe("Midnight");
+    expect(slideShellName("C:\\shells\\swiss.css")).toBe("swiss");
   });
 });

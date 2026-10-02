@@ -90,6 +90,16 @@ export async function chooseThemeFile() {
   return typeof selected === "string" ? selected : null;
 }
 
+/** Path of a Slide Shell `.css` file the user picked, or null. */
+export async function chooseSlideShellFile() {
+  const selected = await open({
+    multiple: false,
+    filters: [{ name: "Slide Shell", extensions: ["css"] }],
+  });
+
+  return typeof selected === "string" ? selected : null;
+}
+
 export async function chooseFiles() {
   const selected = await open({ multiple: true });
 

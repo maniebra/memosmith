@@ -41,9 +41,13 @@ export type KeybindingSettings = {
 
 export type PlantumlFormat = "svg" | "png" | "txt";
 
-/** `shell` names a Slide Shell in the space; empty means the built-in one. */
+/**
+ * `shell` names the active Slide Shell; empty means the built-in one.
+ * `imported` holds shells loaded from a file, so they work in any space.
+ */
 export type SlideSettings = {
   shell: string;
+  imported: { name: string; text: string }[];
 };
 
 export type MermaidTheme = "default" | "dark" | "forest" | "neutral";
