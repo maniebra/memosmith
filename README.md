@@ -40,6 +40,7 @@ the variables below, then restyle any element, or bring your own `@keyframes`.
 | --- | --- |
 | `--slide-bg`, `--slide-fg`, `--slide-muted` | Background, text, and footer text colours |
 | `--slide-accent`, `--slide-accent-2` | Heading underline gradient and progress bar |
+| `--slide-surface`, `--slide-border`, `--slide-shadow` | The slide card, notes panel and control bar |
 | `--slide-backdrop` | Any `background` value layered over the slide (gradients, images) |
 | `--slide-font`, `--slide-heading-font`, `--slide-line-height` | Type |
 | `--slide-h1-size`, `--slide-zoom` | Heading size, and the scale of everything on the slide |

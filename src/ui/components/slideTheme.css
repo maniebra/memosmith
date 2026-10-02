@@ -6,39 +6,49 @@
 @layer slides-default {
   .ms-slides {
     /* Colour */
-    --slide-bg: var(--ms-canvas);
-    --slide-fg: #292524;
-    --slide-muted: #78716c;
+    --slide-bg: #f6f3ec;
+    --slide-fg: #1c1a17;
+    --slide-muted: #8a8378;
     --slide-accent: var(--ms-accent-color);
-    --slide-accent-2: var(--ms-accent-soft);
+    --slide-accent-2: #c9a45c;
+    --slide-surface: rgb(255 255 255 / 0.72);
+    --slide-border: rgb(28 26 23 / 0.08);
+    --slide-shadow:
+      0 1px 0 rgb(255 255 255 / 0.8) inset,
+      0 30px 60px -30px rgb(28 26 23 / 0.25),
+      0 12px 24px -12px rgb(28 26 23 / 0.12);
     --slide-backdrop:
       radial-gradient(
-        60rem 40rem at 85% -10%,
-        rgb(var(--ms-accent-soft-rgb) / 0.14),
+        70rem 45rem at 100% 0%,
+        rgb(var(--ms-accent-soft-rgb) / 0.16),
         transparent 60%
       ),
       radial-gradient(
-        50rem 30rem at -10% 110%,
-        rgb(var(--ms-accent-rgb) / 0.1),
+        55rem 40rem at 0% 100%,
+        rgb(201 164 92 / 0.14),
         transparent 60%
-      );
+      ),
+      radial-gradient(rgb(28 26 23 / 0.07) 1px, transparent 1px) 0 0 / 22px
+        22px;
     /* Type and layout */
     --slide-font: var(--ms-editor-font);
-    --slide-heading-font: var(--slide-font);
-    --slide-line-height: var(--ms-editor-line-height);
-    --slide-zoom: 1.35;
-    --slide-width: 56rem;
-    --slide-padding: 4rem 2.5rem;
+    --slide-heading-font:
+      "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia,
+      serif;
+    --slide-line-height: 1.7;
+    --slide-zoom: 1.3;
+    --slide-width: 60rem;
+    --slide-padding: 3.5rem 3rem;
     --slide-align: start;
-    --slide-h1-size: 2.75rem;
+    --slide-h1-size: 3rem;
     /* Motion: names of @keyframes, so a theme can bring its own. */
-    --slide-enter: ms-slide-enter 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
-    --slide-leave: ms-slide-leave 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
-    --slide-block-enter: ms-slide-rise 520ms cubic-bezier(0.22, 1, 0.36, 1)
+    --slide-enter: ms-slide-enter 640ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    --slide-leave: ms-slide-leave 280ms cubic-bezier(0.7, 0, 0.84, 0) both;
+    --slide-block-enter: ms-slide-rise 700ms cubic-bezier(0.16, 1, 0.3, 1)
       both;
-    --slide-block-delay: 120ms;
-    --slide-block-stagger: 45ms;
-    --slide-distance: 80px;
+    --slide-block-delay: 180ms;
+    --slide-block-stagger: 60ms;
+    --slide-distance: 60px;
 
     position: fixed;
     inset: 0;
@@ -48,11 +58,33 @@
     overflow: hidden;
     background: var(--slide-bg);
     color: var(--slide-fg);
+    -webkit-font-smoothing: antialiased;
   }
 
   :root.dark .ms-slides {
-    --slide-fg: #f5f5f4;
-    --slide-muted: #a8a29e;
+    --slide-bg: #0f0e0c;
+    --slide-fg: #f2efe8;
+    --slide-muted: #8f877a;
+    --slide-accent-2: #d8b86e;
+    --slide-surface: rgb(28 26 23 / 0.66);
+    --slide-border: rgb(242 239 232 / 0.08);
+    --slide-shadow:
+      0 1px 0 rgb(255 255 255 / 0.05) inset,
+      0 40px 80px -30px rgb(0 0 0 / 0.7),
+      0 12px 24px -12px rgb(0 0 0 / 0.5);
+    --slide-backdrop:
+      radial-gradient(
+        70rem 45rem at 100% 0%,
+        rgb(var(--ms-accent-soft-rgb) / 0.12),
+        transparent 60%
+      ),
+      radial-gradient(
+        55rem 40rem at 0% 100%,
+        rgb(216 184 110 / 0.08),
+        transparent 60%
+      ),
+      radial-gradient(rgb(242 239 232 / 0.05) 1px, transparent 1px) 0 0 / 22px
+        22px;
   }
 
   .ms-slides-backdrop {
@@ -60,6 +92,7 @@
     inset: 0;
     pointer-events: none;
     background: var(--slide-backdrop);
+    mask-image: radial-gradient(ellipse at center, #000 40%, transparent 95%);
   }
 
   .ms-slides-viewport {
@@ -72,7 +105,9 @@
 
   .ms-slides-empty {
     grid-area: 1 / 1;
-    font-size: 0.875rem;
+    font-family: var(--slide-heading-font);
+    font-size: 1.125rem;
+    font-style: italic;
     color: var(--slide-muted);
   }
 
@@ -93,13 +128,51 @@
 
   /* The editor's type is sized in rem, so zoom scales a whole slide up. */
   .ms-slide {
+    position: relative;
     width: 100%;
     max-width: var(--slide-width);
     margin-block: auto;
+    padding: 3rem 3.5rem 3.25rem;
+    border: 1px solid var(--slide-border);
+    border-radius: 1.25rem;
+    background: var(--slide-surface);
+    box-shadow: var(--slide-shadow);
+    backdrop-filter: blur(18px) saturate(1.2);
     zoom: var(--slide-zoom);
     font-family: var(--slide-font);
     line-height: var(--slide-line-height);
     text-align: var(--slide-align);
+  }
+
+  /* A hairline of accent along the top edge of the card. */
+  .ms-slide::before {
+    content: "";
+    position: absolute;
+    inset: 0 2.5rem auto;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--slide-accent),
+      var(--slide-accent-2),
+      transparent
+    );
+    opacity: 0.7;
+  }
+
+  /* The slide's number, set large and quiet in the corner. */
+  .ms-slide::after {
+    content: attr(data-slide);
+    position: absolute;
+    top: 1.25rem;
+    inset-inline-end: 1.75rem;
+    font-family: var(--slide-heading-font);
+    font-size: 4.5rem;
+    font-style: italic;
+    line-height: 1;
+    color: var(--slide-fg);
+    opacity: 0.06;
+    pointer-events: none;
   }
 
   .ms-slide .ms-slide-block {
@@ -111,24 +184,29 @@
 
   .ms-slide .md-h1 {
     margin-top: 0;
-    margin-bottom: 1.25rem;
+    margin-bottom: 1.5rem;
+    padding-inline-end: 4rem;
     font-family: var(--slide-heading-font);
     font-size: var(--slide-h1-size);
+    font-weight: 600;
+    line-height: 1.08;
+    letter-spacing: -0.025em;
+    text-wrap: balance;
   }
 
   .ms-slide .md-h1::after {
     content: "";
     display: block;
-    width: 3.5rem;
-    height: 0.25rem;
-    margin-top: 0.75rem;
+    width: 4rem;
+    height: 3px;
+    margin-top: 1rem;
     border-radius: 999px;
     background: linear-gradient(
       90deg,
       var(--slide-accent),
       var(--slide-accent-2)
     );
-    animation: ms-slide-bar 700ms 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: ms-slide-bar 900ms 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
     transform-origin: left;
   }
 
@@ -136,15 +214,88 @@
     transform-origin: right;
   }
 
+  .ms-slide :is(.md-h2, .md-h3) {
+    font-family: var(--slide-heading-font);
+    letter-spacing: -0.015em;
+  }
+
+  .ms-slide .md-h2 {
+    color: var(--slide-accent);
+  }
+
+  .ms-slide .md-h4 {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--slide-muted);
+  }
+
+  .ms-slide .md-bullet::before {
+    content: "—  ";
+    color: var(--slide-accent);
+  }
+
+  .ms-slide .md-quote {
+    margin-block: 1rem;
+    padding-left: 1.25rem;
+    border-left: 2px solid var(--slide-accent-2);
+    font-family: var(--slide-heading-font);
+    font-size: 1.35rem;
+    font-style: italic;
+    line-height: 1.5;
+    color: inherit;
+  }
+
+  .ms-slide strong {
+    font-weight: 650;
+  }
+
+  .ms-slide img {
+    border-radius: 0.75rem;
+  }
+
+  /* The opening slide is a title page: centred, larger, no card number. */
+  .ms-slides[data-first] .ms-slide {
+    text-align: center;
+    padding-block: 4.5rem;
+  }
+
+  .ms-slides[data-first] .ms-slide::after {
+    content: none;
+  }
+
+  .ms-slides[data-first] .md-h1 {
+    padding-inline: 0;
+    font-size: calc(var(--slide-h1-size) * 1.45);
+    background: linear-gradient(
+      120deg,
+      var(--slide-fg) 30%,
+      var(--slide-accent) 75%,
+      var(--slide-accent-2)
+    );
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+  }
+
+  .ms-slides[data-first] .md-h1::after {
+    margin-inline: auto;
+    transform-origin: center;
+  }
+
   .ms-slides-notes {
     position: relative;
     max-height: 30vh;
     overflow-y: auto;
-    margin: 0 1.5rem 0.75rem;
-    padding: 0.75rem 1.25rem;
-    border: 1px solid rgb(120 113 108 / 0.15);
-    border-radius: 0.5rem;
-    background: rgb(120 113 108 / 0.05);
+    width: min(60rem, calc(100% - 3rem));
+    margin: 0 auto 0.75rem;
+    padding: 0.875rem 1.25rem;
+    border: 1px solid var(--slide-border);
+    border-radius: 0.75rem;
+    background: var(--slide-surface);
+    backdrop-filter: blur(18px);
+    box-shadow: var(--slide-shadow);
     font-size: 0.875rem;
   }
 
@@ -158,78 +309,118 @@
     position: relative;
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0 1.5rem 1.25rem;
+    gap: 0.5rem;
+    width: min(44rem, calc(100% - 2rem));
+    margin: 0 auto 1.25rem;
+    padding: 0.375rem 0.5rem;
+    border: 1px solid var(--slide-border);
+    border-radius: 999px;
+    background: var(--slide-surface);
+    backdrop-filter: blur(18px) saturate(1.2);
+    box-shadow: var(--slide-shadow);
     font-size: 0.75rem;
     color: var(--slide-muted);
+    opacity: 0.55;
+    transition: opacity 250ms ease;
+  }
+
+  .ms-slides-bar:hover,
+  .ms-slides-bar:focus-within {
+    opacity: 1;
   }
 
   .ms-slides-button {
     display: grid;
     width: 2rem;
     height: 2rem;
+    flex-shrink: 0;
     place-items: center;
-    border-radius: 0.375rem;
-    transition: background-color 150ms;
+    border-radius: 999px;
+    transition:
+      background-color 150ms,
+      color 150ms;
   }
 
   .ms-slides-button:hover {
-    background: rgb(120 113 108 / 0.1);
+    background: rgb(var(--ms-accent-rgb) / 0.1);
+    color: var(--slide-accent);
   }
 
   .ms-slides-button:disabled {
     opacity: 0.3;
+    pointer-events: none;
+  }
+
+  .ms-slides-button:focus-visible,
+  .ms-slides-theme:focus-visible {
+    outline: 2px solid rgb(var(--ms-accent-rgb) / 0.4);
+    outline-offset: 1px;
   }
 
   .ms-slides-track {
     flex: 1;
-    height: 0.25rem;
+    height: 2px;
     overflow: hidden;
     border-radius: 999px;
-    background: rgb(120 113 108 / 0.15);
+    background: var(--slide-border);
   }
 
   .ms-slides-progress {
     height: 100%;
     border-radius: 999px;
-    background: var(--slide-accent);
-    transition: width 500ms ease-out;
+    background: linear-gradient(
+      90deg,
+      var(--slide-accent),
+      var(--slide-accent-2)
+    );
+    box-shadow: 0 0 12px rgb(var(--ms-accent-rgb) / 0.5);
+    transition: width 700ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .ms-slides-counter {
-    width: 3rem;
+    min-width: 3.5rem;
     text-align: center;
+    font-family: var(--slide-heading-font);
+    font-size: 0.8125rem;
+    font-style: italic;
     font-variant-numeric: tabular-nums;
   }
 
   .ms-slides-theme {
-    max-width: 10rem;
-    border-radius: 0.375rem;
+    max-width: 9rem;
+    border-radius: 999px;
     background: transparent;
     color: inherit;
-    padding: 0.25rem;
+    padding: 0.25rem 0.5rem;
   }
 
   @keyframes ms-slide-enter {
     from {
       opacity: 0;
-      transform: translateX(calc(var(--slide-distance) * var(--slide-direction)));
+      filter: blur(8px);
+      transform: translateX(
+          calc(var(--slide-distance) * var(--slide-direction))
+        )
+        scale(0.985);
     }
   }
 
   @keyframes ms-slide-leave {
     to {
       opacity: 0;
+      filter: blur(6px);
       transform: translateX(
-        calc(var(--slide-distance) * var(--slide-direction) * -1)
-      );
+          calc(var(--slide-distance) * var(--slide-direction) * -0.5)
+        )
+        scale(0.985);
     }
   }
 
   @keyframes ms-slide-rise {
     from {
       opacity: 0;
-      transform: translateY(14px);
+      filter: blur(4px);
+      transform: translateY(18px);
     }
   }
 
