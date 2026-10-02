@@ -14,4 +14,6 @@ export const faSlides = {
   "slides.notes": "یادداشت‌های ارائه",
   "slides.noNotes": "این اسلاید یادداشتی ندارد. برای افزودن، خطی را با Note: شروع کنید.",
   "slides.toggleNotes": "یادداشت‌های ارائه (N)",
+  "slides.theme": "پوسته اسلاید",
+  "slides.defaultTheme": "پیش‌فرض",
 } as const;

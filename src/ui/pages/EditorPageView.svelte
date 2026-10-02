@@ -552,6 +552,7 @@
   <SlideDeck
     source={(editor?.closest(".ms-editor-frame") as HTMLElement | null) ??
       undefined}
+    root={spaceRoot}
     onClose={() => (slidesOpen = false)}
   />
 {/if}

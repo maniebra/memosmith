@@ -229,6 +229,28 @@ pub struct NoteTemplate {
     pub text: String,
 }
 
+/// Slide themes: every `.css` file in the space's `.slides` folder, named by
+/// file stem and sorted. No folder simply means no themes.
+#[tauri::command]
+pub fn list_slide_themes(root: String) -> Result<Vec<NoteTemplate>, String> {
+    let dir = std::path::Path::new(&root).join(".slides");
+    let Ok(entries) = std::fs::read_dir(&dir) else {
+        return Ok(Vec::new());
+    };
+    let mut found = BTreeMap::new();
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.extension().and_then(|ext| ext.to_str()) != Some("css") {
+            continue;
+        }
+        if let Some(name) = path.file_stem().and_then(|stem| stem.to_str()) {
+            let text = std::fs::read_to_string(&path).map_err(|error| error.to_string())?;
+            found.insert(name.to_string(), text);
+        }
+    }
+    Ok(found.into_iter().map(|(name, text)| NoteTemplate { name, text }).collect())
+}
+
 /// Templates from `.templates` in `folder` and every folder above it up to
 /// `root`; a nearer template shadows a farther one of the same name.
 #[tauri::command]

@@ -3,6 +3,8 @@
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { cubicOut } from "svelte/easing";
   import { fade, fly } from "svelte/transition";
+  import { listSlideThemes } from "../../lib/tauri/files";
+  import "./slideTheme.css";
   import {
     ChevronLeft,
     ChevronRight,
@@ -22,6 +24,49 @@
   /** The live editor frame; its blocks are cloned so slides show exactly what is on screen. */
   export let source: HTMLElement | undefined;
   export let onClose: () => void;
+  /** Space root; its `.slides/*.css` files are the themes to pick from. */
+  export let root: string | null = null;
+
+  const THEME_KEY = "memosmith.slidesTheme";
+
+  let themes: { name: string; text: string }[] = [];
+  let theme = "";
+  try {
+    theme = localStorage.getItem(THEME_KEY) ?? "";
+  } catch {
+    // Storage can be blocked; the default theme still works.
+  }
+
+  // Re-read on every open, so editing a theme file shows on the next run.
+  onMount(() => {
+    if (root) {
+      void listSlideThemes(root)
+        .then((found) => (themes = found))
+        .catch(() => (themes = []));
+    }
+  });
+
+  // A theme is plain CSS, injected unlayered so it beats the default layer.
+  const themeStyle = document.head.appendChild(
+    document.createElement("style"),
+  );
+  $: themeStyle.textContent =
+    themes.find((candidate) => candidate.name === theme)?.text ?? "";
+  $: try {
+    localStorage.setItem(THEME_KEY, theme);
+  } catch {
+    // Not remembered, nothing lost.
+  }
+  onDestroy(() => themeStyle.remove());
+
+  /** Plays the theme's `--slide-leave` animation, however long it runs. */
+  function leave(node: HTMLElement) {
+    node.classList.add("is-leaving");
+    const seconds = getComputedStyle(node)
+      .animationDuration.split(",")
+      .map(parseFloat);
+    return { duration: Math.max(0, ...seconds) * 1000 };
+  }
 
   let slides: Slide<Element>[] = [];
   let notesOpen = false;
@@ -114,7 +159,7 @@
       }
       copy.contentEditable = "false";
       copy.classList.add("ms-slide-block");
-      copy.style.setProperty("--ms-slide-order", String(Math.min(order, 12)));
+      copy.style.setProperty("--slide-order", String(Math.min(order, 12)));
       node.append(copy);
     });
   }
@@ -123,30 +168,34 @@
 <svelte:window onkeydown={handleKey} />
 
 <div
-  class="ms-slides fixed inset-0 z-[60] grid grid-rows-[1fr_auto_auto] overflow-hidden bg-canvas text-stone-800 dark:text-stone-100"
+  class="ms-slides"
   role="dialog"
   aria-modal="true"
   aria-label={$i18n.t("slides.title")}
+  data-theme={theme || "default"}
+  data-slide={index + 1}
+  data-slides={slides.length}
+  data-first={index === 0 || undefined}
+  data-last={index === slides.length - 1 || undefined}
+  data-direction={direction > 0 ? "forward" : "backward"}
+  data-fullscreen={fullscreen || undefined}
+  data-notes={notesOpen || undefined}
+  style:--slide-direction={direction}
   transition:fade={{ duration: 180 }}
 >
-  <div
-    class="ms-slides-glow pointer-events-none absolute inset-0"
-    aria-hidden="true"
-  ></div>
+  <div class="ms-slides-backdrop" aria-hidden="true"></div>
 
-  <div class="relative grid min-h-0 place-items-center overflow-hidden">
+  <div class="ms-slides-viewport">
     {#if !slides.length}
-      <p class="text-sm text-stone-500">{$i18n.t("slides.empty")}</p>
+      <p class="ms-slides-empty">{$i18n.t("slides.empty")}</p>
     {/if}
     {#key index}
       {#if slides[index]}
-        <div
-          class="col-start-1 row-start-1 flex max-h-full w-full justify-center overflow-y-auto px-10 py-16"
-          in:fly={{ x: 80 * direction, duration: 420, easing: cubicOut }}
-          out:fly={{ x: -80 * direction, duration: 260, easing: cubicOut }}
-        >
+        <div class="ms-slides-stage" out:leave>
           <article
-            class="ms-slide my-auto w-full max-w-4xl"
+            class="ms-slide"
+            data-slide={index + 1}
+            data-has-notes={slides[index].notes.length > 0 || undefined}
             use:mount={slides[index].content}
           ></article>
         </div>
@@ -156,44 +205,54 @@
 
   {#if notesOpen}
     <aside
-      class="relative mx-6 mb-3 max-h-[30vh] overflow-y-auto rounded-lg border border-stone-500/15 bg-stone-500/5 px-5 py-3 text-sm"
+      class="ms-slides-notes"
       aria-label={$i18n.t("slides.notes")}
       transition:fly={{ y: 16, duration: 200, easing: cubicOut }}
     >
       {#key index}
         {#if slides[index]?.notes.length}
-          <div class="ms-slide-notes" use:mount={slides[index].notes}></div>
+          <div use:mount={slides[index].notes}></div>
         {:else}
-          <p class="text-stone-500">{$i18n.t("slides.noNotes")}</p>
+          <p>{$i18n.t("slides.noNotes")}</p>
         {/if}
       {/key}
     </aside>
   {/if}
 
-  <footer
-    class="relative flex items-center gap-3 px-6 pb-5 text-xs text-stone-500"
-  >
+  <footer class="ms-slides-bar">
     <button
       type="button"
-      class="grid size-8 place-items-center rounded-md transition-colors hover:bg-stone-500/10 disabled:opacity-30"
+      class="ms-slides-button"
       aria-label={$i18n.t("slides.previous")}
       disabled={index === 0}
       onclick={() => go(index - 1)}
     >
       <ChevronLeft class="size-4" aria-hidden="true" />
     </button>
-    <div class="h-1 flex-1 overflow-hidden rounded-full bg-stone-500/15">
+    <div class="ms-slides-track">
       <div
-        class="h-full rounded-full bg-[var(--ms-accent-color)] transition-[width] duration-500 ease-out"
+        class="ms-slides-progress"
         style:width="{slides.length ? ((index + 1) / slides.length) * 100 : 0}%"
       ></div>
     </div>
-    <span class="w-12 text-center tabular-nums">
+    <span class="ms-slides-counter">
       {slides.length ? index + 1 : 0} / {slides.length}
     </span>
+    {#if themes.length}
+      <select
+        class="ms-slides-theme"
+        aria-label={$i18n.t("slides.theme")}
+        bind:value={theme}
+      >
+        <option value="">{$i18n.t("slides.defaultTheme")}</option>
+        {#each themes as option (option.name)}
+          <option value={option.name}>{option.name}</option>
+        {/each}
+      </select>
+    {/if}
     <button
       type="button"
-      class="grid size-8 place-items-center rounded-md transition-colors hover:bg-stone-500/10 disabled:opacity-30"
+      class="ms-slides-button"
       aria-label={$i18n.t("slides.next")}
       disabled={index >= slides.length - 1}
       onclick={() => go(index + 1)}
@@ -202,7 +261,7 @@
     </button>
     <button
       type="button"
-      class="grid size-8 place-items-center rounded-md transition-colors hover:bg-stone-500/10"
+      class="ms-slides-button"
       aria-label={$i18n.t("slides.toggleNotes")}
       title={$i18n.t("slides.toggleNotes")}
       aria-pressed={notesOpen}
@@ -212,7 +271,7 @@
     </button>
     <button
       type="button"
-      class="grid size-8 place-items-center rounded-md transition-colors hover:bg-stone-500/10"
+      class="ms-slides-button"
       aria-label={$i18n.t("slides.fullscreen")}
       title={$i18n.t("slides.fullscreen")}
       aria-pressed={fullscreen}
@@ -226,7 +285,7 @@
     </button>
     <button
       type="button"
-      class="grid size-8 place-items-center rounded-md transition-colors hover:bg-stone-500/10"
+      class="ms-slides-button"
       aria-label={$i18n.t("slides.close")}
       onclick={onClose}
     >
@@ -234,83 +293,3 @@
     </button>
   </footer>
 </div>
-
-<style>
-  .ms-slides-glow {
-    background:
-      radial-gradient(
-        60rem 40rem at 85% -10%,
-        rgb(var(--ms-accent-soft-rgb) / 0.14),
-        transparent 60%
-      ),
-      radial-gradient(
-        50rem 30rem at -10% 110%,
-        rgb(var(--ms-accent-rgb) / 0.1),
-        transparent 60%
-      );
-  }
-
-  /* The editor's type is sized in rem, so zoom scales a whole slide up. */
-  .ms-slide {
-    zoom: 1.35;
-    font-family: var(--ms-editor-font);
-    line-height: var(--ms-editor-line-height);
-  }
-
-  .ms-slide :global(.ms-slide-block) {
-    animation: ms-slide-rise 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
-    animation-delay: calc(120ms + var(--ms-slide-order) * 45ms);
-  }
-
-  /* Notes are read, not presented: no entrance, no slide-sized headings. */
-  .ms-slide-notes :global(.md-block) {
-    margin: 0;
-    font-size: inherit;
-  }
-
-  .ms-slide :global(.md-h1) {
-    margin-top: 0;
-    margin-bottom: 1.25rem;
-    font-size: 2.75rem;
-  }
-
-  .ms-slide :global(.md-h1)::after {
-    content: "";
-    display: block;
-    width: 3.5rem;
-    height: 0.25rem;
-    margin-top: 0.75rem;
-    border-radius: 999px;
-    background: linear-gradient(
-      90deg,
-      var(--ms-accent-color),
-      var(--ms-accent-soft)
-    );
-    animation: ms-slide-bar 700ms 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
-    transform-origin: left;
-  }
-
-  :global([dir="rtl"]) .ms-slide :global(.md-h1)::after {
-    transform-origin: right;
-  }
-
-  @keyframes ms-slide-rise {
-    from {
-      opacity: 0;
-      transform: translateY(14px);
-    }
-  }
-
-  @keyframes ms-slide-bar {
-    from {
-      transform: scaleX(0);
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .ms-slide :global(.ms-slide-block),
-    .ms-slide :global(.md-h1)::after {
-      animation: none;
-    }
-  }
-</style>

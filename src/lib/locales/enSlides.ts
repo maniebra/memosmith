@@ -14,4 +14,6 @@ export const enSlides = {
   "slides.notes": "Speaker notes",
   "slides.noNotes": "No notes for this slide. Start a line with Note: to add some.",
   "slides.toggleNotes": "Toggle speaker notes (N)",
+  "slides.theme": "Slide theme",
+  "slides.defaultTheme": "Default",
 } as const;

@@ -32,6 +32,7 @@ pub fn run() {
             notes::list_space,
             notes::list_templates,
             notes::list_all_templates,
+            notes::list_slide_themes,
             notes::create_note,
             notes::rename_path,
             notes::delete_path,

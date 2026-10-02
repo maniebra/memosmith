@@ -20,6 +20,92 @@ accounts, no lock-in, nothing leaves your machine unless you want it to.
 - **Make it yours.** Themes, accent colors, fonts, custom keybindings, Vim mode,
   and right-to-left language support.
 
+## Slide themes
+
+With **Slides** turned on in Settings → Features, any note can be presented:
+each `#` heading starts a slide, and a line beginning with `Note:` starts that
+slide's speaker notes (`N` toggles them, `F` goes fullscreen).
+
+A theme is a plain CSS file in your space at `.slides/<name>.css`. Every file
+there shows up in the theme picker at the bottom of the deck; the choice is
+remembered. Themes are re-read each time the deck opens, so edit, close, reopen.
+
+The built-in theme lives in a cascade layer, so **any rule you write wins** —
+no `!important`, no specificity games. You have the whole of CSS: start with
+the variables below, then restyle any element, or bring your own `@keyframes`.
+
+### Variables (set them on `.ms-slides`)
+
+| Variable | What it controls |
+| --- | --- |
+| `--slide-bg`, `--slide-fg`, `--slide-muted` | Background, text, and footer text colours |
+| `--slide-accent`, `--slide-accent-2` | Heading underline gradient and progress bar |
+| `--slide-backdrop` | Any `background` value layered over the slide (gradients, images) |
+| `--slide-font`, `--slide-heading-font`, `--slide-line-height` | Type |
+| `--slide-h1-size`, `--slide-zoom` | Heading size, and the scale of everything on the slide |
+| `--slide-width`, `--slide-padding`, `--slide-align` | Slide width, inner padding, `text-align` |
+| `--slide-enter`, `--slide-leave` | Full `animation` shorthand for a slide coming in and going out |
+| `--slide-block-enter`, `--slide-block-delay`, `--slide-block-stagger` | Per-block entrance animation and its staggering |
+| `--slide-distance` | How far the default enter/leave animations travel |
+| `--slide-direction` | Read-only: `1` going forward, `-1` going back — use it in your keyframes |
+
+### Elements
+
+| Selector | Element |
+| --- | --- |
+| `.ms-slides` | The whole deck |
+| `.ms-slides-backdrop` | Decorative layer behind the slide |
+| `.ms-slides-stage` | Wrapper that animates in and out (`.is-leaving` while leaving) |
+| `.ms-slide` | The slide itself |
+| `.ms-slide-block` | Each block on a slide; `--slide-order` is its position (0–12) |
+| `.md-h1` … `.md-h4`, `.md-bullet`, `.md-quote`, `.md-codeblock`, … | Note content, same classes as the editor |
+| `.ms-slides-notes` | Speaker notes panel |
+| `.ms-slides-bar`, `.ms-slides-button`, `.ms-slides-track`, `.ms-slides-progress`, `.ms-slides-counter`, `.ms-slides-theme` | Footer controls |
+
+### State attributes
+
+`.ms-slides` carries `data-theme`, `data-slide` (1-based), `data-slides` (total),
+`data-first`, `data-last`, `data-direction` (`forward`/`backward`),
+`data-fullscreen` and `data-notes`. `.ms-slide` carries `data-slide` and
+`data-has-notes`. So `.ms-slides[data-first] .ms-slide { … }` styles a title slide,
+and `.ms-slide[data-slide="3"]` targets one slide.
+
+### Example: `.slides/midnight.css`
+
+```css
+.ms-slides {
+  --slide-bg: #0b1020;
+  --slide-fg: #e6e9f5;
+  --slide-muted: #7c86a8;
+  --slide-accent: #ff5f8f;
+  --slide-accent-2: #ffb86b;
+  --slide-backdrop: radial-gradient(circle at 50% 120%, #2a1b4d, transparent 70%);
+  --slide-heading-font: "Georgia", serif;
+  --slide-align: center;
+  --slide-enter: zoom-in 600ms cubic-bezier(0.2, 0.9, 0.2, 1) both;
+  --slide-leave: zoom-out 300ms ease-in both;
+}
+
+.ms-slides[data-first] .md-h1 {
+  font-size: 4.5rem;
+}
+
+.ms-slide .md-h1::after {
+  margin-inline: auto;
+}
+
+@keyframes zoom-in {
+  from { opacity: 0; transform: scale(0.92) rotate(calc(var(--slide-direction) * 2deg)); }
+}
+
+@keyframes zoom-out {
+  to { opacity: 0; transform: scale(1.06); filter: blur(6px); }
+}
+```
+
+Themes are CSS only: no scripts run, so a theme from a shared space can restyle
+the deck but cannot do anything else.
+
 ## Install
 
 Download MemoSmith from the [latest GitHub release](https://github.com/maniebra/memosmith/releases/latest), then choose the asset for your operating system and processor architecture.
