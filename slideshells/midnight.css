@@ -1,0 +1,40 @@
+/* Midnight: deep navy, warm accents, centred serif headings, zoom transitions. */
+.ms-slides {
+  --slide-bg: #0b1020;
+  --slide-fg: #e6e9f5;
+  --slide-muted: #7c86a8;
+  --slide-accent: #ff5f8f;
+  --slide-accent-2: #ffb86b;
+  --slide-surface: rgb(20 26 50 / 0.6);
+  --slide-border: rgb(230 233 245 / 0.08);
+  --slide-backdrop:
+    radial-gradient(circle at 50% 120%, #2a1b4d, transparent 70%),
+    radial-gradient(circle at 10% 0%, rgb(255 95 143 / 0.12), transparent 50%);
+  --slide-heading-font: Georgia, "Times New Roman", serif;
+  --slide-align: center;
+  --slide-enter: midnight-in 600ms cubic-bezier(0.2, 0.9, 0.2, 1) both;
+  --slide-leave: midnight-out 300ms ease-in both;
+}
+
+.ms-slide .md-h1::after {
+  margin-inline: auto;
+}
+
+.ms-slides[data-first] .md-h1 {
+  font-size: 4.5rem;
+}
+
+@keyframes midnight-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92) rotate(calc(var(--slide-direction) * 2deg));
+  }
+}
+
+@keyframes midnight-out {
+  to {
+    opacity: 0;
+    transform: scale(1.06);
+    filter: blur(6px);
+  }
+}

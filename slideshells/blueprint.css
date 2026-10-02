@@ -1,0 +1,86 @@
+/* Blueprint: drafting-table blue, grid paper, white line work, slides drawn upward. */
+.ms-slides {
+  --slide-bg: #12396b;
+  --slide-fg: #eef4ff;
+  --slide-muted: #9db7dc;
+  --slide-accent: #ffffff;
+  --slide-accent-2: #7fc4ff;
+  --slide-surface: rgb(18 57 107 / 0.55);
+  --slide-border: rgb(238 244 255 / 0.6);
+  --slide-shadow: none;
+  --slide-backdrop:
+    linear-gradient(rgb(255 255 255 / 0.12) 1px, transparent 1px) 0 0 / 100px
+      100px,
+    linear-gradient(90deg, rgb(255 255 255 / 0.12) 1px, transparent 1px) 0 0 /
+      100px 100px,
+    linear-gradient(rgb(255 255 255 / 0.05) 1px, transparent 1px) 0 0 / 20px
+      20px,
+    linear-gradient(90deg, rgb(255 255 255 / 0.05) 1px, transparent 1px) 0 0 /
+      20px 20px;
+  --slide-font: "Avenir Next", "Segoe UI", sans-serif;
+  --slide-heading-font: "Courier New", ui-monospace, monospace;
+  --slide-enter: blueprint-draw 700ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --slide-leave: blueprint-lift 300ms ease-in both;
+}
+
+.ms-slides-backdrop {
+  mask-image: none;
+}
+
+.ms-slide {
+  border-style: dashed;
+  border-radius: 0;
+  backdrop-filter: none;
+}
+
+/* A title block, like on a technical drawing. */
+.ms-slide::after {
+  content: "SHEET " attr(data-slide);
+  top: auto;
+  bottom: 0;
+  inset-inline-end: 0;
+  padding: 0.25rem 0.75rem;
+  border-top: 1px solid var(--slide-border);
+  border-inline-start: 1px solid var(--slide-border);
+  font-family: var(--slide-heading-font);
+  font-size: 0.7rem;
+  font-style: normal;
+  letter-spacing: 0.2em;
+  opacity: 0.8;
+}
+
+.ms-slide .md-h1 {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+}
+
+.ms-slide .md-h1::after {
+  width: 100%;
+  height: 1px;
+  background: var(--slide-fg);
+}
+
+.ms-slide .md-h2 {
+  color: var(--slide-accent-2);
+}
+
+.ms-slides[data-first] .md-h1 {
+  background: none;
+  color: var(--slide-fg);
+}
+
+@keyframes blueprint-draw {
+  from {
+    opacity: 0;
+    clip-path: inset(100% 0 0 0);
+    transform: translateY(20px);
+  }
+}
+
+@keyframes blueprint-lift {
+  to {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+}

@@ -80,6 +80,10 @@ Anything you leave out falls back to the built-in shell.
 `data-has-notes`. So `.ms-slides[data-first] .ms-slide { … }` styles a title slide,
 and `.ms-slide[data-slide="3"]` targets one slide.
 
+Ready-made shells live in [`slideshells/`](slideshells/) — `midnight`,
+`swiss`, `terminal` and `blueprint`. Copy any of them into your space's
+`.slide-shells/` folder to use it, or as a starting point for your own.
+
 ### Example: `.slide-shells/midnight.css`
 
 ```css

@@ -1,0 +1,103 @@
+/* Terminal: phosphor green on black, monospace, scanlines and a typed-in feel. */
+.ms-slides {
+  --slide-bg: #050805;
+  --slide-fg: #b6f7c1;
+  --slide-muted: #4f8a5a;
+  --slide-accent: #39ff6a;
+  --slide-accent-2: #39ff6a;
+  --slide-surface: rgb(10 20 12 / 0.7);
+  --slide-border: rgb(57 255 106 / 0.25);
+  --slide-shadow: 0 0 40px rgb(57 255 106 / 0.08);
+  --slide-backdrop:
+    repeating-linear-gradient(
+      0deg,
+      rgb(0 0 0 / 0.25) 0 1px,
+      transparent 1px 3px
+    ),
+    radial-gradient(ellipse at center, rgb(57 255 106 / 0.08), transparent 70%);
+  --slide-font: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+  --slide-heading-font: var(--slide-font);
+  --slide-h1-size: 2.25rem;
+  --slide-enter: terminal-boot 380ms steps(6, end) both;
+  --slide-leave: terminal-off 160ms ease-in both;
+  --slide-block-enter: terminal-type 500ms steps(12, end) both;
+  --slide-block-stagger: 120ms;
+}
+
+/* Same look in light mode: a terminal is a terminal. */
+.ms-slide {
+  border-radius: 0.25rem;
+  text-shadow: 0 0 6px rgb(57 255 106 / 0.35);
+}
+
+.ms-slide::before {
+  content: "~/slides $";
+  inset: auto;
+  top: 0.75rem;
+  left: 1.25rem;
+  height: auto;
+  background: none;
+  color: var(--slide-muted);
+  font-size: 0.75rem;
+  opacity: 1;
+}
+
+.ms-slide .md-h1::before {
+  content: "> ";
+  color: var(--slide-accent);
+}
+
+/* A blinking caret instead of the underline. */
+.ms-slide .md-h1::after {
+  display: inline-block;
+  width: 0.55em;
+  height: 1em;
+  margin: 0 0 -0.12em 0.2em;
+  border-radius: 0;
+  background: var(--slide-accent);
+  animation: terminal-blink 1s steps(1) infinite;
+}
+
+.ms-slide .md-h2 {
+  color: var(--slide-accent);
+}
+
+.ms-slide .md-bullet::before {
+  content: "$  ";
+}
+
+.ms-slides[data-first] .md-h1 {
+  background: none;
+  color: var(--slide-accent);
+}
+
+.ms-slides-progress {
+  background: var(--slide-accent);
+}
+
+@keyframes terminal-boot {
+  from {
+    opacity: 0;
+    transform: scaleY(0.02);
+    filter: brightness(3);
+  }
+}
+
+@keyframes terminal-off {
+  to {
+    opacity: 0;
+    transform: scaleY(0.02);
+  }
+}
+
+@keyframes terminal-type {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+}
+
+@keyframes terminal-blink {
+  50% {
+    opacity: 0;
+  }
+}
